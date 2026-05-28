@@ -61,6 +61,7 @@ const TILESETS = {
   light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
 };
+const NAVIGATION_FOLLOW_MIN_ZOOM = 17;
 
 const labelHtml = (he: string, en?: string) =>
   `<span class="label-he">${he}</span>${en ? `<span class="label-en">${en}</span>` : ''}`;
@@ -80,6 +81,7 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
 export default function MapView(props: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
 
   const layersRef = useRef<{
     base?: L.TileLayer;
@@ -493,13 +495,16 @@ export default function MapView(props: MapProps) {
       }),
       interactive: false,
     }).addTo(group);
-    map.fitBounds(line, { padding: [60, 60], maxZoom: 13, animate: true });
-  }, [props.navigationRoute]);
+    if (!props.liveLocation) {
+      map.fitBounds(line, { padding: [60, 60], maxZoom: 13, animate: true });
+    }
+  }, [props.navigationRoute, Boolean(props.liveLocation)]);
 
   // ---- live device location while navigating ----
   useEffect(() => {
     const group = layersRef.current.live;
-    if (!group) return;
+    const map = mapRef.current;
+    if (!group || !map) return;
     group.clearLayers();
     if (!props.liveLocation || !props.navigationRoute) return;
     const p: [number, number] = [props.liveLocation.lat, props.liveLocation.lon];
@@ -529,6 +534,18 @@ export default function MapView(props: MapProps) {
         fillColor: '#4fb3a6',
         fillOpacity: 0.08,
       }).addTo(group);
+    }
+    const previousFollow = lastLiveFollowRef.current;
+    const now = Date.now();
+    const movedEnough = !previousFollow || Math.abs(previousFollow.lat - p[0]) > 0.00002 || Math.abs(previousFollow.lon - p[1]) > 0.00002;
+    const timeEnough = !previousFollow || now - previousFollow.at > 1500;
+    const targetZoom = Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
+    if (movedEnough || timeEnough || map.getZoom() < NAVIGATION_FOLLOW_MIN_ZOOM) {
+      map.flyTo(p, targetZoom, {
+        animate: true,
+        duration: 0.45,
+      });
+      lastLiveFollowRef.current = { lat: p[0], lon: p[1], at: now };
     }
   }, [props.liveLocation, props.navigationRoute, props.mapBearing]);
 

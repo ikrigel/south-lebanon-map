@@ -1840,7 +1840,7 @@ export default function App() {
               {locationStatus !== 'idle' && (
                 <div className="route-summary compact" data-testid="text-location-status">
                   {locationStatus === 'watching' && liveLocation && (
-                    <span>מיקום חי פעיל · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
+                    <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום ניווט · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
                   )}
                   {locationStatus === 'watching' && !liveLocation && <span>ממתין להרשאת מיקום מהמכשיר…</span>}
                   {locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן.</span>}
@@ -1992,7 +1992,7 @@ export default function App() {
                 </div>
               )}
               <p className="legend-note">
-                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
+                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. כאשר מיקום חי פעיל, המפה מתמקדת אוטומטית בסמן המכשיר בזום ניווט קרוב. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
               </p>
             </div>
           </div>
