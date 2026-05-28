@@ -45,6 +45,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   into sub-layers for settlements/villages, ridges/mountains/valleys and
   wadis/streams/rivers. Normal mode shows a broader curated set of key village
   labels across western, central, eastern, Nabatieh and Zahrani/Sidon sectors.
+  The dataset includes additional labels around the Silvester Ridge and Beit
+  Yahoun area for denser Hebrew orientation.
   The “all labels” mode exposes the full label dataset without increasing text
   size, while large label mode enlarges labels and adds English transliteration.
 - **Map search and focus** – a dedicated map search centers and zooms to
