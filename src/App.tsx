@@ -566,8 +566,10 @@ export default function App() {
   const lastTurnVoiceRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
   const resumedLiveRef = useRef(false);
   const resumedRecordingRef = useRef(false);
+  const toastTimeoutRef = useRef<number | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const [donationCopied, setDonationCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [addPoiMode, setAddPoiMode] = useState(false);
   const [poiDraft, setPoiDraft] = useState<{ lat: number; lon: number } | null>(null);
   const [poiName, setPoiName] = useState('');
@@ -625,6 +627,9 @@ export default function App() {
       }
       if (recordingWatchId !== null && 'geolocation' in navigator) {
         navigator.geolocation.clearWatch(recordingWatchId);
+      }
+      if (toastTimeoutRef.current !== null) {
+        window.clearTimeout(toastTimeoutRef.current);
       }
     };
   }, [watchId, recordingWatchId]);
@@ -1426,6 +1431,14 @@ export default function App() {
       ...DEFAULT_MAP_VIEW,
       id: `reset-view-${Date.now()}`,
     });
+    setToastMessage('התצוגה אופסה לברירת המחדל');
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage('');
+      toastTimeoutRef.current = null;
+    }, 2600);
   }, []);
 
   const miniNavSvgMarkup = () => {
@@ -2514,6 +2527,12 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {toastMessage && (
+        <div className="app-toast" role="status" aria-live="polite" data-testid="toast-message">
+          {toastMessage}
+        </div>
+      )}
 
       {miniOverlayOpen && (
         <div className="mini-overlay" data-testid="mini-overlay" role="dialog" aria-live="polite" aria-label="חלון מוקטן למצב ניווט">
