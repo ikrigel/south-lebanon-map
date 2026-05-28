@@ -39,6 +39,7 @@ export type MapProps = {
   liveLocation: { lat: number; lon: number; accuracy?: number; heading?: number | null } | null;
   liveCenterRequestId: number;
   onLiveFollowDetachedChange: (detached: boolean) => void;
+  onMapViewChange: (view: { lat: number; lon: number; zoom: number }) => void;
   recordedTrack: [number, number][];
   compassMode: boolean;
   mapBearing: number;
@@ -250,7 +251,18 @@ export default function MapView(props: MapProps) {
     layersRef.current.recording.addTo(map);
     layersRef.current.pois.addTo(map);
 
+    const reportView = () => {
+      const center = map.getCenter();
+      props.onMapViewChange({
+        lat: center.lat,
+        lon: center.lng,
+        zoom: map.getZoom(),
+      });
+    };
+    map.on('moveend zoomend', reportView);
+
     return () => {
+      map.off('moveend zoomend', reportView);
       map.remove();
       mapRef.current = null;
     };

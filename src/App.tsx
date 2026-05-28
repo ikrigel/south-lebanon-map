@@ -18,6 +18,7 @@ const NAV_SESSION_KEY = 'south-lebanon-map:navigation-session:v1';
 const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
 const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
 const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
+const MAP_VIEW_STORAGE_KEY = 'south-lebanon-map:last-map-view:v1';
 const DEFAULT_THEME_MODE: ThemeMode = 'dark';
 const DEFAULT_MAP_VIEW = { lat: 33.25, lon: 35.38, zoom: 10 };
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
@@ -111,6 +112,11 @@ type LocalRecordingSession = {
   recordingName?: string;
   recordedTrack?: [number, number][];
   recordingActive?: boolean;
+};
+type LocalMapView = {
+  lat: number;
+  lon: number;
+  zoom: number;
 };
 const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   pop: true,
@@ -429,6 +435,33 @@ const loadLocalLayerVisibility = (): LayerVis => {
   }
 };
 
+const loadLocalMapView = (): LocalMapView | null => {
+  try {
+    const raw = safeStorageGet(MAP_VIEW_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LocalMapView>;
+    if (
+      typeof parsed.lat !== 'number' ||
+      typeof parsed.lon !== 'number' ||
+      typeof parsed.zoom !== 'number' ||
+      !isFinite(parsed.lat) ||
+      !isFinite(parsed.lon) ||
+      !isFinite(parsed.zoom) ||
+      Math.abs(parsed.lat) > 90 ||
+      Math.abs(parsed.lon) > 180
+    ) {
+      return null;
+    }
+    return {
+      lat: parsed.lat,
+      lon: parsed.lon,
+      zoom: Math.min(19, Math.max(9, Math.round(parsed.zoom * 100) / 100)),
+    };
+  } catch {
+    return null;
+  }
+};
+
 const normalizeRoutePath = (path: unknown): [number, number][] | undefined => {
   if (!Array.isArray(path)) return undefined;
   const points = path.slice(0, MAX_ROUTE_POINTS).filter((p): p is [number, number] =>
@@ -509,6 +542,8 @@ export default function App() {
   if (initialNavSessionRef.current === null) initialNavSessionRef.current = loadLocalNavSession();
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
   if (initialRecordingSessionRef.current === null) initialRecordingSessionRef.current = loadLocalRecordingSession();
+  const initialMapViewRef = useRef<LocalMapView | null>(null);
+  if (initialMapViewRef.current === null) initialMapViewRef.current = loadLocalMapView();
 
   // -------- layer toggles --------
   const [visible, setVisible] = useState<LayerVis>(() => loadLocalLayerVisibility());
@@ -536,7 +571,11 @@ export default function App() {
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
   const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
-  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string } | null>(null);
+  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string } | null>(() =>
+    initialMapViewRef.current
+      ? { ...initialMapViewRef.current, id: 'restore-last-map-view' }
+      : null
+  );
   const [liveFollowDetached, setLiveFollowDetached] = useState(false);
   const [liveCenterRequestId, setLiveCenterRequestId] = useState(0);
   const [navStartId, setNavStartId] = useState(() => initialNavSessionRef.current?.navStartId ?? '');
@@ -566,6 +605,8 @@ export default function App() {
   const lastTurnVoiceRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
   const resumedLiveRef = useRef(false);
   const resumedRecordingRef = useRef(false);
+  const liveToastShownRef = useRef(false);
+  const recordingToastShownRef = useRef(false);
   const toastTimeoutRef = useRef<number | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const [donationCopied, setDonationCopied] = useState(false);
@@ -578,6 +619,34 @@ export default function App() {
   const [poiMarkerShape, setPoiMarkerShape] = useState<PoiShape>('circle');
   const [poiMarkerSize, setPoiMarkerSize] = useState<PoiSize>('md');
   const [customPois, setCustomPois] = useState<CustomPoi[]>(() => loadLocalPois());
+
+  const showToast = useCallback((message: string, timeoutMs = 2600) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current !== null) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage('');
+      toastTimeoutRef.current = null;
+    }, timeoutMs);
+  }, []);
+
+  const handleMapViewChange = useCallback((view: LocalMapView) => {
+    if (
+      !isFinite(view.lat) ||
+      !isFinite(view.lon) ||
+      !isFinite(view.zoom) ||
+      Math.abs(view.lat) > 90 ||
+      Math.abs(view.lon) > 180
+    ) {
+      return;
+    }
+    safeStorageSet(MAP_VIEW_STORAGE_KEY, {
+      lat: Math.round(view.lat * 1000000) / 1000000,
+      lon: Math.round(view.lon * 1000000) / 1000000,
+      zoom: Math.min(19, Math.max(9, Math.round(view.zoom * 100) / 100)),
+    } satisfies LocalMapView);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setAutoDay(isDaytime()), 60_000);
@@ -628,11 +697,16 @@ export default function App() {
       if (recordingWatchId !== null && 'geolocation' in navigator) {
         navigator.geolocation.clearWatch(recordingWatchId);
       }
+    };
+  }, [watchId, recordingWatchId]);
+
+  useEffect(() => {
+    return () => {
       if (toastTimeoutRef.current !== null) {
         window.clearTimeout(toastTimeoutRef.current);
       }
     };
-  }, [watchId, recordingWatchId]);
+  }, []);
 
   useEffect(() => {
     recordedTrackRef.current = recordedTrack;
@@ -1140,6 +1214,7 @@ export default function App() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    showToast('קובץ JSON מוכן לשיתוף או הורדה');
   };
 
   const saveCurrentRoute = () => {
@@ -1161,6 +1236,7 @@ export default function App() {
     setSavedRoutes(prev => [route, ...prev]);
     setActiveSavedRoute(route);
     setRouteName('');
+    showToast(`המסלול “${route.name}” נשמר בזיכרון המקומי`);
   };
 
   const loadSavedRoute = (route: SavedRoute) => {
@@ -1177,11 +1253,13 @@ export default function App() {
       zoom: 11,
       id: `saved-${route.id}-${Date.now()}`,
     });
+    showToast(`המסלול “${route.name}” נטען למפה`);
   };
 
   const beginLiveLocationWatch = () => {
     if (!('geolocation' in navigator)) {
       setLocationStatus('unsupported');
+      showToast('הדפדפן אינו תומך במיקום חי');
       return null;
     }
     const id = navigator.geolocation.watchPosition(
@@ -1193,8 +1271,15 @@ export default function App() {
           heading: pos.coords.heading,
         });
         setLocationStatus('watching');
+        if (!liveToastShownRef.current) {
+          liveToastShownRef.current = true;
+          showToast('מיקום חי הופעל והמפה תתמקד בסמן');
+        }
       },
-      () => setLocationStatus('error'),
+      () => {
+        setLocationStatus('error');
+        showToast('לא ניתן לקרוא מיקום. בדוק הרשאת מיקום בדפדפן');
+      },
       { enableHighAccuracy: true, maximumAge: 5_000, timeout: 15_000 }
     );
     setWatchId(id);
@@ -1209,9 +1294,13 @@ export default function App() {
       setLocationStatus('idle');
       setLiveLocation(null);
       setLiveFollowDetached(false);
+      liveToastShownRef.current = false;
+      showToast('מיקום חי כובה');
       return;
     }
     setLiveFollowDetached(false);
+    liveToastShownRef.current = false;
+    showToast('מבקש הרשאת מיקום מהמכשיר…');
     beginLiveLocationWatch();
   };
 
@@ -1229,11 +1318,13 @@ export default function App() {
       zoom: 17,
       id: `live-center-${Date.now()}`,
     });
-  }, [liveLocation]);
+    showToast('המפה חזרה להתמקד במיקום החי');
+  }, [liveLocation, showToast]);
 
   const beginRecordingWatch = (resetTrack: boolean) => {
     if (!('geolocation' in navigator)) {
       setRecordingStatus('unsupported');
+      showToast('הדפדפן אינו תומך בהקלטת מיקום');
       return null;
     }
     if (recordingWatchId !== null) return;
@@ -1256,8 +1347,15 @@ export default function App() {
           return [...prev, point].slice(-10000);
         });
         setRecordingStatus('recording');
+        if (!recordingToastShownRef.current) {
+          recordingToastShownRef.current = true;
+          showToast('הקלטת המסלול החלה');
+        }
       },
-      () => setRecordingStatus('error'),
+      () => {
+        setRecordingStatus('error');
+        showToast('לא ניתן להקליט מיקום. בדוק הרשאת GPS בדפדפן');
+      },
       { enableHighAccuracy: true, maximumAge: 2_000, timeout: 15_000 }
     );
     setRecordingWatchId(id);
@@ -1266,6 +1364,8 @@ export default function App() {
   };
 
   const startRecording = () => {
+    recordingToastShownRef.current = false;
+    showToast('מבקש הרשאת מיקום ומתחיל הקלטה…');
     beginRecordingWatch(true);
   };
 
@@ -1275,6 +1375,7 @@ export default function App() {
     }
     setRecordingWatchId(null);
     setRecordingStatus('idle');
+    showToast('הקלטת המסלול נעצרה');
   };
 
   const recordingToRoute = (): SavedRoute | null => {
@@ -1299,16 +1400,25 @@ export default function App() {
     setSavedRoutes(prev => [route, ...prev]);
     setActiveSavedRoute(route);
     setRecordingName('');
+    showToast(`ההקלטה “${route.name}” נשמרה כמסלול`);
   };
 
   const importRoutes = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > MAX_ROUTE_FILE_BYTES) {
       setRouteStatus('error');
+      showToast('קובץ המסלול גדול מדי לייבוא');
       return;
     }
-    const text = await file.text();
-    const data = JSON.parse(text);
+    let data: unknown;
+    try {
+      const text = await file.text();
+      data = JSON.parse(text);
+    } catch {
+      setRouteStatus('error');
+      showToast('לא ניתן לקרוא את קובץ המסלול');
+      return;
+    }
     const routes = (Array.isArray(data) ? data : [data]).slice(0, MAX_IMPORTED_ROUTES);
     const valid = routes.filter((r: SavedRoute) =>
       r &&
@@ -1354,7 +1464,12 @@ export default function App() {
         : undefined,
       instructions: normalizeRouteInstructions(r.instructions),
     }));
-    if (valid.length) setSavedRoutes(prev => [...valid, ...prev]);
+    if (valid.length) {
+      setSavedRoutes(prev => [...valid, ...prev]);
+      showToast(`${valid.length} מסלולים יובאו בהצלחה`);
+    } else {
+      showToast('לא נמצאו מסלולים תקינים בקובץ');
+    }
   };
 
   const savePoi = () => {
@@ -1377,16 +1492,31 @@ export default function App() {
     setPoiName('');
     setPoiDescription('');
     setAddPoiMode(false);
+    showToast(`נקודת העניין “${poi.name}” נשמרה`);
   };
 
   const importPois = async (file: File | undefined) => {
     if (!file) return;
-    if (file.size > MAX_POI_FILE_BYTES) return;
-    const text = await file.text();
-    const data = JSON.parse(text);
+    if (file.size > MAX_POI_FILE_BYTES) {
+      showToast('קובץ נקודות העניין גדול מדי לייבוא');
+      return;
+    }
+    let data: unknown;
+    try {
+      const text = await file.text();
+      data = JSON.parse(text);
+    } catch {
+      showToast('לא ניתן לקרוא את קובץ נקודות העניין');
+      return;
+    }
     const items = (Array.isArray(data) ? data : [data]).slice(0, MAX_IMPORTED_POIS);
     const valid = items.map(normalizePoi).filter((p): p is CustomPoi => Boolean(p));
-    if (valid.length) setCustomPois(prev => [...valid, ...prev]);
+    if (valid.length) {
+      setCustomPois(prev => [...valid, ...prev]);
+      showToast(`${valid.length} נקודות עניין יובאו בהצלחה`);
+    } else {
+      showToast('לא נמצאו נקודות עניין תקינות בקובץ');
+    }
   };
 
   const shareCurrentApp = async () => {
@@ -1431,15 +1561,8 @@ export default function App() {
       ...DEFAULT_MAP_VIEW,
       id: `reset-view-${Date.now()}`,
     });
-    setToastMessage('התצוגה אופסה לברירת המחדל');
-    if (toastTimeoutRef.current !== null) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastMessage('');
-      toastTimeoutRef.current = null;
-    }, 2600);
-  }, []);
+    showToast('התצוגה אופסה לברירת המחדל');
+  }, [showToast]);
 
   const miniNavSvgMarkup = () => {
     const routePoints = navigationRoute?.path && navigationRoute.path.length >= 2
@@ -1640,11 +1763,11 @@ export default function App() {
   useEffect(() => {
     if (resumedLiveRef.current) return;
     resumedLiveRef.current = true;
-    if (initialNavSessionRef.current?.liveActive && navigationRoute && watchId === null) {
+    if (initialNavSessionRef.current?.liveActive && watchId === null) {
       beginLiveLocationWatch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigationRoute]);
+  }, []);
 
   useEffect(() => {
     if (resumedRecordingRef.current) return;
@@ -1888,6 +2011,7 @@ export default function App() {
                       zoom: 11,
                       id: `route-${Date.now()}`,
                     });
+                    showToast('המפה מוקדה למסלול הכבישים');
                   }}
                   data-testid="button-route-focus"
                 >
@@ -1911,6 +2035,7 @@ export default function App() {
                     setRoadRoute(null);
                     setActiveSavedRoute(null);
                     setRouteStatus('idle');
+                    showToast('בחירת המסלול אופסה');
                   }}
                   data-testid="button-route-clear"
                 >
@@ -2082,7 +2207,10 @@ export default function App() {
                       </button>
                       <button
                         className="mini-delete"
-                        onClick={() => setSavedRoutes(prev => prev.filter(r => r.id !== route.id))}
+                        onClick={() => {
+                          setSavedRoutes(prev => prev.filter(r => r.id !== route.id));
+                          showToast(`המסלול “${route.name}” נמחק מהרשימה המקומית`);
+                        }}
                         data-testid={`button-delete-route-${route.id}`}
                         aria-label={`מחיקת ${route.name}`}
                       >
@@ -2113,7 +2241,10 @@ export default function App() {
                 <button
                   className="btn ghost"
                   disabled={recordedTrack.length === 0}
-                  onClick={() => setRecordedTrack([])}
+                  onClick={() => {
+                    setRecordedTrack([]);
+                    showToast('ההקלטה המקומית נוקתה');
+                  }}
                   data-testid="button-clear-recording"
                 >
                   נקה הקלטה
@@ -2168,6 +2299,7 @@ export default function App() {
                       setMeasureMode(false);
                       setManualMeasure([]);
                     }
+                    showToast(addPoiMode ? 'מצב הוספת נקודה כובה' : 'לחץ על המפה כדי לבחור נקודת עניין');
                   }}
                   aria-pressed={addPoiMode}
                   data-testid="button-add-poi-mode"
@@ -2177,7 +2309,10 @@ export default function App() {
                 <button
                   className="btn ghost"
                   disabled={!poiDraft}
-                  onClick={() => setPoiDraft(null)}
+                  onClick={() => {
+                    setPoiDraft(null);
+                    showToast('בחירת נקודת העניין נוקתה');
+                  }}
                   data-testid="button-clear-poi-draft"
                 >
                   נקה בחירה
@@ -2301,7 +2436,10 @@ export default function App() {
                   {customPois.map(poi => (
                     <div className="saved-route" key={poi.id}>
                       <button
-                        onClick={() => setFocusTarget({ lat: poi.lat, lon: poi.lon, zoom: 14, id: `focus-${poi.id}-${Date.now()}` })}
+                        onClick={() => {
+                          setFocusTarget({ lat: poi.lat, lon: poi.lon, zoom: 14, id: `focus-${poi.id}-${Date.now()}` });
+                          showToast(`המפה מוקדה על “${poi.name}”`);
+                        }}
                         data-testid={`button-focus-poi-${poi.id}`}
                       >
                         <strong>{poi.name}</strong>
@@ -2309,7 +2447,10 @@ export default function App() {
                       </button>
                       <button
                         className="mini-delete"
-                        onClick={() => setCustomPois(prev => prev.filter(p => p.id !== poi.id))}
+                        onClick={() => {
+                          setCustomPois(prev => prev.filter(p => p.id !== poi.id));
+                          showToast(`נקודת העניין “${poi.name}” נמחקה`);
+                        }}
                         data-testid={`button-delete-poi-${poi.id}`}
                         aria-label={`מחיקת ${poi.name}`}
                       >
@@ -2460,6 +2601,7 @@ export default function App() {
           liveLocation={liveLocation}
           liveCenterRequestId={liveCenterRequestId}
           onLiveFollowDetachedChange={handleLiveFollowDetachedChange}
+          onMapViewChange={handleMapViewChange}
           recordedTrack={recordedTrack}
           compassMode={compassMode}
           mapBearing={mapBearing}

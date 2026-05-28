@@ -37,6 +37,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   visibility is persisted in browser-local storage and restored on reopen.
 - **Responsive mobile map** – collapsible panels and a floating menu button so
   the map can use most of the screen on phones.
+- **Last map view restore** – the latest map center and zoom are persisted in
+  browser-local storage and restored after reopening the app.
 - **Topographic mode** – optional OpenTopoMap basemap for terrain and relief
   analysis, with closer zoom support.
 - **Hebrew city-label layer** – separate Hebrew labels layer for easier search
@@ -45,6 +47,10 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   influence zones and user-created points of interest.
 - **Theme modes** – dark, light and automatic day/night mode, persisted in
   browser-local storage so the app reopens in the last selected display mode.
+- **Toast feedback** – key actions now show short, accessible confirmation or
+  error messages, including route save/load/delete/import/export, live location
+  activation and permission errors, route recording, point-of-interest
+  save/delete/import/export and reset view.
 - **Reset view** – restores default layer visibility, dark mode, label size,
   compass orientation, manual measurement state and broad map focus without
   deleting routes, recordings or custom points of interest. A short toast
@@ -68,6 +74,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   exist.
 - **Navigation session persistence** – active origin/destination, route name and
   route geometry are saved in browser-local storage and restored after reload
+  Live-location state is restored even when no navigation route is active, when
+  the browser still allows geolocation access.
   when storage is available.
 - **Compass mode** – toggle between north-up and travel-heading map rotation.
 - **Live location** – when permission is granted, the device appears as an
