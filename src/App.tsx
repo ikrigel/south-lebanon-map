@@ -18,6 +18,8 @@ const NAV_SESSION_KEY = 'south-lebanon-map:navigation-session:v1';
 const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
 const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
 const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
+const DEFAULT_THEME_MODE: ThemeMode = 'dark';
+const DEFAULT_MAP_VIEW = { lat: 33.25, lon: 35.38, zoom: 10 };
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
 const POI_COLORS = [
   { value: '#f6c453', label: 'זהב' },
@@ -398,11 +400,11 @@ const safeStorageSet = (key: string, value: unknown) => {
 const loadLocalThemeMode = (): ThemeMode => {
   try {
     const raw = safeStorageGet(THEME_STORAGE_KEY);
-    if (!raw) return 'dark';
+    if (!raw) return DEFAULT_THEME_MODE;
     const parsed = JSON.parse(raw);
-    return parsed === 'light' || parsed === 'dark' || parsed === 'auto' ? parsed : 'dark';
+    return parsed === 'light' || parsed === 'dark' || parsed === 'auto' ? parsed : DEFAULT_THEME_MODE;
   } catch {
-    return 'dark';
+    return DEFAULT_THEME_MODE;
   }
 };
 
@@ -1411,6 +1413,21 @@ export default function App() {
   const visibleKey = (k: keyof LayerVis) => () =>
     setVisible(v => ({ ...v, [k]: !v[k] }));
 
+  const resetView = useCallback(() => {
+    setVisible({ ...DEFAULT_LAYER_VISIBILITY });
+    setThemeMode(DEFAULT_THEME_MODE);
+    setLargeLabels(false);
+    setCompassMode(false);
+    setMeasureMode(false);
+    setManualMeasure([]);
+    setSelectedId(null);
+    setLiveFollowDetached(false);
+    setFocusTarget({
+      ...DEFAULT_MAP_VIEW,
+      id: `reset-view-${Date.now()}`,
+    });
+  }, []);
+
   const miniNavSvgMarkup = () => {
     const routePoints = navigationRoute?.path && navigationRoute.path.length >= 2
       ? navigationRoute.path
@@ -1668,6 +1685,14 @@ export default function App() {
               </button>
             ))}
           </div>
+          <button
+            className="btn ghost"
+            onClick={resetView}
+            data-testid="button-reset-view"
+            title="איפוס שכבות, בהירות, מצפן ומיקוד המפה"
+          >
+            איפוס תצוגה
+          </button>
           <a
             className="btn portfolio-link"
             href="https://portfolio-dusky-eight-77.vercel.app/"

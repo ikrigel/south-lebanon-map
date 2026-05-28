@@ -45,6 +45,9 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   influence zones and user-created points of interest.
 - **Theme modes** – dark, light and automatic day/night mode, persisted in
   browser-local storage so the app reopens in the last selected display mode.
+- **Reset view** – restores default layer visibility, dark mode, label size,
+  compass orientation, manual measurement state and broad map focus without
+  deleting routes, recordings or custom points of interest.
 - **Large labels** – enlarged Hebrew labels with English/transliterated names.
 - **Mini navigation window** – “חלון מוקטן” opens an in-app floating mini
   navigation overlay on mobile browsers, including Chrome and Samsung Internet,
@@ -152,6 +155,7 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - `button-support`, `drawer-support`, `link-donate-contact`, `button-share-app`
 - `button-compass`, `button-live-location`
 - `button-center-live`
+- `button-reset-view`
 - `button-voice-off`, `button-voice-basic`, `button-voice-detailed`,
   `button-voice-lang-he`, `button-voice-lang-en`, `button-voice-test`,
   `text-voice-status`, `turn-instruction-card`, `text-turn-instruction`
