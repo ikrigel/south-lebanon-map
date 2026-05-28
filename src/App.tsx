@@ -17,6 +17,7 @@ const POI_STORAGE_KEY = 'south-lebanon-map:custom-pois:v1';
 const NAV_SESSION_KEY = 'south-lebanon-map:navigation-session:v1';
 const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
 const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
+const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
 const POI_COLORS = [
   { value: '#f6c453', label: 'זהב' },
@@ -108,6 +109,15 @@ type LocalRecordingSession = {
   recordingName?: string;
   recordedTrack?: [number, number][];
   recordingActive?: boolean;
+};
+const DEFAULT_LAYER_VISIBILITY: LayerVis = {
+  pop: true,
+  unifil: true,
+  hez: true,
+  blueLine: true,
+  litani: true,
+  topo: false,
+  cityLabels: true,
 };
 
 const isDaytime = () => {
@@ -396,6 +406,27 @@ const loadLocalThemeMode = (): ThemeMode => {
   }
 };
 
+const loadLocalLayerVisibility = (): LayerVis => {
+  try {
+    const raw = safeStorageGet(LAYER_VIS_STORAGE_KEY);
+    if (!raw) return DEFAULT_LAYER_VISIBILITY;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return DEFAULT_LAYER_VISIBILITY;
+    const candidate = parsed as Partial<Record<keyof LayerVis, unknown>>;
+    return {
+      pop: typeof candidate.pop === 'boolean' ? candidate.pop : DEFAULT_LAYER_VISIBILITY.pop,
+      unifil: typeof candidate.unifil === 'boolean' ? candidate.unifil : DEFAULT_LAYER_VISIBILITY.unifil,
+      hez: typeof candidate.hez === 'boolean' ? candidate.hez : DEFAULT_LAYER_VISIBILITY.hez,
+      blueLine: typeof candidate.blueLine === 'boolean' ? candidate.blueLine : DEFAULT_LAYER_VISIBILITY.blueLine,
+      litani: typeof candidate.litani === 'boolean' ? candidate.litani : DEFAULT_LAYER_VISIBILITY.litani,
+      topo: typeof candidate.topo === 'boolean' ? candidate.topo : DEFAULT_LAYER_VISIBILITY.topo,
+      cityLabels: typeof candidate.cityLabels === 'boolean' ? candidate.cityLabels : DEFAULT_LAYER_VISIBILITY.cityLabels,
+    };
+  } catch {
+    return DEFAULT_LAYER_VISIBILITY;
+  }
+};
+
 const normalizeRoutePath = (path: unknown): [number, number][] | undefined => {
   if (!Array.isArray(path)) return undefined;
   const points = path.slice(0, MAX_ROUTE_POINTS).filter((p): p is [number, number] =>
@@ -478,15 +509,7 @@ export default function App() {
   if (initialRecordingSessionRef.current === null) initialRecordingSessionRef.current = loadLocalRecordingSession();
 
   // -------- layer toggles --------
-  const [visible, setVisible] = useState<LayerVis>({
-    pop: true,
-    unifil: true,
-    hez: true,
-    blueLine: true,
-    litani: true,
-    topo: false,
-    cityLabels: true,
-  });
+  const [visible, setVisible] = useState<LayerVis>(() => loadLocalLayerVisibility());
 
   // -------- filters --------
   const minYear = Math.min(...incidents.map(i => i.year));
@@ -564,6 +587,10 @@ export default function App() {
   useEffect(() => {
     safeStorageSet(THEME_STORAGE_KEY, themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    safeStorageSet(LAYER_VIS_STORAGE_KEY, visible);
+  }, [visible]);
 
   useEffect(() => {
     safeStorageSet(NAV_SESSION_KEY, {

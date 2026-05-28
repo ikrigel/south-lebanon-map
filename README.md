@@ -33,7 +33,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 ## Main user features
 
 - **Layered map** – population, UNIFIL reference points, Hezbollah influence
-  zones, Blue Line, Litani River and filtered incident markers.
+  zones, Blue Line, Litani River and filtered incident markers. Layer
+  visibility is persisted in browser-local storage and restored on reopen.
 - **Responsive mobile map** – collapsible panels and a floating menu button so
   the map can use most of the screen on phones.
 - **Topographic mode** – optional OpenTopoMap basemap for terrain and relief
