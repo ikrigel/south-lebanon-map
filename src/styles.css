@@ -326,6 +326,28 @@ body {
 .search-result:hover { border-color: var(--accent); background: var(--bg-3); }
 .search-result span { display: block; font-size: 12px; font-weight: 700; line-height: 1.35; }
 .search-result small { display: block; color: var(--text-muted); font-size: 11px; line-height: 1.35; margin-top: 2px; }
+.search-result-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.search-result-row .search-result {
+  flex: 1;
+  margin-bottom: 0;
+}
+.navigate-here-btn {
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+  white-space: nowrap;
+  align-self: stretch;
+  background: rgba(110, 209, 194, 0.12) !important;
+  border-color: rgba(110, 209, 194, 0.3) !important;
+  color: var(--accent-hi) !important;
+}
+.navigate-here-btn:hover {
+  background: rgba(110, 209, 194, 0.22) !important;
+}
 
 /* ------- Road routing ------- */
 .route-form { display: grid; gap: 10px; min-width: 0; max-width: 100%; }

@@ -123,6 +123,18 @@ type LocalLabelPreferences = {
   largeLabels?: boolean;
   allLabels?: boolean;
 };
+type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'extreme';
+type PassabilityLevel = 'paved' | 'dirt' | 'offroad' | 'foot_only';
+type MultiPointRoute = {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  passability: PassabilityLevel;
+  points: { lat: number; lon: number; label: string; order: number }[];
+  totalKm: number;
+  createdAt: string;
+};
 const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   pop: true,
   unifil: true,
@@ -135,6 +147,21 @@ const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   ridgeLabels: true,
   waterLabels: true,
 };
+
+const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
+  easy: 'קל',
+  medium: 'בינוני',
+  hard: 'קשה',
+  extreme: 'קיצוני',
+};
+const PASSABILITY_LABELS: Record<PassabilityLevel, string> = {
+  paved: 'כביש סלול',
+  dirt: 'דרך עפר',
+  offroad: 'שטח פתוח',
+  foot_only: 'הליכה בלבד',
+};
+const MULTI_ROUTE_STORAGE_KEY = 'south-lebanon-map:multi-routes:v1';
+const MAX_MULTI_ROUTE_POINTS = 50;
 
 const isDaytime = () => {
   const hour = new Date().getHours();
@@ -648,6 +675,15 @@ export default function App() {
   const [poiMarkerShape, setPoiMarkerShape] = useState<PoiShape>('circle');
   const [poiMarkerSize, setPoiMarkerSize] = useState<PoiSize>('md');
   const [customPois, setCustomPois] = useState<CustomPoi[]>(() => loadLocalPois());
+  const [multiRouteBuildMode, setMultiRouteBuildMode] = useState(false);
+  const [multiRouteDraftPoints, setMultiRouteDraftPoints] = useState<{lat: number; lon: number; label: string; order: number}[]>([]);
+  const [multiRouteName, setMultiRouteName] = useState('');
+  const [multiRouteDescription, setMultiRouteDescription] = useState('');
+  const [multiRouteDifficulty, setMultiRouteDifficulty] = useState<DifficultyLevel>('medium');
+  const [multiRoutePassability, setMultiRoutePassability] = useState<PassabilityLevel>('dirt');
+  const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>([]);
+  const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
+  const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
@@ -943,6 +979,11 @@ export default function App() {
   };
 
   const onMapClick = useCallback((lat: number, lon: number) => {
+    if (multiRouteBuildMode) {
+      const newPoint = { lat, lon, label: `נקודה ${multiRouteDraftPoints.length + 1}`, order: multiRouteDraftPoints.length };
+      setMultiRouteDraftPoints(prev => prev.length >= MAX_MULTI_ROUTE_POINTS ? prev : [...prev, newPoint]);
+      return;
+    }
     if (addPoiMode) {
       setPoiDraft({ lat, lon });
     } else if (measureMode) {
@@ -953,7 +994,7 @@ export default function App() {
     } else {
       setSelectedId(null);
     }
-  }, [addPoiMode, measureMode]);
+  }, [addPoiMode, measureMode, multiRouteBuildMode, multiRouteDraftPoints.length]);
 
   const manualKm = manualMeasure.length === 2 ? haversineKm(manualMeasure[0], manualMeasure[1]) : null;
   const recordedKm = useMemo(() => {
@@ -996,8 +1037,15 @@ export default function App() {
       lat: p.lat,
       lon: p.lon,
     }));
-    return [...customPoiPoints, ...townPoints, ...terrainNavPoints, ...unifilNavPoints, ...incidentPoints];
-  }, [customPois]);
+    const customEnd: NavPoint[] = navCustomEnd ? [{
+      id: 'custom-nav-end',
+      label: navCustomEnd.label,
+      group: 'ניווט מהיר',
+      lat: navCustomEnd.lat,
+      lon: navCustomEnd.lon,
+    }] : [];
+    return [...customEnd, ...customPoiPoints, ...townPoints, ...terrainNavPoints, ...unifilNavPoints, ...incidentPoints];
+  }, [customPois, navCustomEnd]);
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
   const navEnd = navPoints.find(p => p.id === navEndId) ?? null;
@@ -1323,6 +1371,53 @@ export default function App() {
     a.remove();
     URL.revokeObjectURL(url);
     showToast('קובץ JSON מוכן לשיתוף או הורדה');
+  };
+
+  const multiRouteTotalKm = useMemo(() => {
+    if (multiRouteDraftPoints.length < 2) return 0;
+    return multiRouteDraftPoints.slice(1).reduce((sum, pt, idx) =>
+      sum + haversineKm([multiRouteDraftPoints[idx].lat, multiRouteDraftPoints[idx].lon], [pt.lat, pt.lon]), 0);
+  }, [multiRouteDraftPoints]);
+
+  const saveMultiRoute = () => {
+    if (multiRouteDraftPoints.length < 2) return;
+    const name = safeText(multiRouteName, `מסלול ${savedMultiRoutes.length + 1}`) || `מסלול ${savedMultiRoutes.length + 1}`;
+    const route: MultiPointRoute = {
+      id: `multi-${Date.now()}`,
+      name,
+      description: safeText(multiRouteDescription, ''),
+      difficulty: multiRouteDifficulty,
+      passability: multiRoutePassability,
+      points: multiRouteDraftPoints,
+      totalKm: multiRouteTotalKm,
+      createdAt: new Date().toISOString(),
+    };
+    setSavedMultiRoutes(prev => [route, ...prev]);
+    setActiveMultiRoute(route);
+    setMultiRouteDraftPoints([]);
+    setMultiRouteName('');
+    setMultiRouteDescription('');
+    setMultiRouteBuildMode(false);
+    showToast(`המסלול "${route.name}" נשמר`);
+  };
+
+  const exportMultiRoute = (route: MultiPointRoute) => {
+    downloadJson(`multi-route-${route.name.replace(/\s+/g, '-')}.json`, route);
+  };
+
+  const loadMultiRoute = (route: MultiPointRoute) => {
+    setActiveMultiRoute(route);
+    if (route.points.length >= 2) {
+      const lats = route.points.map(p => p.lat);
+      const lons = route.points.map(p => p.lon);
+      setFocusTarget({
+        lat: (Math.min(...lats) + Math.max(...lats)) / 2,
+        lon: (Math.min(...lons) + Math.max(...lons)) / 2,
+        zoom: 11,
+        id: `multi-route-${route.id}-${Date.now()}`,
+      });
+    }
+    showToast(`המסלול "${route.name}" נטען למפה`);
   };
 
   const saveCurrentRoute = () => {
@@ -1991,25 +2086,40 @@ export default function App() {
             {mapSearchResults.length > 0 && (
               <div className="search-results map-search-results" data-testid="map-search-results">
                 {mapSearchResults.map(result => (
-                  <button
-                    key={result.id}
-                    className="search-result"
-                    onClick={() => {
-                      setFocusTarget({
-                        lat: result.lat,
-                        lon: result.lon,
-                        zoom: result.zoom,
-                        label: result.title,
-                        id: `${result.id}-${Date.now()}`,
-                      });
-                      setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
-                      if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
-                    }}
-                    data-testid={`button-map-search-result-${result.id}`}
-                  >
-                    <span>{result.title}</span>
-                    <small>{result.subtitle}</small>
-                  </button>
+                  <div key={result.id} className="search-result-row" data-testid={`result-row-${result.id}`}>
+                    <button
+                      className="search-result"
+                      onClick={() => {
+                        setFocusTarget({
+                          lat: result.lat,
+                          lon: result.lon,
+                          zoom: result.zoom,
+                          label: result.title,
+                          id: `${result.id}-${Date.now()}`,
+                        });
+                        setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
+                        if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
+                      }}
+                      data-testid={`button-map-search-result-${result.id}`}
+                    >
+                      <span>{result.title}</span>
+                      <small>{result.subtitle}</small>
+                    </button>
+                    <button
+                      className="btn navigate-here-btn"
+                      onClick={() => {
+                        setNavCustomEnd({ lat: result.lat, lon: result.lon, label: result.title });
+                        setNavEndId('custom-nav-end');
+                        setNavEndQuery(result.title);
+                        showToast(`יעד ניווט: ${result.title}`);
+                        document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      title="הגדר כיעד ניווט"
+                      data-testid={`button-navigate-to-${result.id}`}
+                    >
+                      נווט לכאן
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -2073,7 +2183,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="panel-section">
+          <div className="panel-section" id="nav-section">
             <h3>ניווט כבישים נקודה לנקודה</h3>
             <div className="route-form" data-testid="route-form">
               <div className="route-picker-grid">
@@ -2461,6 +2571,208 @@ export default function App() {
           </div>
 
           <div className="panel-section">
+            <h3>בנייה ידנית של מסלול נקודות</h3>
+            <div className="recording-box">
+              <p className="legend-note">
+                לחץ “הפעל מצב בנייה” ואז לחץ על המפה כדי להוסיף נקודות למסלול. לאחר מכן מלא פרטים ושמור.
+              </p>
+              <div className="route-actions">
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setMultiRouteBuildMode(v => !v);
+                    if (multiRouteBuildMode) {
+                      showToast('מצב בניית מסלול כבה');
+                    } else {
+                      if (measureMode) { setMeasureMode(false); setManualMeasure([]); }
+                      if (addPoiMode) { setAddPoiMode(false); setPoiDraft(null); }
+                      showToast('לחץ על המפה כדי להוסיף נקודות למסלול');
+                    }
+                  }}
+                  aria-pressed={multiRouteBuildMode}
+                  data-testid="button-multi-route-build-mode"
+                >
+                  {multiRouteBuildMode ? 'עצור בנייה' : 'הפעל מצב בנייה'}
+                </button>
+                <button
+                  className="btn ghost"
+                  disabled={multiRouteDraftPoints.length === 0}
+                  onClick={() => {
+                    setMultiRouteDraftPoints(prev => prev.slice(0, -1).map((p, i) => ({ ...p, order: i })));
+                    showToast('הנקודה האחרונה הוסרה');
+                  }}
+                  data-testid="button-multi-route-undo"
+                >
+                  בטל נקודה אחרונה
+                </button>
+                <button
+                  className="btn ghost"
+                  disabled={multiRouteDraftPoints.length === 0}
+                  onClick={() => {
+                    setMultiRouteDraftPoints([]);
+                    showToast('טיוטת המסלול נוקתה');
+                  }}
+                  data-testid="button-multi-route-clear-draft"
+                >
+                  נקה טיוטה
+                </button>
+              </div>
+              <div className="route-summary compact">
+                {multiRouteBuildMode && <span>מצב בנייה פעיל · {multiRouteDraftPoints.length} נקודות · {multiRouteDraftPoints.length >= 2 ? fmtKm(multiRouteTotalKm) : '—'}</span>}
+                {!multiRouteBuildMode && multiRouteDraftPoints.length > 0 && <span>טיוטה: {multiRouteDraftPoints.length} נקודות · {multiRouteDraftPoints.length >= 2 ? fmtKm(multiRouteTotalKm) : '—'}</span>}
+                {!multiRouteBuildMode && multiRouteDraftPoints.length === 0 && <span>לחץ “הפעל מצב בנייה” ואז הוסף נקודות למפה.</span>}
+              </div>
+              <input
+                className="search"
+                value={multiRouteName}
+                onChange={e => setMultiRouteName(e.target.value)}
+                placeholder="שם המסלול…"
+                data-testid="input-multi-route-name"
+              />
+              <textarea
+                className="search poi-textarea"
+                value={multiRouteDescription}
+                onChange={e => setMultiRouteDescription(e.target.value)}
+                placeholder="תיאור המסלול, הערות, נקודות ציון…"
+                data-testid="textarea-multi-route-description"
+              />
+              <div className="poi-style-grid">
+                <div className="poi-choice-group">
+                  <span>רמת קושי</span>
+                  <div className="poi-choice-buttons" role="group" aria-label="רמת קושי">
+                    {(Object.entries(DIFFICULTY_LABELS) as [DifficultyLevel, string][]).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        className="poi-choice-btn"
+                        aria-pressed={multiRouteDifficulty === val}
+                        onClick={() => setMultiRouteDifficulty(val)}
+                        data-testid={`button-difficulty-${val}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="poi-choice-group">
+                  <span>רמת עבירות</span>
+                  <div className="poi-choice-buttons" role="group" aria-label="רמת עבירות">
+                    {(Object.entries(PASSABILITY_LABELS) as [PassabilityLevel, string][]).map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        className="poi-choice-btn"
+                        aria-pressed={multiRoutePassability === val}
+                        onClick={() => setMultiRoutePassability(val)}
+                        data-testid={`button-passability-${val}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="route-actions">
+                <button
+                  className="btn"
+                  disabled={multiRouteDraftPoints.length < 2}
+                  onClick={saveMultiRoute}
+                  data-testid="button-save-multi-route"
+                >
+                  שמור מסלול
+                </button>
+              </div>
+              {savedMultiRoutes.length > 0 && (
+                <div className="saved-routes" data-testid="saved-multi-routes">
+                  {savedMultiRoutes.map(route => (
+                    <div className="saved-route" key={route.id}>
+                      <button
+                        onClick={() => loadMultiRoute(route)}
+                        data-testid={`button-load-multi-route-${route.id}`}
+                      >
+                        <strong>{route.name}</strong>
+                        <small>
+                          {route.points.length} נק׳ · {fmtKm(route.totalKm)} · {DIFFICULTY_LABELS[route.difficulty]} · {PASSABILITY_LABELS[route.passability]}
+                        </small>
+                      </button>
+                      <button
+                        className="btn ghost"
+                        onClick={() => exportMultiRoute(route)}
+                        style={{ fontSize: 11, padding: '3px 8px', marginInlineEnd: 4 }}
+                        title="ייצוא לקובץ"
+                        data-testid={`button-export-multi-route-${route.id}`}
+                      >
+                        ייצוא
+                      </button>
+                      <button
+                        className="mini-delete"
+                        onClick={() => {
+                          setSavedMultiRoutes(prev => prev.filter(r => r.id !== route.id));
+                          if (activeMultiRoute?.id === route.id) setActiveMultiRoute(null);
+                          showToast(`המסלול "${route.name}" נמחק`);
+                        }}
+                        data-testid={`button-delete-multi-route-${route.id}`}
+                        aria-label={`מחיקת ${route.name}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="route-actions" style={{ marginTop: 8 }}>
+                <label className="file-import">
+                  ייבוא מסלול קובץ
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={async e => {
+                      const file = e.target.files?.[0];
+                      e.currentTarget.value = '';
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        const data = JSON.parse(text);
+                        const routes = (Array.isArray(data) ? data : [data]).slice(0, 50);
+                        const valid = routes.filter((r: any) =>
+                          r && Array.isArray(r.points) && r.points.length >= 2 &&
+                          r.points.every((p: any) => typeof p.lat === 'number' && typeof p.lon === 'number')
+                        ).map((r: any): MultiPointRoute => ({
+                          id: safeText(r.id) || `multi-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+                          name: safeText(r.name, 'מסלול מיובא') || 'מסלול מיובא',
+                          description: safeText(r.description, ''),
+                          difficulty: ['easy','medium','hard','extreme'].includes(r.difficulty) ? r.difficulty : 'medium',
+                          passability: ['paved','dirt','offroad','foot_only'].includes(r.passability) ? r.passability : 'dirt',
+                          points: r.points.slice(0, MAX_MULTI_ROUTE_POINTS).map((p: any, i: number) => ({
+                            lat: p.lat,
+                            lon: p.lon,
+                            label: safeText(p.label, `נקודה ${i+1}`) || `נקודה ${i+1}`,
+                            order: i,
+                          })),
+                          totalKm: typeof r.totalKm === 'number' ? r.totalKm : 0,
+                          createdAt: safeText(r.createdAt, new Date().toISOString()) || new Date().toISOString(),
+                        }));
+                        if (valid.length) {
+                          setSavedMultiRoutes(prev => [...valid, ...prev]);
+                          showToast(`${valid.length} מסלולים יובאו`);
+                        } else {
+                          showToast('לא נמצאו מסלולים תקינים בקובץ');
+                        }
+                      } catch {
+                        showToast('שגיאה בקריאת הקובץ');
+                      }
+                    }}
+                    data-testid="input-import-multi-route"
+                  />
+                </label>
+              </div>
+              <p className="legend-note">
+                הקובץ המיוצא הוא JSON — ניתן לשתף אותו עם אחרים שישתמשו בייבוא. הקובץ כולל שם, תיאור, רמת קושי, רמת עבירות ורשימת נקודות הגיאוגרפיות.
+              </p>
+            </div>
+          </div>
+
+          <div className="panel-section">
             <h3>נקודות עניין אישיות</h3>
             <div className="poi-box" data-testid="poi-box">
               <div className="route-actions">
@@ -2781,7 +3093,7 @@ export default function App() {
           selectedIncident={selected}
           onSelectIncident={(id) => setSelectedId(id)}
           measureMode={measureMode}
-          pointPickMode={addPoiMode || measureMode}
+          pointPickMode={addPoiMode || measureMode || multiRouteBuildMode}
           manualMeasure={manualMeasure}
           onMapClick={onMapClick}
           distanceLine={selected ? distanceLine : null}
@@ -2804,6 +3116,8 @@ export default function App() {
             markerSize: poiMarkerSize,
           }}
           customPois={customPois}
+          multiRouteDraft={multiRouteDraftPoints}
+          activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
         />
         <button
           className="compass-button"
