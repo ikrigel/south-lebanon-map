@@ -500,13 +500,13 @@ export default function MapView(props: MapProps) {
     }
   }, [props.navigationRoute, Boolean(props.liveLocation)]);
 
-  // ---- live device location while navigating ----
+  // ---- live device location and automatic follow zoom ----
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
     if (!group || !map) return;
     group.clearLayers();
-    if (!props.liveLocation || !props.navigationRoute) return;
+    if (!props.liveLocation) return;
     const p: [number, number] = [props.liveLocation.lat, props.liveLocation.lon];
     const heading = typeof props.liveLocation.heading === 'number' && isFinite(props.liveLocation.heading)
       ? props.liveLocation.heading

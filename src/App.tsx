@@ -1793,7 +1793,6 @@ export default function App() {
                 </button>
                 <button
                   className="btn"
-                  disabled={!navigationRoute}
                   onClick={toggleLiveLocation}
                   aria-pressed={locationStatus === 'watching'}
                   data-testid="button-live-location"
@@ -1840,7 +1839,7 @@ export default function App() {
               {locationStatus !== 'idle' && (
                 <div className="route-summary compact" data-testid="text-location-status">
                   {locationStatus === 'watching' && liveLocation && (
-                    <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום ניווט · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
+                    <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום קרוב · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
                   )}
                   {locationStatus === 'watching' && !liveLocation && <span>ממתין להרשאת מיקום מהמכשיר…</span>}
                   {locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן.</span>}
@@ -1992,7 +1991,7 @@ export default function App() {
                 </div>
               )}
               <p className="legend-note">
-                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. כאשר מיקום חי פעיל, המפה מתמקדת אוטומטית בסמן המכשיר בזום ניווט קרוב. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
+                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. ניתן להפעיל מיקום חי גם ללא מסלול; כאשר מיקום חי פעיל, המפה מתמקדת אוטומטית בסמן המכשיר בזום קרוב. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
               </p>
             </div>
           </div>
@@ -2794,7 +2793,7 @@ export default function App() {
 
               <h4>מיקום חי</h4>
               <p>
-                לאחר שיש מסלול פעיל, לחץ “הצג מיקום מכשיר”. הדפדפן יבקש הרשאת מיקום, ולאחר אישור תופיע נקודה זזה על המפה. המיקום מוצג מקומית ואינו נשמר בשרת האפליקציה.
+                אפשר ללחוץ “הצג מיקום מכשיר” גם ללא מסלול פעיל. הדפדפן יבקש הרשאת מיקום, ולאחר אישור תופיע נקודה זזה על המפה והמפה תתמקד עליה בזום קרוב. המיקום מוצג מקומית ואינו נשמר בשרת האפליקציה.
               </p>
 
               <h4>מצפן וכיוון נסיעה</h4>

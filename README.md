@@ -65,9 +65,9 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   when storage is available.
 - **Compass mode** – toggle between north-up and travel-heading map rotation.
 - **Live location** – when permission is granted, the device appears as an
-  animated heading arrow while navigating. During active navigation the map
-  follows the device marker and raises the view to a close navigation zoom
-  without reducing a manually selected closer zoom.
+  animated heading arrow with or without an active route. The map follows the
+  device marker and raises the view to a close zoom without reducing a manually
+  selected closer zoom.
 - **Route recording** – record a GPS track while driving, name it, save it in
   browser-local storage during use, export it to JSON and import it on another
   device. Browser background GPS support depends on the mobile OS/browser.
