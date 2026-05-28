@@ -109,6 +109,40 @@ export const towns: Town[] = [
   { id: 'kana',    name_he: 'קאנא', name_en: 'Qana', lat: 33.2090, lon: 35.3030, pop_band: 'md', pop_estimate: 12000, side: 'LB' },
   { id: 'srifa',   name_he: 'סריפא', name_en: 'Srifa', lat: 33.2570, lon: 35.3540, pop_band: 'md', pop_estimate: 4500, side: 'LB' },
   { id: 'taybeh',  name_he: 'טייבה', name_en: 'Taybeh', lat: 33.2380, lon: 35.4720, pop_band: 'sm', pop_estimate: 2800, side: 'LB' },
+  { id: 'yarine',  name_he: 'יארין', name_en: 'Yarine', lat: 33.0890, lon: 35.2080, pop_band: 'sm', pop_estimate: 1600, side: 'LB' },
+  { id: 'jibbain', name_he: 'ג׳יביין', name_en: 'Jibbain', lat: 33.1150, lon: 35.2220, pop_band: 'sm', pop_estimate: 1300, side: 'LB' },
+  { id: 'chihine', name_he: 'שיחין', name_en: 'Chihine', lat: 33.1120, lon: 35.2470, pop_band: 'sm', pop_estimate: 1300, side: 'LB' },
+  { id: 'ramyah',  name_he: 'ראמיה', name_en: 'Ramyah', lat: 33.0940, lon: 35.3050, pop_band: 'sm', pop_estimate: 900, side: 'LB' },
+  { id: 'beitlif', name_he: 'בית ליף', name_en: 'Beit Lif', lat: 33.1270, lon: 35.3390, pop_band: 'sm', pop_estimate: 1800, side: 'LB' },
+  { id: 'debel',   name_he: 'דבל', name_en: 'Debel', lat: 33.1120, lon: 35.3720, pop_band: 'sm', pop_estimate: 1600, side: 'LB' },
+  { id: 'qouzah',  name_he: 'קוזח', name_en: 'Qouzah', lat: 33.1080, lon: 35.3530, pop_band: 'sm', pop_estimate: 1200, side: 'LB' },
+  { id: 'braachit', name_he: 'ברעשית', name_en: 'Braachit', lat: 33.1680, lon: 35.4310, pop_band: 'sm', pop_estimate: 2500, side: 'LB' },
+  { id: 'shaquara', name_he: 'שקרא', name_en: 'Shaqra', lat: 33.1510, lon: 35.4870, pop_band: 'sm', pop_estimate: 2800, side: 'LB' },
+  { id: 'safad',   name_he: 'ספד אל־בטיח׳', name_en: 'Safad al-Battikh', lat: 33.1590, lon: 35.4610, pop_band: 'sm', pop_estimate: 1800, side: 'LB' },
+  { id: 'aynata',  name_he: 'עיינאתא', name_en: 'Aynata', lat: 33.1220, lon: 35.4440, pop_band: 'sm', pop_estimate: 2000, side: 'LB' },
+  { id: 'kounine', name_he: 'קונין', name_en: 'Kounine', lat: 33.1460, lon: 35.4380, pop_band: 'sm', pop_estimate: 2300, side: 'LB' },
+  { id: 'qabriha', name_he: 'קבריח׳א', name_en: 'Qabrikha', lat: 33.2350, lon: 35.5110, pop_band: 'sm', pop_estimate: 1800, side: 'LB' },
+  { id: 'bani-hayyan', name_he: 'בני חיאן', name_en: 'Bani Hayyan', lat: 33.2080, lon: 35.5270, pop_band: 'sm', pop_estimate: 1600, side: 'LB' },
+  { id: 'tallouseh', name_he: 'טלוסה', name_en: 'Tallouseh', lat: 33.2210, lon: 35.5520, pop_band: 'sm', pop_estimate: 2200, side: 'LB' },
+  { id: 'rabb-thalathine', name_he: 'רב תלתין', name_en: 'Rabb Thalathine', lat: 33.1800, lon: 35.5660, pop_band: 'sm', pop_estimate: 1300, side: 'LB' },
+  { id: 'mhaibib', name_he: 'מוחייביב', name_en: 'Mhaibib', lat: 33.1410, lon: 35.5450, pop_band: 'sm', pop_estimate: 900, side: 'LB' },
+  { id: 'deir-mimas', name_he: 'דיר מימאס', name_en: 'Deir Mimas', lat: 33.2510, lon: 35.5660, pop_band: 'sm', pop_estimate: 1800, side: 'LB' },
+  { id: 'qlaiaa',  name_he: 'קליעה', name_en: 'Qlayaa', lat: 33.3380, lon: 35.5750, pop_band: 'sm', pop_estimate: 2500, side: 'LB' },
+  { id: 'ebel-saqi', name_he: 'אבל א־סאקי', name_en: 'Ebel es-Saqi', lat: 33.3100, lon: 35.6260, pop_band: 'sm', pop_estimate: 2000, side: 'LB' },
+  { id: 'hasbaya', name_he: 'חצביא', name_en: 'Hasbaya', lat: 33.3970, lon: 35.6850, pop_band: 'md', pop_estimate: 7500, side: 'LB' },
+  { id: 'shebaa',  name_he: 'שבעא', name_en: 'Shebaa', lat: 33.3620, lon: 35.7260, pop_band: 'md', pop_estimate: 5000, side: 'LB' },
+  { id: 'kfar-chouba', name_he: 'כפר שובא', name_en: 'Kfar Chouba', lat: 33.3190, lon: 35.6820, pop_band: 'sm', pop_estimate: 1800, side: 'LB' },
+  { id: 'rashaya-foukhar', name_he: 'ראשיא אל־פוח׳אר', name_en: 'Rashaya al-Foukhar', lat: 33.3330, lon: 35.6720, pop_band: 'sm', pop_estimate: 2000, side: 'LB' },
+  { id: 'chehabiyeh', name_he: 'שהאביה', name_en: 'Chehabiyeh', lat: 33.2070, lon: 35.3460, pop_band: 'sm', pop_estimate: 2600, side: 'LB' },
+  { id: 'abbasiyeh', name_he: 'עבאסייה', name_en: 'Abbasiyeh', lat: 33.2910, lon: 35.3070, pop_band: 'md', pop_estimate: 5000, side: 'LB' },
+  { id: 'maarakeh', name_he: 'מערכה', name_en: 'Maarakeh', lat: 33.2720, lon: 35.3620, pop_band: 'md', pop_estimate: 7000, side: 'LB' },
+  { id: 'bazouriyeh', name_he: 'בזוריה', name_en: 'Bazouriyeh', lat: 33.3150, lon: 35.3160, pop_band: 'md', pop_estimate: 6000, side: 'LB' },
+  { id: 'jouaiya', name_he: 'ג׳וויא', name_en: 'Jouaiya', lat: 33.2540, lon: 35.3990, pop_band: 'md', pop_estimate: 6000, side: 'LB' },
+  { id: 'deir-qanoun-nahr', name_he: 'דיר קאנון א־נהר', name_en: 'Deir Qanoun El Nahr', lat: 33.3190, lon: 35.2780, pop_band: 'sm', pop_estimate: 3000, side: 'LB' },
+  { id: 'qaaqaiyet-el-jisr', name_he: 'קעקעית אל־ג׳סר', name_en: 'Qaaqaiyet el-Jisr', lat: 33.3530, lon: 35.4500, pop_band: 'sm', pop_estimate: 2600, side: 'LB' },
+  { id: 'arnoun', name_he: 'ארנון', name_en: 'Arnoun', lat: 33.3340, lon: 35.5240, pop_band: 'sm', pop_estimate: 2500, side: 'LB', note: 'סמוך למצודת בופור' },
+  { id: 'kfar-rumman', name_he: 'כפר רומאן', name_en: 'Kfar Rumman', lat: 33.3730, lon: 35.5060, pop_band: 'sm', pop_estimate: 3500, side: 'LB' },
+  { id: 'zawtar', name_he: 'זותר', name_en: 'Zawtar', lat: 33.3450, lon: 35.4720, pop_band: 'sm', pop_estimate: 2500, side: 'LB' },
   // ---- Israeli border reference communities ----
   { id: 'metula',  name_he: 'מטולה', name_en: 'Metula', lat: 33.2790, lon: 35.5790, pop_band: 'sm', pop_estimate: 1800, side: 'IL' },
   { id: 'kiryat',  name_he: 'קריית שמונה', name_en: 'Kiryat Shmona', lat: 33.2070, lon: 35.5700, pop_band: 'lg', pop_estimate: 24000, side: 'IL' },
@@ -122,6 +156,42 @@ export const towns: Town[] = [
   { id: 'rosh',    name_he: 'ראש הנקרה', name_en: 'Rosh HaNikra', lat: 33.0890, lon: 35.1100, pop_band: 'sm', pop_estimate: 200, side: 'IL' },
   { id: 'manara',  name_he: 'מנרה', name_en: 'Manara', lat: 33.2330, lon: 35.5440, pop_band: 'sm', pop_estimate: 250, side: 'IL' },
   { id: 'misgav',  name_he: 'משגב עם', name_en: 'Misgav Am', lat: 33.2440, lon: 35.5610, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
+];
+
+// ---------------------------------------------------------------------------
+// Hebrew terrain and hydrography labels — approximate public-reference points.
+// These labels help orientation only; they are not survey-grade coordinates.
+// ---------------------------------------------------------------------------
+export type TerrainFeature = {
+  id: string;
+  name_he: string;
+  name_en: string;
+  type: 'ridge' | 'wadi' | 'river' | 'valley' | 'mountain' | 'water';
+  lat: number;
+  lon: number;
+  note_he?: string;
+};
+
+export const terrainFeatures: TerrainFeature[] = [
+  { id: 'litani', name_he: 'נהר הליטני', name_en: 'Litani River', type: 'river', lat: 33.3600, lon: 35.4600, note_he: 'תוואי נהר מקורב' },
+  { id: 'awali', name_he: 'נהר האוואלי', name_en: 'Awali River', type: 'river', lat: 33.5000, lon: 35.3900, note_he: 'נהר מצפון למרחב המפה' },
+  { id: 'hasbani', name_he: 'נחל/נהר החצבאני', name_en: 'Hasbani River', type: 'river', lat: 33.2500, lon: 35.6200 },
+  { id: 'wazzani', name_he: 'נחל ואזאני', name_en: 'Wazzani Stream', type: 'river', lat: 33.2350, lon: 35.6100 },
+  { id: 'qasmiyeh', name_he: 'שפך קאסמייה', name_en: 'Qasmiyeh / Litani Estuary', type: 'water', lat: 33.3380, lon: 35.2280 },
+  { id: 'zahrani', name_he: 'נהר הזהראני', name_en: 'Zahrani River', type: 'river', lat: 33.4100, lon: 35.3200 },
+  { id: 'wadi-saluki', name_he: 'ואדי סלוקי', name_en: 'Wadi Saluki', type: 'wadi', lat: 33.2700, lon: 35.5100 },
+  { id: 'wadi-hujeir', name_he: 'ואדי חוג׳ייר', name_en: 'Wadi Hujeir', type: 'wadi', lat: 33.2250, lon: 35.5100 },
+  { id: 'wadi-dibbin', name_he: 'ואדי דיבין', name_en: 'Wadi Dibbin', type: 'wadi', lat: 33.3850, lon: 35.6050 },
+  { id: 'wadi-khardali', name_he: 'ואדי חרדלי', name_en: 'Wadi Khardali', type: 'wadi', lat: 33.3300, lon: 35.5100 },
+  { id: 'jabal-amel', name_he: 'רכס ג׳בל עאמל', name_en: 'Jabal Amel Highlands', type: 'ridge', lat: 33.2100, lon: 35.4100 },
+  { id: 'bint-jbeil-ridge', name_he: 'רכס בינת ג׳בייל', name_en: 'Bint Jbeil Ridge', type: 'ridge', lat: 33.1300, lon: 35.4300 },
+  { id: 'maroun-ridge', name_he: 'רכס מארון א־ראס', name_en: 'Maroun al-Ras Ridge', type: 'ridge', lat: 33.1050, lon: 35.4200 },
+  { id: 'tibnin-ridge', name_he: 'רכס תיבנין', name_en: 'Tibnin Ridge', type: 'ridge', lat: 33.2050, lon: 35.4050 },
+  { id: 'beaufort-ridge', name_he: 'רכס בופור / ארנון', name_en: 'Beaufort / Arnoun Ridge', type: 'ridge', lat: 33.3360, lon: 35.5320 },
+  { id: 'hermon-foothills', name_he: 'מורדות החרמון הלבנוני', name_en: 'Hermon Foothills', type: 'mountain', lat: 33.3300, lon: 35.7100 },
+  { id: 'hula-valley-north', name_he: 'עמק החולה — שוליים צפוניים', name_en: 'Northern Hula Valley', type: 'valley', lat: 33.2200, lon: 35.5850 },
+  { id: 'tyre-coastal-plain', name_he: 'מישור החוף של צור', name_en: 'Tyre Coastal Plain', type: 'valley', lat: 33.2600, lon: 35.2350 },
+  { id: 'nabatieh-plateau', name_he: 'רמת נבטיה', name_en: 'Nabatieh Plateau', type: 'ridge', lat: 33.3800, lon: 35.4850 },
 ];
 
 // ---------------------------------------------------------------------------

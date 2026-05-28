@@ -745,6 +745,20 @@ body {
 .unifil-label { border-color: color-mix(in srgb, var(--unifil) 70%, var(--border)); }
 .il-label { border-color: color-mix(in srgb, #88a3b8 65%, var(--border)); }
 .lb-label { border-color: color-mix(in srgb, var(--civ) 65%, var(--border)); }
+.terrain-label {
+  background: color-mix(in srgb, var(--bg-1) 80%, transparent);
+  border-style: dashed;
+  font-size: 9.5px;
+}
+.terrain-river, .terrain-wadi, .terrain-water {
+  color: color-mix(in srgb, var(--litani) 78%, var(--text));
+  border-color: color-mix(in srgb, var(--litani) 70%, var(--border));
+}
+.terrain-ridge, .terrain-mountain, .terrain-valley {
+  color: color-mix(in srgb, var(--warn) 78%, var(--text));
+  border-color: color-mix(in srgb, var(--warn) 70%, var(--border));
+}
+.map-label-icon.label-expanded.terrain-label { font-size: 12px; }
 .route-tooltip {
   direction: rtl;
   background: var(--bg-1);

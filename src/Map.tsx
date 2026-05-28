@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import {
-  blueLine, litaniRiver, litaniBufferZone, towns, unifilPoints, influenceZones,
+  blueLine, litaniRiver, litaniBufferZone, towns, unifilPoints, influenceZones, terrainFeatures,
   Incident, Town,
 } from './data/geo';
 import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm } from './util';
@@ -368,8 +368,21 @@ export default function MapView(props: MapProps) {
     group.clearLayers();
     if (!props.visible.cityLabels) return;
 
-    const majorTownIds = new Set(['tyre', 'nabat', 'naqoura', 'metula', 'kiryat', 'shlomi']);
-    const townsToLabel = props.largeLabels ? towns : towns.filter(t => t.side === 'LB' || majorTownIds.has(t.id));
+    const compactTownIds = new Set([
+      'tyre',
+      'nabat',
+      'naqoura',
+      'bintj',
+      'tibnin',
+      'marjay',
+      'khiam',
+      'hasbaya',
+      'shebaa',
+      'metula',
+      'kiryat',
+      'shlomi',
+    ]);
+    const townsToLabel = props.largeLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
     townsToLabel.forEach(t => {
       const icon = L.divIcon({
         className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} ${t.side === 'IL' ? 'il-label' : 'lb-label'}`,
@@ -391,6 +404,20 @@ export default function MapView(props: MapProps) {
         iconAnchor: [38, 12],
       });
       L.marker([u.lat, u.lon], { icon, interactive: false }).addTo(group);
+    });
+
+    const compactTerrainIds = new Set(['litani', 'hasbani', 'jabal-amel', 'bint-jbeil-ridge']);
+    const terrainToLabel = props.largeLabels
+      ? terrainFeatures
+      : terrainFeatures.filter(f => compactTerrainIds.has(f.id));
+    terrainToLabel.forEach(f => {
+      const icon = L.divIcon({
+        className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} terrain-label terrain-${f.type}`,
+        html: labelHtml(f.name_he, props.largeLabels ? f.name_en : undefined),
+        iconSize: undefined,
+        iconAnchor: [36, 12],
+      });
+      L.marker([f.lat, f.lon], { icon, interactive: false }).addTo(group);
     });
   }, [props.largeLabels, props.visible.cityLabels]);
 

@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import MapView, { LayerVis } from './Map';
-import { incidents, blueLine, Incident, towns, unifilPoints, influenceZones } from './data/geo';
+import { incidents, blueLine, Incident, towns, unifilPoints, influenceZones, terrainFeatures } from './data/geo';
 import { sources } from './data/sources';
 import {
   TYPE_LABEL, TYPE_COLOR, SEV_LABEL, fmtDate, fmtKm, haversineKm, distanceToPolyline, safeText, bearingDegrees,
@@ -753,6 +753,16 @@ export default function App() {
         lon: u.lon,
         zoom: 13,
       }));
+    const terrainMatches = terrainFeatures
+      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים נחל נחלים נהר נהרות ואדי עמק תוואי שטח`).includes(q))
+      .map(f => ({
+        id: `terrain-${f.id}`,
+        title: f.name_he,
+        subtitle: `${f.name_en} · תוואי שטח / הידרוגרפיה`,
+        lat: f.lat,
+        lon: f.lon,
+        zoom: f.type === 'river' || f.type === 'wadi' ? 12 : 13,
+      }));
     const zoneMatches = influenceZones
       .filter(z => clean(`${z.name_he} ${z.note_he} חזבאללה השפעה אזור`).includes(q))
       .map(z => {
@@ -788,7 +798,7 @@ export default function App() {
         lon: p.lon,
         zoom: 14,
       }));
-    return [...poiMatches, ...townMatches, ...unifilMatches, ...zoneMatches, ...incidentMatches].slice(0, 10);
+    return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...zoneMatches, ...incidentMatches].slice(0, 12);
   }, [query, customPois]);
 
   const selected = useMemo(
@@ -874,6 +884,13 @@ export default function App() {
       lat: u.lat,
       lon: u.lon,
     }));
+    const terrainNavPoints = terrainFeatures.map(f => ({
+      id: `terrain:${f.id}`,
+      label: `${f.name_he} (${f.name_en})`,
+      group: 'רכסים, נחלים ונהרות',
+      lat: f.lat,
+      lon: f.lon,
+    }));
     const incidentPoints = incidents.map(i => ({
       id: `incident:${i.id}`,
       label: `${fmtDate(i.date)} · ${i.title_he}`,
@@ -888,7 +905,7 @@ export default function App() {
       lat: p.lat,
       lon: p.lon,
     }));
-    return [...customPoiPoints, ...townPoints, ...unifilNavPoints, ...incidentPoints];
+    return [...customPoiPoints, ...townPoints, ...terrainNavPoints, ...unifilNavPoints, ...incidentPoints];
   }, [customPois]);
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
@@ -1972,7 +1989,7 @@ export default function App() {
                   data-testid="select-route-start"
                 >
                   <option value="">בחר נקודת מוצא…</option>
-                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
+                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
                     <optgroup key={group} label={group}>
                       {navPoints.filter(p => p.group === group).map(p => (
                         <option key={p.id} value={p.id}>{p.label}</option>
@@ -1989,7 +2006,7 @@ export default function App() {
                   data-testid="select-route-end"
                 >
                   <option value="">בחר יעד…</option>
-                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
+                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
                     <optgroup key={group} label={group}>
                       {navPoints.filter(p => p.group === group).map(p => (
                         <option key={p.id} value={p.id}>{p.label}</option>
