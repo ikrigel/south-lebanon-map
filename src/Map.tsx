@@ -37,6 +37,8 @@ export type MapProps = {
     path?: [number, number][];
   } | null;
   liveLocation: { lat: number; lon: number; accuracy?: number; heading?: number | null } | null;
+  liveCenterRequestId: number;
+  onLiveFollowDetachedChange: (detached: boolean) => void;
   recordedTrack: [number, number][];
   compassMode: boolean;
   mapBearing: number;
@@ -82,6 +84,7 @@ export default function MapView(props: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
+  const liveFollowDetachedRef = useRef(false);
 
   const layersRef = useRef<{
     base?: L.TileLayer;
@@ -290,6 +293,28 @@ export default function MapView(props: MapProps) {
       duration: 0.7,
     });
   }, [props.focusTarget]);
+
+  // ---- detach automatic live-location follow after manual map movement ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const detachLiveFollow = () => {
+      if (!props.liveLocation || liveFollowDetachedRef.current) return;
+      liveFollowDetachedRef.current = true;
+      props.onLiveFollowDetachedChange(true);
+    };
+    map.on('dragstart', detachLiveFollow);
+    return () => {
+      map.off('dragstart', detachLiveFollow);
+    };
+  }, [props.liveLocation, props.onLiveFollowDetachedChange]);
+
+  useEffect(() => {
+    if (props.liveLocation) return;
+    liveFollowDetachedRef.current = false;
+    lastLiveFollowRef.current = null;
+    props.onLiveFollowDetachedChange(false);
+  }, [props.liveLocation, props.onLiveFollowDetachedChange]);
 
   // keep the click handler fresh, including custom app modes above Leaflet layers
   useEffect(() => {
@@ -540,7 +565,7 @@ export default function MapView(props: MapProps) {
     const movedEnough = !previousFollow || Math.abs(previousFollow.lat - p[0]) > 0.00002 || Math.abs(previousFollow.lon - p[1]) > 0.00002;
     const timeEnough = !previousFollow || now - previousFollow.at > 1500;
     const targetZoom = Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
-    if (movedEnough || timeEnough || map.getZoom() < NAVIGATION_FOLLOW_MIN_ZOOM) {
+    if (!liveFollowDetachedRef.current && (movedEnough || timeEnough || map.getZoom() < NAVIGATION_FOLLOW_MIN_ZOOM)) {
       map.flyTo(p, targetZoom, {
         animate: true,
         duration: 0.45,
@@ -548,6 +573,20 @@ export default function MapView(props: MapProps) {
       lastLiveFollowRef.current = { lat: p[0], lon: p[1], at: now };
     }
   }, [props.liveLocation, props.navigationRoute, props.mapBearing]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !props.liveLocation || props.liveCenterRequestId === 0) return;
+    const p: [number, number] = [props.liveLocation.lat, props.liveLocation.lon];
+    liveFollowDetachedRef.current = false;
+    props.onLiveFollowDetachedChange(false);
+    const targetZoom = Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
+    map.flyTo(p, targetZoom, {
+      animate: true,
+      duration: 0.45,
+    });
+    lastLiveFollowRef.current = { lat: p[0], lon: p[1], at: Date.now() };
+  }, [props.liveCenterRequestId]);
 
   // ---- recorded GPS track ----
   useEffect(() => {

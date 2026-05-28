@@ -67,7 +67,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - **Live location** – when permission is granted, the device appears as an
   animated heading arrow with or without an active route. The map follows the
   device marker and raises the view to a close zoom without reducing a manually
-  selected closer zoom.
+  selected closer zoom. Manual map dragging temporarily pauses follow mode and
+  reveals a “מרכז אותי” recenter button that returns to the live marker.
 - **Route recording** – record a GPS track while driving, name it, save it in
   browser-local storage during use, export it to JSON and import it on another
   device. Browser background GPS support depends on the mobile OS/browser.
@@ -148,6 +149,7 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - `button-help`, `drawer-help`, `button-close-help`
 - `button-support`, `drawer-support`, `link-donate-contact`, `button-share-app`
 - `button-compass`, `button-live-location`
+- `button-center-live`
 - `button-voice-off`, `button-voice-basic`, `button-voice-detailed`,
   `button-voice-lang-he`, `button-voice-lang-en`, `button-voice-test`,
   `text-voice-status`, `turn-instruction-card`, `text-turn-instruction`

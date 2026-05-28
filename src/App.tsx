@@ -500,6 +500,8 @@ export default function App() {
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
   const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string } | null>(null);
+  const [liveFollowDetached, setLiveFollowDetached] = useState(false);
+  const [liveCenterRequestId, setLiveCenterRequestId] = useState(0);
   const [navStartId, setNavStartId] = useState(() => initialNavSessionRef.current?.navStartId ?? '');
   const [navEndId, setNavEndId] = useState(() => initialNavSessionRef.current?.navEndId ?? '');
   const [navStartQuery, setNavStartQuery] = useState(() => initialNavSessionRef.current?.navStartQuery ?? '');
@@ -1155,10 +1157,29 @@ export default function App() {
       navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
       setLocationStatus('idle');
+      setLiveLocation(null);
+      setLiveFollowDetached(false);
       return;
     }
+    setLiveFollowDetached(false);
     beginLiveLocationWatch();
   };
+
+  const handleLiveFollowDetachedChange = useCallback((detached: boolean) => {
+    setLiveFollowDetached(detached);
+  }, []);
+
+  const centerLiveLocation = useCallback(() => {
+    if (!liveLocation) return;
+    setLiveFollowDetached(false);
+    setLiveCenterRequestId(value => value + 1);
+    setFocusTarget({
+      lat: liveLocation.lat,
+      lon: liveLocation.lon,
+      zoom: 17,
+      id: `live-center-${Date.now()}`,
+    });
+  }, [liveLocation]);
 
   const beginRecordingWatch = (resetTrack: boolean) => {
     if (!('geolocation' in navigator)) {
@@ -1839,7 +1860,7 @@ export default function App() {
               {locationStatus !== 'idle' && (
                 <div className="route-summary compact" data-testid="text-location-status">
                   {locationStatus === 'watching' && liveLocation && (
-                    <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום קרוב · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
+                    <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום קרוב · אחרי גרירה יופיע כפתור “מרכז אותי” · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
                   )}
                   {locationStatus === 'watching' && !liveLocation && <span>ממתין להרשאת מיקום מהמכשיר…</span>}
                   {locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן.</span>}
@@ -1991,7 +2012,7 @@ export default function App() {
                 </div>
               )}
               <p className="legend-note">
-                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. ניתן להפעיל מיקום חי גם ללא מסלול; כאשר מיקום חי פעיל, המפה מתמקדת אוטומטית בסמן המכשיר בזום קרוב. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
+                הניתוב מבוסס OpenStreetMap/OSRM ציבורי ואינו כולל תנועה בזמן אמת, חסימות, מחסומים או הערכת בטיחות. ניתן להפעיל מיקום חי גם ללא מסלול; כאשר מיקום חי פעיל, המפה מתמקדת אוטומטית בסמן המכשיר בזום קרוב. אם גוררים את המפה למקום אחר, העקיבה נעצרת זמנית ומופיע כפתור “מרכז אותי” לחזרה לסמן. מצב הניווט נשמר מקומית, ולכן לאחר רענון או חזרה לאפליקציה המסלול חוזר. GPS ברקע תלוי במדיניות הדפדפן והמכשיר.
               </p>
             </div>
           </div>
@@ -2356,6 +2377,8 @@ export default function App() {
           focusTarget={focusTarget}
           navigationRoute={navigationRoute}
           liveLocation={liveLocation}
+          liveCenterRequestId={liveCenterRequestId}
+          onLiveFollowDetachedChange={handleLiveFollowDetachedChange}
           recordedTrack={recordedTrack}
           compassMode={compassMode}
           mapBearing={mapBearing}
@@ -2393,6 +2416,17 @@ export default function App() {
             data-testid="button-map-mini-window"
           >
             חלון מוקטן
+          </button>
+        )}
+        {liveLocation && liveFollowDetached && (
+          <button
+            className={`center-live-fab ${panelsCollapsed ? 'below-mini' : ''}`}
+            onClick={centerLiveLocation}
+            data-testid="button-center-live"
+            title="מרכז את המפה חזרה למיקום המכשיר"
+          >
+            מרכז אותי
+            <small>חזרה לסמן</small>
           </button>
         )}
         {measureMode && (
@@ -2793,7 +2827,7 @@ export default function App() {
 
               <h4>מיקום חי</h4>
               <p>
-                אפשר ללחוץ “הצג מיקום מכשיר” גם ללא מסלול פעיל. הדפדפן יבקש הרשאת מיקום, ולאחר אישור תופיע נקודה זזה על המפה והמפה תתמקד עליה בזום קרוב. המיקום מוצג מקומית ואינו נשמר בשרת האפליקציה.
+                אפשר ללחוץ “הצג מיקום מכשיר” גם ללא מסלול פעיל. הדפדפן יבקש הרשאת מיקום, ולאחר אישור תופיע נקודה זזה על המפה והמפה תתמקד עליה בזום קרוב. אם גוררים את המפה ידנית, העקיבה נעצרת זמנית כדי לאפשר בדיקת אזור אחר; לחיצה על “מרכז אותי” תחזיר את המפה לסמן המכשיר ותחדש את העקיבה. המיקום מוצג מקומית ואינו נשמר בשרת האפליקציה.
               </p>
 
               <h4>מצפן וכיוון נסיעה</h4>
