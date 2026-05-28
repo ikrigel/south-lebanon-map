@@ -639,6 +639,8 @@ export default function App() {
   const [navStartQuery, setNavStartQuery] = useState(() => initialNavSessionRef.current?.navStartQuery ?? '');
   const [navEndQuery, setNavEndQuery] = useState(() => initialNavSessionRef.current?.navEndQuery ?? '');
   const [roadRoute, setRoadRoute] = useState<RoadRoute | null>(() => initialNavSessionRef.current?.roadRoute ?? null);
+  const [alternativeRoute, setAlternativeRoute] = useState<{ km: number; durationMin: number; path: [number, number][] } | null>(null);
+  const [activeRouteIndex, setActiveRouteIndex] = useState<0 | 1>(0);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [routeName, setRouteName] = useState(() => initialNavSessionRef.current?.routeName ?? '');
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
@@ -1060,13 +1062,15 @@ export default function App() {
   const endMatches = routePointMatches(navEndQuery);
   useEffect(() => {
     setRoadRoute(null);
+    setAlternativeRoute(null);
+    setActiveRouteIndex(0);
     setActiveSavedRoute(null);
     if (!navStart || !navEnd || navStart.id === navEnd.id) {
       setRouteStatus('idle');
       return;
     }
     const controller = new AbortController();
-    const url = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=false&steps=true`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
     setRouteStatus('loading');
     fetch(url, { signal: controller.signal })
       .then(res => {
@@ -1083,6 +1087,16 @@ export default function App() {
           path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
           instructions: parseOsrmInstructions(route),
         });
+        // Parse alternative route if exists
+        const altRoute = data?.routes?.[1];
+        const altCoords = altRoute?.geometry?.coordinates;
+        if (altRoute && Array.isArray(altCoords) && altCoords.length >= 2) {
+          setAlternativeRoute({
+            km: altRoute.distance / 1000,
+            durationMin: altRoute.duration / 60,
+            path: altCoords.map(([lon, lat]: [number, number]) => [lat, lon] as [number, number]),
+          });
+        }
         setRouteStatus('ready');
       })
       .catch(err => {
@@ -2317,6 +2331,8 @@ export default function App() {
                     setNavStartQuery('');
                     setNavEndQuery('');
                     setRoadRoute(null);
+                    setAlternativeRoute(null);
+                    setActiveRouteIndex(0);
                     setActiveSavedRoute(null);
                     setRouteStatus('idle');
                     showToast('בחירת המסלול אופסה');
@@ -2336,10 +2352,10 @@ export default function App() {
                   </>
                 ) : navigationRoute ? (
                   <>
-                    <strong>{fmtKm(navigationRoute.km)}</strong>
+                    <strong>{fmtKm(activeRouteIndex === 1 && alternativeRoute ? alternativeRoute.km : navigationRoute.km)}</strong>
                     <span>
                       {roadRoute
-                        ? `מסלול כבישים משוער · זמן נסיעה תיאורטי: ${Math.round(roadRoute.durationMin)} דק׳. ללא תנועה, חסימות או מידע ביטחוני.`
+                        ? `מסלול ${activeRouteIndex === 1 ? 'חלופי' : 'ראשי'} · זמן נסיעה תיאורטי: ${Math.round((activeRouteIndex === 1 && alternativeRoute ? alternativeRoute.durationMin : roadRoute.durationMin))} דק׳.`
                         : 'מרחק אווירי זמני עד לקבלת מסלול כבישים.'}
                     </span>
                   </>
@@ -2347,6 +2363,26 @@ export default function App() {
                   <span>בחר שתי נקודות שונות כדי להציג מסלול כבישים ומרחק משוער.</span>
                 )}
               </div>
+              {alternativeRoute && roadRoute && (
+                <div className="route-actions" data-testid="route-alternatives-switcher">
+                  <button
+                    className="btn"
+                    aria-pressed={activeRouteIndex === 0}
+                    onClick={() => setActiveRouteIndex(0)}
+                    data-testid="button-route-primary"
+                  >
+                    מסלול ראשי · {fmtKm(roadRoute.km)}
+                  </button>
+                  <button
+                    className="btn"
+                    aria-pressed={activeRouteIndex === 1}
+                    onClick={() => setActiveRouteIndex(1)}
+                    data-testid="button-route-alternative"
+                  >
+                    מסלול חלופי · {fmtKm(alternativeRoute.km)}
+                  </button>
+                </div>
+              )}
               {locationStatus !== 'idle' && (
                 <div className="route-summary compact" data-testid="text-location-status">
                   {locationStatus === 'watching' && liveLocation && (
@@ -3102,6 +3138,8 @@ export default function App() {
           allLabels={allLabels}
           focusTarget={focusTarget}
           navigationRoute={navigationRoute}
+          alternativeRoute={alternativeRoute}
+          activeRouteIndex={activeRouteIndex}
           liveLocation={liveLocation}
           liveCenterRequestId={liveCenterRequestId}
           onLiveFollowDetachedChange={handleLiveFollowDetachedChange}

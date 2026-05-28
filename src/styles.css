@@ -845,15 +845,29 @@ body {
   white-space: nowrap;
 }
 .route-line {
-  stroke-dasharray: 12 10;
-  animation: routeFlow 1.8s linear infinite;
+  /* dashArray is always set by JS; CSS animates the offset */
+  stroke-dashoffset: 0;
+  animation: routeFlow 1.6s linear infinite;
+}
+.route-line-alt {
+  /* alternative route — dimmed, no animation */
+  opacity: 0.55;
+}
+.route-line-inactive {
+  opacity: 0.45;
 }
 .recorded-track-line {
   stroke-dasharray: 10 8;
+  stroke-dashoffset: 0;
   animation: routeFlow 2.2s linear infinite;
 }
 @keyframes routeFlow {
-  to { stroke-dashoffset: -44; }
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -48; }
+}
+.route-alt-label {
+  opacity: 0.75;
+  font-style: italic;
 }
 .live-location-dot {
   filter: drop-shadow(0 0 8px rgba(79,179,166,0.9));

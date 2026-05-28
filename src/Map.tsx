@@ -40,6 +40,12 @@ export type MapProps = {
     durationMin?: number;
     path?: [number, number][];
   } | null;
+  alternativeRoute: {
+    km: number;
+    durationMin?: number;
+    path: [number, number][];
+  } | null;
+  activeRouteIndex: 0 | 1;
   liveLocation: { lat: number; lon: number; accuracy?: number; heading?: number | null } | null;
   liveCenterRequestId: number;
   onLiveFollowDetachedChange: (detached: boolean) => void;
@@ -596,14 +602,44 @@ export default function MapView(props: MapProps) {
     const { start, end, km, durationMin, path } = props.navigationRoute;
     const a: [number, number] = [start.lat, start.lon];
     const b: [number, number] = [end.lat, end.lon];
-    const line = path && path.length > 1 ? path : [a, b];
-    L.polyline(line, {
-      color: '#6ed1c2',
-      weight: 3,
-      opacity: 0.95,
-      dashArray: path && path.length > 1 ? undefined : '10 6',
-      className: 'route-line',
+    const isRealPath = path && path.length > 1;
+    const primaryLine: [number, number][] = isRealPath ? path! : [a, b];
+
+    // ---- Draw alternative route first (below primary) ----
+    const alt = props.alternativeRoute;
+    if (alt && alt.path.length > 1) {
+      const altActive = props.activeRouteIndex === 1;
+      L.polyline(alt.path, {
+        color: altActive ? '#6ed1c2' : '#4a7a70',
+        weight: altActive ? 4 : 3,
+        opacity: altActive ? 0.92 : 0.5,
+        className: altActive ? 'route-line' : 'route-line-alt',
+        dashArray: altActive ? undefined : '6 5',
+      }).addTo(group);
+      if (!altActive) {
+        const altMid = alt.path[Math.floor(alt.path.length / 2)];
+        L.marker(altMid, {
+          icon: L.divIcon({
+            className: 'route-distance-label route-alt-label',
+            html: `מסלול חלופי: ${alt.km < 10 ? alt.km.toFixed(2) : alt.km.toFixed(1)} ק״מ${alt.durationMin ? ` · ${Math.round(alt.durationMin)} דק׳` : ''}`,
+            iconSize: undefined,
+          }),
+          interactive: false,
+        }).addTo(group);
+      }
+    }
+
+    // ---- Draw primary route ----
+    const primaryActive = props.activeRouteIndex === 0;
+    L.polyline(primaryLine, {
+      color: primaryActive ? '#6ed1c2' : '#4a7a70',
+      weight: primaryActive ? 4 : 3,
+      opacity: primaryActive ? 0.92 : 0.5,
+      // Always set dashArray so CSS animation class takes effect
+      dashArray: isRealPath ? '14 10' : '10 6',
+      className: primaryActive ? 'route-line' : 'route-line-inactive',
     }).addTo(group);
+
     [
       { point: a, label: `מוצא: ${start.label}` },
       { point: b, label: `יעד: ${end.label}` },
@@ -623,19 +659,25 @@ export default function MapView(props: MapProps) {
         })
         .addTo(group);
     });
-    const mid = line[Math.floor(line.length / 2)] ?? [(start.lat + end.lat) / 2, (start.lon + end.lon) / 2] as [number, number];
+    const mid = primaryLine[Math.floor(primaryLine.length / 2)] ?? [(start.lat + end.lat) / 2, (start.lon + end.lon) / 2] as [number, number];
+    const activeRoute = primaryActive
+      ? { km, durationMin, isReal: isRealPath }
+      : alt ? { km: alt.km, durationMin: alt.durationMin, isReal: true } : { km, durationMin, isReal: isRealPath };
     L.marker(mid, {
       icon: L.divIcon({
         className: 'route-distance-label',
-        html: `${path && path.length > 1 ? 'מסלול כבישים' : 'מרחק אווירי'}: ${km < 10 ? km.toFixed(2) : km.toFixed(1)} ק״מ${durationMin ? ` · ${Math.round(durationMin)} דק׳` : ''}`,
+        html: `${activeRoute.isReal ? 'מסלול כבישים' : 'מרחק אווירי'}: ${activeRoute.km < 10 ? activeRoute.km.toFixed(2) : activeRoute.km.toFixed(1)} ק״מ${activeRoute.durationMin ? ` · ${Math.round(activeRoute.durationMin)} דק׳` : ''}`,
         iconSize: undefined,
       }),
       interactive: false,
     }).addTo(group);
+    const allLines = alt && alt.path.length > 1
+      ? [...primaryLine, ...alt.path]
+      : primaryLine;
     if (!props.liveLocation) {
-      map.fitBounds(line, { padding: [60, 60], maxZoom: 13, animate: true });
+      map.fitBounds(allLines, { padding: [60, 60], maxZoom: 13, animate: true });
     }
-  }, [props.navigationRoute, Boolean(props.liveLocation)]);
+  }, [props.navigationRoute, props.alternativeRoute, props.activeRouteIndex, Boolean(props.liveLocation)]);
 
   // ---- live device location and automatic follow zoom ----
   useEffect(() => {
