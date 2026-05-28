@@ -44,8 +44,9 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - **Expanded Hebrew labels** – Hebrew label controls are visually separated
   into sub-layers for settlements/villages, ridges/mountains/valleys and
   wadis/streams/rivers. Normal mode shows a broader curated set of key village
-  labels across western, central, eastern, Nabatieh and Zahrani/Sidon sectors,
-  while large label mode exposes the expanded south-Lebanon dataset.
+  labels across western, central, eastern, Nabatieh and Zahrani/Sidon sectors.
+  The “all labels” mode exposes the full label dataset without increasing text
+  size, while large label mode enlarges labels and adds English transliteration.
 - **Map search and focus** – a dedicated map search centers and zooms to
   settlements, cities, POIs, incidents, UNIFIL points and terrain features,
   placing a temporary focus marker at the selected result.
@@ -180,6 +181,7 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - `input-route-start-search`, `input-route-end-search`,
   `select-route-start`, `select-route-end`, `button-route-focus`
 - `input-map-search`, `map-search-results`, `button-map-search-result-{id}`
+- `toggle-all-labels`, `toggle-large-labels`
 - `button-save-route`, `button-export-route`, `input-import-route`,
   `button-export-all-routes`
 - `button-record-route`, `button-save-recording`, `button-export-recording`

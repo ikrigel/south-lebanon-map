@@ -19,6 +19,7 @@ const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
 const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
 const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
 const MAP_VIEW_STORAGE_KEY = 'south-lebanon-map:last-map-view:v1';
+const LABEL_PREF_STORAGE_KEY = 'south-lebanon-map:label-preferences:v1';
 const DEFAULT_THEME_MODE: ThemeMode = 'dark';
 const DEFAULT_MAP_VIEW = { lat: 33.25, lon: 35.38, zoom: 10 };
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
@@ -117,6 +118,10 @@ type LocalMapView = {
   lat: number;
   lon: number;
   zoom: number;
+};
+type LocalLabelPreferences = {
+  largeLabels?: boolean;
+  allLabels?: boolean;
 };
 const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   pop: true,
@@ -468,6 +473,20 @@ const loadLocalMapView = (): LocalMapView | null => {
   }
 };
 
+const loadLocalLabelPreferences = (): Required<LocalLabelPreferences> => {
+  try {
+    const raw = safeStorageGet(LABEL_PREF_STORAGE_KEY);
+    if (!raw) return { largeLabels: false, allLabels: false };
+    const parsed = JSON.parse(raw) as LocalLabelPreferences;
+    return {
+      largeLabels: Boolean(parsed.largeLabels),
+      allLabels: Boolean(parsed.allLabels),
+    };
+  } catch {
+    return { largeLabels: false, allLabels: false };
+  }
+};
+
 const normalizeRoutePath = (path: unknown): [number, number][] | undefined => {
   if (!Array.isArray(path)) return undefined;
   const points = path.slice(0, MAX_ROUTE_POINTS).filter((p): p is [number, number] =>
@@ -550,6 +569,8 @@ export default function App() {
   if (initialRecordingSessionRef.current === null) initialRecordingSessionRef.current = loadLocalRecordingSession();
   const initialMapViewRef = useRef<LocalMapView | null>(null);
   if (initialMapViewRef.current === null) initialMapViewRef.current = loadLocalMapView();
+  const initialLabelPrefsRef = useRef<Required<LocalLabelPreferences> | null>(null);
+  if (initialLabelPrefsRef.current === null) initialLabelPrefsRef.current = loadLocalLabelPreferences();
 
   // -------- layer toggles --------
   const [visible, setVisible] = useState<LayerVis>(() => loadLocalLayerVisibility());
@@ -574,7 +595,8 @@ export default function App() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadLocalThemeMode());
   const [autoDay, setAutoDay] = useState(isDaytime());
-  const [largeLabels, setLargeLabels] = useState(false);
+  const [largeLabels, setLargeLabels] = useState(() => initialLabelPrefsRef.current?.largeLabels ?? false);
+  const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
   const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
@@ -671,6 +693,10 @@ export default function App() {
   useEffect(() => {
     safeStorageSet(LAYER_VIS_STORAGE_KEY, visible);
   }, [visible]);
+
+  useEffect(() => {
+    safeStorageSet(LABEL_PREF_STORAGE_KEY, { largeLabels, allLabels } satisfies LocalLabelPreferences);
+  }, [largeLabels, allLabels]);
 
   useEffect(() => {
     safeStorageSet(NAV_SESSION_KEY, {
@@ -1634,6 +1660,7 @@ export default function App() {
     setVisible({ ...DEFAULT_LAYER_VISIBILITY });
     setThemeMode(DEFAULT_THEME_MODE);
     setLargeLabels(false);
+    setAllLabels(false);
     setCompassMode(false);
     setMeasureMode(false);
     setManualMeasure([]);
@@ -2710,6 +2737,23 @@ export default function App() {
             <h3>נראות שמות במפה</h3>
             <div
               className="toggle-row"
+              data-active={allLabels}
+              onClick={() => {
+                setAllLabels(v => !v);
+                setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
+              }}
+              role="switch"
+              aria-checked={allLabels}
+              data-testid="toggle-all-labels"
+            >
+              <div className="toggle-label">
+                <span className="toggle-swatch label-swatch">כ</span>
+                הצג את כל השמות תמיד
+              </div>
+              <span className="toggle-switch" />
+            </div>
+            <div
+              className="toggle-row"
               data-active={largeLabels}
               onClick={() => setLargeLabels(v => !v)}
               role="switch"
@@ -2723,7 +2767,7 @@ export default function App() {
               <span className="toggle-switch" />
             </div>
               <p className="legend-note">
-                אפשר להסתיר את התפריט בנייד כדי לראות יותר מפה. שמות בעברית מחולקים לשכבות נפרדות: יישובים, רכסים/הרים/עמקים ונחלים/נהרות, כך שאפשר להפחית עומס לפי הצורך.
+                “כל השמות” מציג את כל שמות המקומות והכפרים בלי להגדיל טקסט. “טקסט גדול” מגדיל את התוויות ומוסיף תעתיק באנגלית.
               </p>
           </div>
         </div>
@@ -2743,6 +2787,7 @@ export default function App() {
           distanceLine={selected ? distanceLine : null}
           theme={effectiveTheme}
           largeLabels={largeLabels}
+          allLabels={allLabels}
           focusTarget={focusTarget}
           navigationRoute={navigationRoute}
           liveLocation={liveLocation}

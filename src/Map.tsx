@@ -31,6 +31,7 @@ export type MapProps = {
   distanceLine: [[number, number], [number, number]] | null;
   theme: 'light' | 'dark';
   largeLabels: boolean;
+  allLabels: boolean;
   focusTarget: { lat: number; lon: number; zoom?: number; id: string; label?: string } | null;
   navigationRoute: {
     start: { lat: number; lon: number; label: string };
@@ -422,7 +423,7 @@ export default function MapView(props: MapProps) {
       'shlomi',
     ]);
     if (props.visible.settlementLabels) {
-      const townsToLabel = props.largeLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
+      const townsToLabel = props.largeLabels || props.allLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
       townsToLabel.forEach(t => {
         const icon = L.divIcon({
           className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}`,
@@ -456,7 +457,7 @@ export default function MapView(props: MapProps) {
     const terrainToLabel = terrainFeatures.filter(f => {
       if (isRidgeLike(f.type) && !props.visible.ridgeLabels) return false;
       if (isWaterLike(f.type) && !props.visible.waterLabels) return false;
-      if (props.largeLabels) return true;
+      if (props.largeLabels || props.allLabels) return true;
       return compactRidgeIds.has(f.id) || compactWaterIds.has(f.id);
     });
     terrainToLabel.forEach(f => {
@@ -470,6 +471,7 @@ export default function MapView(props: MapProps) {
     });
   }, [
     props.largeLabels,
+    props.allLabels,
     props.visible.cityLabels,
     props.visible.settlementLabels,
     props.visible.ridgeLabels,
