@@ -14,6 +14,9 @@ export type LayerVis = {
   litani: boolean;
   topo: boolean;
   cityLabels: boolean;
+  settlementLabels: boolean;
+  ridgeLabels: boolean;
+  waterLabels: boolean;
 };
 
 export type MapProps = {
@@ -382,34 +385,44 @@ export default function MapView(props: MapProps) {
       'kiryat',
       'shlomi',
     ]);
-    const townsToLabel = props.largeLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
-    townsToLabel.forEach(t => {
-      const icon = L.divIcon({
-        className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} ${t.side === 'IL' ? 'il-label' : 'lb-label'}`,
-        html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined),
-        iconSize: undefined,
-        iconAnchor: [28, 10],
+    if (props.visible.settlementLabels) {
+      const townsToLabel = props.largeLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
+      townsToLabel.forEach(t => {
+        const icon = L.divIcon({
+          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}`,
+          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined),
+          iconSize: undefined,
+          iconAnchor: [28, 10],
+        });
+        L.marker([t.lat, t.lon], { icon, interactive: false }).addTo(group);
       });
-      L.marker([t.lat, t.lon], { icon, interactive: false }).addTo(group);
-    });
+    }
 
-    const unifilToLabel = props.largeLabels
-      ? unifilPoints.filter(u => u.kind !== 'reference')
-      : unifilPoints.filter(u => u.kind === 'hq');
-    unifilToLabel.forEach(u => {
-      const icon = L.divIcon({
-        className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} unifil-label`,
-        html: labelHtml(u.name_he, props.largeLabels ? u.name_en : undefined),
-        iconSize: undefined,
-        iconAnchor: [38, 12],
+    if (props.visible.unifil) {
+      const unifilToLabel = props.largeLabels
+        ? unifilPoints.filter(u => u.kind !== 'reference')
+        : unifilPoints.filter(u => u.kind === 'hq');
+      unifilToLabel.forEach(u => {
+        const icon = L.divIcon({
+          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} unifil-label`,
+          html: labelHtml(u.name_he, props.largeLabels ? u.name_en : undefined),
+          iconSize: undefined,
+          iconAnchor: [38, 12],
+        });
+        L.marker([u.lat, u.lon], { icon, interactive: false }).addTo(group);
       });
-      L.marker([u.lat, u.lon], { icon, interactive: false }).addTo(group);
-    });
+    }
 
-    const compactTerrainIds = new Set(['litani', 'hasbani', 'jabal-amel', 'bint-jbeil-ridge']);
-    const terrainToLabel = props.largeLabels
-      ? terrainFeatures
-      : terrainFeatures.filter(f => compactTerrainIds.has(f.id));
+    const isRidgeLike = (type: string) => type === 'ridge' || type === 'mountain' || type === 'valley';
+    const isWaterLike = (type: string) => type === 'river' || type === 'wadi' || type === 'water';
+    const compactRidgeIds = new Set(['jabal-amel', 'bint-jbeil-ridge', 'nabatieh-plateau']);
+    const compactWaterIds = new Set(['litani', 'zahrani', 'hasbani']);
+    const terrainToLabel = terrainFeatures.filter(f => {
+      if (isRidgeLike(f.type) && !props.visible.ridgeLabels) return false;
+      if (isWaterLike(f.type) && !props.visible.waterLabels) return false;
+      if (props.largeLabels) return true;
+      return compactRidgeIds.has(f.id) || compactWaterIds.has(f.id);
+    });
     terrainToLabel.forEach(f => {
       const icon = L.divIcon({
         className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} terrain-label terrain-${f.type}`,
@@ -419,7 +432,14 @@ export default function MapView(props: MapProps) {
       });
       L.marker([f.lat, f.lon], { icon, interactive: false }).addTo(group);
     });
-  }, [props.largeLabels, props.visible.cityLabels]);
+  }, [
+    props.largeLabels,
+    props.visible.cityLabels,
+    props.visible.settlementLabels,
+    props.visible.ridgeLabels,
+    props.visible.waterLabels,
+    props.visible.unifil,
+  ]);
 
   // ---- render incidents ----
   useEffect(() => {

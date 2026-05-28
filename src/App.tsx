@@ -126,6 +126,9 @@ const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   litani: true,
   topo: false,
   cityLabels: true,
+  settlementLabels: true,
+  ridgeLabels: true,
+  waterLabels: true,
 };
 
 const isDaytime = () => {
@@ -429,6 +432,9 @@ const loadLocalLayerVisibility = (): LayerVis => {
       litani: typeof candidate.litani === 'boolean' ? candidate.litani : DEFAULT_LAYER_VISIBILITY.litani,
       topo: typeof candidate.topo === 'boolean' ? candidate.topo : DEFAULT_LAYER_VISIBILITY.topo,
       cityLabels: typeof candidate.cityLabels === 'boolean' ? candidate.cityLabels : DEFAULT_LAYER_VISIBILITY.cityLabels,
+      settlementLabels: typeof candidate.settlementLabels === 'boolean' ? candidate.settlementLabels : DEFAULT_LAYER_VISIBILITY.settlementLabels,
+      ridgeLabels: typeof candidate.ridgeLabels === 'boolean' ? candidate.ridgeLabels : DEFAULT_LAYER_VISIBILITY.ridgeLabels,
+      waterLabels: typeof candidate.waterLabels === 'boolean' ? candidate.waterLabels : DEFAULT_LAYER_VISIBILITY.waterLabels,
     };
   } catch {
     return DEFAULT_LAYER_VISIBILITY;
@@ -754,7 +760,7 @@ export default function App() {
         zoom: 13,
       }));
     const terrainMatches = terrainFeatures
-      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים נחל נחלים נהר נהרות ואדי עמק תוואי שטח`).includes(q))
+      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים הר הרים נחל נחלים נהר נהרות ואדי עמק תוואי שטח`).includes(q))
       .map(f => ({
         id: `terrain-${f.id}`,
         title: f.name_he,
@@ -887,7 +893,7 @@ export default function App() {
     const terrainNavPoints = terrainFeatures.map(f => ({
       id: `terrain:${f.id}`,
       label: `${f.name_he} (${f.name_en})`,
-      group: 'רכסים, נחלים ונהרות',
+      group: 'רכסים, הרים, נחלים ונהרות',
       lat: f.lat,
       lon: f.lon,
     }));
@@ -1886,6 +1892,7 @@ export default function App() {
         <div className="panel-scroll">
           <div className="panel-section">
             <h3>שכבות מידע</h3>
+            <div className="layer-group-title">שכבות בסיס, ביטחון ותבליט</div>
             {[
               { key: 'pop' as const, label: 'תפוצת אוכלוסיה אזרחית', color: '#d0b58a' },
               { key: 'unifil' as const, label: 'יוניפי״ל — מטה ומגזרים', color: '#6da7d1' },
@@ -1893,7 +1900,29 @@ export default function App() {
               { key: 'blueLine' as const, label: 'הקו הכחול (מקורב)', color: '#5a8fbf' },
               { key: 'litani' as const, label: 'נהר הליטני וגבול אזור החיץ', color: '#4e7fb0' },
               { key: 'topo' as const, label: 'טופוגרפיה — ניתוח תבליט וקרקע', color: '#88c37a' },
-              { key: 'cityLabels' as const, label: 'שמות ערים בעברית', color: '#f6c453' },
+            ].map(l => (
+              <div
+                key={l.key}
+                className="toggle-row"
+                data-active={visible[l.key]}
+                onClick={visibleKey(l.key)}
+                role="switch"
+                aria-checked={visible[l.key]}
+                data-testid={`toggle-layer-${l.key}`}
+              >
+                <div className="toggle-label">
+                  <span className="toggle-swatch" style={{ background: l.color }} />
+                  {l.label}
+                </div>
+                <span className="toggle-switch" />
+              </div>
+            ))}
+            <div className="layer-group-title layer-group-title-labels">שכבות שמות בעברית</div>
+            {[
+              { key: 'cityLabels' as const, label: 'שמות בעברית — הפעלה כללית', color: '#f6c453' },
+              { key: 'settlementLabels' as const, label: 'שמות יישובים וכפרים', color: '#f6c453' },
+              { key: 'ridgeLabels' as const, label: 'רכסים, הרים ועמקים', color: '#d49a3a' },
+              { key: 'waterLabels' as const, label: 'נחלים, ואדיות ונהרות', color: '#4e7fb0' },
             ].map(l => (
               <div
                 key={l.key}
@@ -1989,7 +2018,7 @@ export default function App() {
                   data-testid="select-route-start"
                 >
                   <option value="">בחר נקודת מוצא…</option>
-                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
+                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, הרים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
                     <optgroup key={group} label={group}>
                       {navPoints.filter(p => p.group === group).map(p => (
                         <option key={p.id} value={p.id}>{p.label}</option>
@@ -2006,7 +2035,7 @@ export default function App() {
                   data-testid="select-route-end"
                 >
                   <option value="">בחר יעד…</option>
-                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
+                  {['נקודות עניין אישיות', 'יישובים בלבנון', 'יישובי ייחוס בישראל', 'רכסים, הרים, נחלים ונהרות', 'נקודות יוניפי״ל ציבוריות', 'אירועים מדווחים'].map(group => (
                     <optgroup key={group} label={group}>
                       {navPoints.filter(p => p.group === group).map(p => (
                         <option key={p.id} value={p.id}>{p.label}</option>
@@ -2593,7 +2622,7 @@ export default function App() {
               <span className="toggle-switch" />
             </div>
               <p className="legend-note">
-                אפשר להסתיר את התפריט בנייד כדי לראות יותר מפה. שמות ערים בעברית מופיעים כשכבה נפרדת; מצב טופוגרפיה מציג תבליט וקרקע לניתוח שטח כללי.
+                אפשר להסתיר את התפריט בנייד כדי לראות יותר מפה. שמות בעברית מחולקים לשכבות נפרדות: יישובים, רכסים/הרים/עמקים ונחלים/נהרות, כך שאפשר להפחית עומס לפי הצורך.
               </p>
           </div>
         </div>
@@ -2639,7 +2668,7 @@ export default function App() {
         >
           <span className="compass-needle" style={{ transform: `rotate(${mapBearing}deg)` }}>▲</span>
           <span>{compassMode ? 'כיוון נסיעה' : 'צפון'}</span>
-          <small>{Math.round(mapBearing)}°</small>
+          <small>אזימוט {Math.round(mapBearing)}°</small>
         </button>
         <button
           className="map-menu-fab"
@@ -2783,9 +2812,9 @@ export default function App() {
               const max = Math.max(1, ...stats.byType.map(x => x.n));
               return (
                 <div className="bar-row" key={type}>
-                  <span className="label">{TYPE_LABEL[type]}</span>
-                  <span className="bar"><div style={{ width: `${(n / max) * 100}%`, background: TYPE_COLOR[type] }} /></span>
                   <span className="count">{n}</span>
+                  <span className="bar" aria-hidden="true"><div style={{ width: `${(n / max) * 100}%`, background: TYPE_COLOR[type] }} /></span>
+                  <span className="label">{TYPE_LABEL[type]}</span>
                 </div>
               );
             })}
@@ -2795,7 +2824,7 @@ export default function App() {
             <h3>
               <span>{selected ? 'אירוע נבחר' : 'רשימת אירועים'}</span>
               <span style={{ color: 'var(--text-faint)', fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>
-                {filtered.length} מתאימים
+                {filtered.length} אירועים מתאימים
               </span>
             </h3>
             {selected ? (

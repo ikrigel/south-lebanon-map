@@ -41,12 +41,14 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   browser-local storage and restored after reopening the app.
 - **Topographic mode** – optional OpenTopoMap basemap for terrain and relief
   analysis, with closer zoom support.
-- **Expanded Hebrew labels** – separate Hebrew labels layer for easier search
-  and orientation. Normal mode keeps a readable curated label set, while large
-  label mode exposes the expanded south-Lebanon village dataset plus terrain
-  and hydrography labels such as ridges, wadis, streams and rivers.
+- **Expanded Hebrew labels** – Hebrew label controls are visually separated
+  into sub-layers for settlements/villages, ridges/mountains/valleys and
+  wadis/streams/rivers. Normal mode keeps a readable curated label set, while
+  large label mode exposes the expanded south-Lebanon dataset up to the Zahrani
+  area inclusive.
 - **Search and focus** – search settlements, incidents, UNIFIL points,
-  influence zones, terrain features and user-created points of interest.
+  influence zones, terrain features including mountains and rivers, and
+  user-created points of interest.
 - **Theme modes** – dark, light and automatic day/night mode, persisted in
   browser-local storage so the app reopens in the last selected display mode.
 - **Toast feedback** – key actions now show short, accessible confirmation or
@@ -155,7 +157,7 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 ## Test IDs (selected)
 
 - `map-canvas`, `panel-layers`, `panel-analytics`
-- `toggle-layer-pop|unifil|hez|blueLine|litani`
+- `toggle-layer-pop|unifil|hez|blueLine|litani|topo|cityLabels|settlementLabels|ridgeLabels|waterLabels`
 - `chip-type-{rocket|atgm|uav|idf_strike|unifil|ground|displacement}`
 - `chip-sev-{low|med|high}`, `input-search`
 - `select-year-from`, `select-year-to`
