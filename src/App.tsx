@@ -50,11 +50,6 @@ type NavPoint = {
   lat: number;
   lon: number;
 };
-type RoadRoute = {
-  km: number;
-  durationMin: number;
-  path: [number, number][];
-};
 type TurnInstruction = {
   text: string;
   textEn: string;
@@ -62,6 +57,15 @@ type TurnInstruction = {
   distanceM: number;
   bearing: number;
   confidence: 'route' | 'estimated';
+  lat?: number;
+  lon?: number;
+  roadName?: string;
+};
+type RoadRoute = {
+  km: number;
+  durationMin: number;
+  path: [number, number][];
+  instructions?: TurnInstruction[];
 };
 type SavedRoute = {
   id: string;
@@ -74,6 +78,7 @@ type SavedRoute = {
   km: number;
   durationMin?: number;
   path?: [number, number][];
+  instructions?: TurnInstruction[];
 };
 type CustomPoi = {
   id: string;
@@ -199,6 +204,110 @@ const formatTurnDistanceEn = (meters: number) => {
   return `${Math.max(20, Math.round(meters / 10) * 10)} meters`;
 };
 
+const composeTurnInstruction = (
+  action: TurnAction,
+  distanceM: number,
+  bearing: number,
+  confidence: TurnInstruction['confidence'],
+  roadName = '',
+  lat?: number,
+  lon?: number
+): TurnInstruction => {
+  const cleanRoad = safeText(roadName);
+  const distanceText = formatTurnDistance(distanceM);
+  const distanceTextEn = formatTurnDistanceEn(distanceM);
+  const directionText = directionHebrew(bearing);
+  const directionTextEn = directionEnglish(bearing);
+  const roadTextHe = cleanRoad ? ` אל ${cleanRoad}` : '';
+  const roadTextEn = cleanRoad ? ` onto ${cleanRoad}` : '';
+  const text = action === 'arrive'
+    ? 'הגעת לקרבת היעד'
+    : action === 'straight'
+      ? `בעוד ${distanceText} המשך ישר${roadTextHe} לכיוון ${directionText}`
+      : action === 'uturn'
+        ? `בעוד ${distanceText} בצע פניית פרסה${roadTextHe} והמשך לכיוון ${directionText}`
+        : `בעוד ${distanceText} ${turnVerbHe(action)}${roadTextHe} והמשך לכיוון ${directionText}`;
+  const textEn = action === 'arrive'
+    ? 'You are near your destination'
+    : action === 'straight'
+      ? `In ${distanceTextEn}, continue straight${roadTextEn} toward ${directionTextEn}`
+      : action === 'uturn'
+        ? `In ${distanceTextEn}, make a U-turn${roadTextEn} and continue toward ${directionTextEn}`
+        : `In ${distanceTextEn}, ${turnVerbEn(action)}${roadTextEn} and continue toward ${directionTextEn}`;
+  return {
+    text,
+    textEn,
+    action,
+    distanceM: Math.max(0, distanceM),
+    bearing,
+    confidence,
+    roadName: cleanRoad || undefined,
+    lat,
+    lon,
+  };
+};
+
+const osrmStepToAction = (step: any): TurnAction => {
+  const type = String(step?.maneuver?.type ?? '').toLowerCase();
+  const modifier = String(step?.maneuver?.modifier ?? '').toLowerCase();
+  if (type === 'arrive') return 'arrive';
+  if (modifier.includes('uturn') || modifier.includes('u-turn')) return 'uturn';
+  if (modifier.includes('right')) return 'right';
+  if (modifier.includes('left')) return 'left';
+  return 'straight';
+};
+
+const parseOsrmInstructions = (route: any): TurnInstruction[] => {
+  const steps = route?.legs?.flatMap((leg: any) => Array.isArray(leg?.steps) ? leg.steps : []) ?? [];
+  const instructions: TurnInstruction[] = [];
+  let distanceFromStartM = 0;
+  steps.forEach((step: any, index: number) => {
+    const maneuver = step?.maneuver;
+    const location = maneuver?.location;
+    const type = String(maneuver?.type ?? '').toLowerCase();
+    const action = osrmStepToAction(step);
+    const bearing = typeof maneuver?.bearing_after === 'number'
+      ? maneuver.bearing_after
+      : typeof maneuver?.bearing_before === 'number'
+        ? maneuver.bearing_before
+        : 0;
+    const lat = Array.isArray(location) && typeof location[1] === 'number' ? location[1] : undefined;
+    const lon = Array.isArray(location) && typeof location[0] === 'number' ? location[0] : undefined;
+    const roadName = safeText(step?.name);
+    const shouldKeep = type === 'arrive' || (type !== 'depart' && (action !== 'straight' || distanceFromStartM > 80 || index === steps.length - 1));
+    if (shouldKeep) {
+      instructions.push(composeTurnInstruction(action, distanceFromStartM, bearing, 'route', roadName, lat, lon));
+    }
+    if (typeof step?.distance === 'number' && isFinite(step.distance)) {
+      distanceFromStartM += Math.max(0, step.distance);
+    }
+  });
+  return instructions.slice(0, 200);
+};
+
+const normalizeRouteInstructions = (instructions: unknown): TurnInstruction[] | undefined => {
+  if (!Array.isArray(instructions)) return undefined;
+  const valid = instructions.slice(0, 200).map((instruction): TurnInstruction | null => {
+    if (!instruction || typeof instruction !== 'object') return null;
+    const item = instruction as Partial<TurnInstruction>;
+    const action: TurnAction = item.action === 'right' || item.action === 'left' || item.action === 'uturn' || item.action === 'arrive' || item.action === 'straight'
+      ? item.action
+      : 'none';
+    const distanceM = typeof item.distanceM === 'number' && isFinite(item.distanceM) ? Math.max(0, item.distanceM) : 0;
+    const bearing = typeof item.bearing === 'number' && isFinite(item.bearing) ? item.bearing : 0;
+    return composeTurnInstruction(
+      action,
+      distanceM,
+      bearing,
+      item.confidence === 'estimated' ? 'estimated' : 'route',
+      safeText(item.roadName),
+      typeof item.lat === 'number' && isFinite(item.lat) ? item.lat : undefined,
+      typeof item.lon === 'number' && isFinite(item.lon) ? item.lon : undefined
+    );
+  }).filter((instruction): instruction is TurnInstruction => Boolean(instruction));
+  return valid.length ? valid : undefined;
+};
+
 const isMobileLikeDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
@@ -297,6 +406,8 @@ const loadLocalNavSession = (): LocalNavSession => {
     const parsed = JSON.parse(raw) as LocalNavSession;
     const roadPath = normalizeRoutePath(parsed.roadRoute?.path);
     const savedPath = normalizeRoutePath(parsed.activeSavedRoute?.path);
+    const roadInstructions = normalizeRouteInstructions(parsed.roadRoute?.instructions);
+    const savedInstructions = normalizeRouteInstructions(parsed.activeSavedRoute?.instructions);
     return {
       navStartId: safeText(parsed.navStartId),
       navEndId: safeText(parsed.navEndId),
@@ -311,6 +422,7 @@ const loadLocalNavSession = (): LocalNavSession => {
             km: parsed.roadRoute.km,
             durationMin: typeof parsed.roadRoute.durationMin === 'number' ? parsed.roadRoute.durationMin : 0,
             path: roadPath ?? [],
+            instructions: roadInstructions,
           }
         : null,
       activeSavedRoute: parsed.activeSavedRoute && parsed.activeSavedRoute.start && parsed.activeSavedRoute.end
@@ -320,6 +432,7 @@ const loadLocalNavSession = (): LocalNavSession => {
             name: safeText(parsed.activeSavedRoute.name, 'מסלול משוחזר') || 'מסלול משוחזר',
             createdAt: safeText(parsed.activeSavedRoute.createdAt, new Date().toISOString()) || new Date().toISOString(),
             path: savedPath,
+            instructions: savedInstructions,
           }
         : null,
     };
@@ -671,7 +784,7 @@ export default function App() {
       return;
     }
     const controller = new AbortController();
-    const url = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=false&steps=false`;
+    const url = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=false&steps=true`;
     setRouteStatus('loading');
     fetch(url, { signal: controller.signal })
       .then(res => {
@@ -686,6 +799,7 @@ export default function App() {
           km: route.distance / 1000,
           durationMin: route.duration / 60,
           path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
+          instructions: parseOsrmInstructions(route),
         });
         setRouteStatus('ready');
       })
@@ -703,6 +817,7 @@ export default function App() {
         km: roadRoute?.km ?? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
         durationMin: roadRoute?.durationMin,
         path: roadRoute?.path,
+        instructions: roadRoute?.instructions,
       }
     : null;
   const navigationRoute = activeSavedRoute
@@ -712,6 +827,7 @@ export default function App() {
         km: activeSavedRoute.km,
         durationMin: activeSavedRoute.durationMin,
         path: activeSavedRoute.path,
+        instructions: activeSavedRoute.instructions,
       }
     : calculatedRoute;
 
@@ -749,14 +865,42 @@ export default function App() {
     const remainingToEndKm = haversineKm(current, [navigationRoute.end.lat, navigationRoute.end.lon]);
     const confidence: TurnInstruction['confidence'] = navigationRoute.path && navigationRoute.path.length >= 3 ? 'route' : 'estimated';
     if (remainingToEndKm < 0.15) {
-      return {
-        text: 'הגעת לקרבת היעד',
-        textEn: 'You are near your destination',
-        action: 'arrive',
-        distanceM: Math.max(0, remainingToEndKm * 1000),
-        bearing: mapBearing,
-        confidence,
-      };
+      return composeTurnInstruction('arrive', Math.max(0, remainingToEndKm * 1000), mapBearing, confidence);
+    }
+
+    const routeInstructions = navigationRoute.instructions?.filter(instruction => instruction.action !== 'none') ?? [];
+    if (routeInstructions.length && navigationRoute.path && navigationRoute.path.length >= 2) {
+      const cumulativeMeters = navigationRoute.path.reduce<number[]>((acc, point, index) => {
+        if (index === 0) return [0];
+        const previous = navigationRoute.path![index - 1];
+        acc.push(acc[index - 1] + haversineKm(previous, point) * 1000);
+        return acc;
+      }, []);
+      let nearestIndex = 0;
+      let nearestKm = Infinity;
+      navigationRoute.path.forEach((point, index) => {
+        const km = haversineKm(current, point);
+        if (km < nearestKm) {
+          nearestKm = km;
+          nearestIndex = index;
+        }
+      });
+      const currentDistanceM = liveLocation ? cumulativeMeters[nearestIndex] ?? 0 : 0;
+      const aheadInstructions = routeInstructions
+        .filter(instruction => instruction.distanceM >= currentDistanceM + 15)
+        .sort((a, b) => a.distanceM - b.distanceM);
+      const nextMeaningful = aheadInstructions.find(instruction => instruction.action !== 'straight') ?? aheadInstructions[0];
+      if (nextMeaningful) {
+        return composeTurnInstruction(
+          nextMeaningful.action,
+          Math.max(0, nextMeaningful.distanceM - currentDistanceM),
+          nextMeaningful.bearing,
+          'route',
+          nextMeaningful.roadName,
+          nextMeaningful.lat,
+          nextMeaningful.lon
+        );
+      }
     }
 
     let nearestIndex = 0;
@@ -786,29 +930,7 @@ export default function App() {
     const delta = normalizeTurnDelta(nextBearing - previousBearing);
     const action = turnActionFromDelta(delta);
     const distanceM = Math.max(0, haversineKm(current, nextPoint) * 1000);
-    const distanceText = formatTurnDistance(distanceM);
-    const distanceTextEn = formatTurnDistanceEn(distanceM);
-    const directionText = directionHebrew(nextBearing);
-    const directionTextEn = directionEnglish(nextBearing);
-    const text = action === 'straight'
-      ? `בעוד ${distanceText} המשך ישר לכיוון ${directionText}`
-      : action === 'uturn'
-        ? `בעוד ${distanceText} בצע פניית פרסה והמשך לכיוון ${directionText}`
-        : `בעוד ${distanceText} ${turnVerbHe(action)} והמשך לכיוון ${directionText}`;
-    const textEn = action === 'straight'
-      ? `In ${distanceTextEn}, continue straight toward ${directionTextEn}`
-      : action === 'uturn'
-        ? `In ${distanceTextEn}, make a U-turn and continue toward ${directionTextEn}`
-        : `In ${distanceTextEn}, ${turnVerbEn(action)} and continue toward ${directionTextEn}`;
-
-    return {
-      text,
-      textEn,
-      action,
-      distanceM,
-      bearing: nextBearing,
-      confidence,
-    };
+    return composeTurnInstruction(action, distanceM, nextBearing, confidence);
   }, [navigationRoute, liveLocation, mapBearing]);
 
   const speakGuidance = useCallback((message: string, interrupt = true) => {
@@ -874,10 +996,10 @@ export default function App() {
       voiceLanguage === 'he'
         ? voiceGuidance === 'basic'
           ? 'בדיקת קול. הנחיות בסיסיות בעברית פעילות.'
-          : 'בדיקת קול. הנחיות מפורטות בעברית פעילות. בזמן ניווט יושמעו עדכוני מסלול, מרחק, זמן, כיוון התקדמות והוראות פנייה מדומות.'
+          : 'בדיקת קול. הנחיות מפורטות בעברית פעילות. בזמן ניווט יושמעו עדכוני מסלול, מרחק, זמן, כיוון התקדמות והוראות פנייה מהמסלול.'
         : voiceGuidance === 'basic'
           ? 'Voice test. Basic guidance in English is active.'
-          : 'Voice test. Detailed guidance in English is active. During navigation, route updates, distance, time, heading and simulated turn prompts will be spoken.'
+          : 'Voice test. Detailed guidance in English is active. During navigation, route updates, distance, time, heading and route turn prompts will be spoken.'
     );
   };
 
@@ -900,7 +1022,7 @@ export default function App() {
     const turnText = currentTurnInstruction
       ? voiceLanguage === 'he'
         ? ` הוראת הפנייה הקרובה: ${currentTurnInstruction.text}.`
-        : ` Next simulated turn prompt: ${currentTurnInstruction.textEn}.`
+        : ` Next route turn prompt: ${currentTurnInstruction.textEn}.`
       : '';
     const message = voiceLanguage === 'he'
       ? voiceGuidance === 'basic'
@@ -982,6 +1104,7 @@ export default function App() {
       km: navigationRoute.km,
       durationMin: navigationRoute.durationMin,
       path: navigationRoute.path,
+      instructions: navigationRoute.instructions,
     };
     setSavedRoutes(prev => [route, ...prev]);
     setActiveSavedRoute(route);
@@ -994,6 +1117,7 @@ export default function App() {
       km: route.km,
       durationMin: route.durationMin ?? 0,
       path: route.path,
+      instructions: route.instructions,
     } : null);
     setFocusTarget({
       lat: (route.start.lat + route.end.lat) / 2,
@@ -1157,6 +1281,7 @@ export default function App() {
               Math.abs(p[1]) <= 180
             )
         : undefined,
+      instructions: normalizeRouteInstructions(r.instructions),
     }));
     if (valid.length) setSavedRoutes(prev => [...valid, ...prev]);
   };
@@ -1344,7 +1469,7 @@ export default function App() {
     <h1>חלון מוקטן — מיני ניווט</h1>
     <div class="route">${miniEscape(title)}</div>
     <div class="mini-nav">${miniMap}</div>
-    <div class="turn"><small>הוראת פנייה מדומה</small><strong>${miniEscape(turn)}</strong></div>
+    <div class="turn"><small>הוראת פנייה במסלול</small><strong>${miniEscape(turn)}</strong></div>
     <div class="grid">
       <div class="item"><small>מרחק</small><strong>${miniEscape(distance)}</strong></div>
       <div class="item"><small>זמן תיאורטי</small><strong>${miniEscape(duration)}</strong></div>
@@ -1779,20 +1904,20 @@ export default function App() {
                   </button>
                 </div>
                 <div className="turn-instruction-card" data-testid="turn-instruction-card">
-                  <span>הוראת פנייה מדומה</span>
+                  <span>הוראת פנייה במסלול</span>
                   <strong data-testid="text-turn-instruction">
-                    {currentTurnInstruction?.text ?? 'בחר מסלול כדי לקבל הוראת פנייה מדומה.'}
+                    {currentTurnInstruction?.text ?? 'בחר מסלול כדי לקבל הוראת פנייה.'}
                   </strong>
                   <small>
                     {currentTurnInstruction
                       ? currentTurnInstruction.confidence === 'route'
-                        ? 'מבוסס על נקודות מסלול OSRM או מסלול מיובא/שמור.'
+                        ? 'מבוסס על הוראות OSRM כאשר זמינות, או על מסלול מיובא/שמור.'
                         : 'אומדן לפי קו מוצא ויעד בלבד, ללא פירוט פניות כביש.'
                       : 'ההוראה תתעדכן כאשר ייבחר מסלול פעיל.'}
                   </small>
                 </div>
                 <p className="legend-note">
-                  ההנחיות מושמעות מקומית דרך הדפדפן. ניתן לבחור עברית או אנגלית; אם למכשיר אין קול עברי מותקן, הדפדפן עדיין יקבל טקסט עברי אך איכות ההשמעה תלויה במנוע הדיבור של המכשיר. הוראות הפנייה הן הדמיה לפי נקודות במסלול ואינן הוראות נהיגה רשמיות. אין שליחת קול או מיקום לשרת.
+                  ההנחיות מושמעות מקומית דרך הדפדפן. ניתן לבחור עברית או אנגלית; אם למכשיר אין קול עברי מותקן, הדפדפן עדיין יקבל טקסט עברי אך איכות ההשמעה תלויה במנוע הדיבור של המכשיר. במסלול OSRM ההוראות מבוססות על צעדי המסלול שהשירות מחזיר; במסלול מיובא או מוקלט ייתכן אומדן לפי נקודות המסלול בלבד. אין שליחת קול או מיקום לשרת.
                 </p>
               </div>
               <div className="save-route-box">
@@ -2180,7 +2305,7 @@ export default function App() {
                     className="search-result"
                     onClick={() => {
                       setFocusTarget({ lat: result.lat, lon: result.lon, zoom: result.zoom, id: `${result.id}-${Date.now()}` });
-                      if ('incidentId' in result && result.incidentId) setSelectedId(result.incidentId);
+                      if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
                     }}
                     data-testid={`button-search-result-${result.id}`}
                   >
@@ -2312,7 +2437,7 @@ export default function App() {
             dangerouslySetInnerHTML={{ __html: miniNavSvgMarkup() }}
           />
           <div className="mini-turn" data-testid="mini-turn-instruction">
-            <small>הוראת פנייה מדומה</small>
+            <small>הוראת פנייה במסלול</small>
             <b>{currentTurnInstruction?.text ?? 'אין הוראת פנייה זמינה'}</b>
           </div>
           <div className="mini-grid">
@@ -2475,7 +2600,7 @@ export default function App() {
                 האפליקציה נועדה להמחיש את האתגרים הלוגיסטיים והביטחוניים של רעיון אזור החיץ:
                 צפיפות יישובים אזרחיים, פריסת כוחות בינלאומיים, אזורי השפעה היסטוריים של חזבאללה,
                 פיזור אירועים ביטחוניים בשנים האחרונות, וכלי עזר מקומיים לניווט, מדידה, הקלטה,
-                חלון מיני, הנחיות קוליות והוראות פנייה מדומות לפי נקודות במסלול. כל הנתונים נשאבים מדיווח פומבי בלבד
+                חלון מיני, הנחיות קוליות והוראות פנייה לפי המסלול. כל הנתונים נשאבים מדיווח פומבי בלבד
                 (תקשורת, מסמכי או״ם, מאגרים אקדמיים), המיקומים מקורבים, וההדמיה אינה מהווה
                 מודיעין מבצעי או נתוני מטרות.
               </p>
@@ -2594,7 +2719,7 @@ export default function App() {
                 <p>
                   האפליקציה נבנתה כמפת מצב אינטראקטיבית וחינוכית למרחב דרום לבנון עד נהר הליטני,
                   עם שכבות מידע, חיפוש, ניווט כבישים, מצפן, מיני־ניווט, הנחיות קוליות בעברית ובאנגלית,
-                  הוראות פנייה מדומות, הקלטת מסלולים, נקודות עניין ושיתוף קבצים מקומי.
+                  הוראות פנייה לפי המסלול, הקלטת מסלולים, נקודות עניין ושיתוף קבצים מקומי.
                 </p>
                 <div className="about-meta">
                   <span>React + Leaflet</span>
@@ -2654,7 +2779,7 @@ export default function App() {
             <div className="drawer-body">
               <h4>מה האפליקציה עושה?</h4>
               <p>
-                האפליקציה מציגה מפה חינוכית של מרחב דרום לבנון עד נהר הליטני, עם שכבות מידע, אירועים מדווחים, מדידה, ניווט כבישים, מיקום חי, מצפן, מיני־ניווט, הנחיות קוליות בעברית או באנגלית, הוראות פנייה מדומות, הקלטת מסלולים ונקודות עניין אישיות.
+                האפליקציה מציגה מפה חינוכית של מרחב דרום לבנון עד נהר הליטני, עם שכבות מידע, אירועים מדווחים, מדידה, ניווט כבישים, מיקום חי, מצפן, מיני־ניווט, הנחיות קוליות בעברית או באנגלית, הוראות פנייה לפי המסלול, הקלטת מסלולים ונקודות עניין אישיות.
               </p>
 
               <h4>ניווט כבישים</h4>
@@ -2662,9 +2787,9 @@ export default function App() {
                 באזור “ניווט כבישים נקודה לנקודה” הקלד שם מוצא ויעד, לדוגמה נאקורה וצור, ואז לחץ על תוצאה. האפליקציה תחשב מסלול כבישים משוער באמצעות OSRM/OpenStreetMap ותציג מרחק וזמן נסיעה תיאורטי.
               </p>
 
-              <h4>הוראות פנייה מדומות</h4>
+              <h4>הוראות פנייה לפי המסלול</h4>
               <p>
-                לאחר בחירת מסלול, האפליקציה מציגה כרטיס “הוראת פנייה מדומה”. ההוראה נוצרת מקומית לפי נקודות המסלול: שינוי כיוון קטן יוצג כהמשך ישר, שינוי משמעותי יוצג כפנייה ימינה או שמאלה, ושינוי חד מאוד יוצג כפניית פרסה. אם אין גאומטריית כביש מפורטת, ההוראה היא אומדן לפי קו מוצא ויעד בלבד.
+                לאחר בחירת מסלול, האפליקציה מציגה כרטיס “הוראת פנייה במסלול”. במסלול OSRM ההוראה מבוססת על צעדי הפנייה שהנתב מחזיר. אם אין צעדי ניווט זמינים, למשל במסלול מוקלט או מיובא, האפליקציה עוברת לאומדן לפי נקודות המסלול בלבד.
               </p>
 
               <h4>מיקום חי</h4>
@@ -2684,7 +2809,7 @@ export default function App() {
 
               <h4>חלון מוקטן</h4>
               <p>
-                כפתור “חלון מוקטן” מציג מיני־ניווט עם מצב הניווט, המיקום החי, ההקלטה, מיני־מפה והוראת הפנייה המדומה הקרובה. במחשב שולחני האפליקציה תנסה להשתמש ב־Document Picture-in-Picture אם הדפדפן תומך בכך, ואז Popup קטן, ואז חלון צף פנימי. בנייד, כולל Chrome ו־Samsung Internet, האפליקציה עוברת ישירות לחלון צף פנימי כדי למנוע פתיחה חיצונית שעלולה להעביר את הדפדפן לרקע או לסגור את התצוגה.
+                כפתור “חלון מוקטן” מציג מיני־ניווט עם מצב הניווט, המיקום החי, ההקלטה, מיני־מפה והוראת הפנייה הקרובה. במחשב שולחני האפליקציה תנסה להשתמש ב־Document Picture-in-Picture אם הדפדפן תומך בכך, ואז Popup קטן, ואז חלון צף פנימי. בנייד, כולל Chrome ו־Samsung Internet, האפליקציה עוברת ישירות לחלון צף פנימי כי דפדפן ווב רגיל אינו יכול לכפות חלון מעל מסך הבית או מעל אפליקציות אחרות.
               </p>
 
               <h4>שמירה ושיתוף</h4>
@@ -2704,7 +2829,7 @@ export default function App() {
 
               <h4>פרטיות ואבטחה</h4>
               <p>
-                אין מסד נתונים משותף ואין ערבוב מידע בין משתמשים. מיקום חי, הקלטות, הוראות פנייה מדומות ונקודות עניין נשארים בצד המכשיר, מלבד נקודות מוצא/יעד שנשלחות ל־OSRM לצורך חישוב מסלול כבישים. אם נדרשת פרטיות מלאה, השתמש במדידה, בנקודות עניין או במסלול מוקלט בלי חישוב OSRM.
+                אין מסד נתונים משותף ואין ערבוב מידע בין משתמשים. מיקום חי, הקלטות, הוראות פנייה ונקודות עניין נשארים בצד המכשיר, מלבד נקודות מוצא/יעד שנשלחות ל־OSRM לצורך חישוב מסלול כבישים. אם נדרשת פרטיות מלאה, השתמש במדידה, בנקודות עניין או במסלול מוקלט בלי חישוב OSRM.
               </p>
 
               <h4>מגבלות</h4>

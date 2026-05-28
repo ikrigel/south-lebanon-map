@@ -54,12 +54,12 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - **Voice guidance in Hebrew or English** – local browser speech synthesis with
   language selection and three modes: off, basic route/distance announcements
   and detailed updates with origin, destination, time estimate, heading,
-  location accuracy and simulated turn prompts. The voice test uses the selected
+  location accuracy and route turn prompts. The voice test uses the selected
   language.
-- **Simulated turn instructions** – local next-turn prompts derived from route
-  geometry points or, when no detailed geometry exists, from an origin-to-
-  destination estimate. These prompts are visual and can be spoken in detailed
-  Hebrew voice guidance mode.
+- **Route turn instructions** – OSRM routes request `steps=true` and preserve
+  the returned turn steps for visual and spoken prompts. Imported or recorded
+  routes can still fall back to local geometry-based estimates when no steps
+  exist.
 - **Navigation session persistence** – active origin/destination, route name and
   route geometry are saved in browser-local storage and restored after reload
   when storage is available.
@@ -130,8 +130,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   the Sources drawer.
 - Road routing is an educational estimate only. It does not include real-time
   traffic, roadblocks, military restrictions, safety assessment or access
-  permissions. Simulated turn instructions are not official turn-by-turn
-  navigation and do not include lane guidance, street signs or road-rule data.
+  permissions. Route turn prompts are not official turn-by-turn navigation and
+  do not include live lane guidance, street signs or road-rule validation.
 
 ## Test IDs (selected)
 
