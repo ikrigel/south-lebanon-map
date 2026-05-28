@@ -46,9 +46,12 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   wadis/streams/rivers. Normal mode keeps a readable curated label set, while
   large label mode exposes the expanded south-Lebanon dataset up to the Zahrani
   area inclusive.
-- **Search and focus** – search settlements, incidents, UNIFIL points,
-  influence zones, terrain features including mountains and rivers, and
-  user-created points of interest.
+- **Map search and focus** – a dedicated map search centers and zooms to
+  settlements, cities, POIs, incidents, UNIFIL points and terrain features,
+  placing a temporary focus marker at the selected result.
+- **Filter search** – the free-text incident search still filters settlements,
+  incidents, UNIFIL points, influence zones, terrain features including
+  mountains and rivers, and user-created points of interest.
 - **Theme modes** – dark, light and automatic day/night mode, persisted in
   browser-local storage so the app reopens in the last selected display mode.
 - **Toast feedback** – key actions now show short, accessible confirmation or
@@ -176,6 +179,7 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   `mini-turn-instruction`, `button-close-mini-overlay`
 - `input-route-start-search`, `input-route-end-search`,
   `select-route-start`, `select-route-end`, `button-route-focus`
+- `input-map-search`, `map-search-results`, `button-map-search-result-{id}`
 - `button-save-route`, `button-export-route`, `input-import-route`,
   `button-export-all-routes`
 - `button-record-route`, `button-save-recording`, `button-export-recording`

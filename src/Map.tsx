@@ -31,7 +31,7 @@ export type MapProps = {
   distanceLine: [[number, number], [number, number]] | null;
   theme: 'light' | 'dark';
   largeLabels: boolean;
-  focusTarget: { lat: number; lon: number; zoom?: number; id: string } | null;
+  focusTarget: { lat: number; lon: number; zoom?: number; id: string; label?: string } | null;
   navigationRoute: {
     start: { lat: number; lon: number; label: string };
     end: { lat: number; lon: number; label: string };
@@ -106,6 +106,7 @@ export default function MapView(props: MapProps) {
     live?: L.LayerGroup;
     recording?: L.LayerGroup;
     pois?: L.LayerGroup;
+    focus?: L.LayerGroup;
   }>({});
 
   // ---- initialize map once ----
@@ -307,6 +308,25 @@ export default function MapView(props: MapProps) {
       animate: true,
       duration: 0.7,
     });
+    if (props.focusTarget.label) {
+      if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
+      const focusGroup = layersRef.current.focus;
+      focusGroup.clearLayers();
+      L.circleMarker([props.focusTarget.lat, props.focusTarget.lon], {
+        radius: 11,
+        color: '#f6c453',
+        weight: 3,
+        fillColor: '#0f766e',
+        fillOpacity: 0.92,
+      })
+        .bindTooltip(props.focusTarget.label, {
+          direction: 'top',
+          offset: [0, -10],
+          permanent: true,
+          className: 'focus-tooltip',
+        })
+        .addTo(focusGroup);
+    }
   }, [props.focusTarget]);
 
   // ---- detach automatic live-location follow after manual map movement ----
@@ -373,10 +393,14 @@ export default function MapView(props: MapProps) {
 
     const compactTownIds = new Set([
       'tyre',
+      'sidon',
       'nabat',
       'naqoura',
       'bintj',
       'tibnin',
+      'braachit',
+      'sarafand',
+      'zahrani-area',
       'marjay',
       'khiam',
       'hasbaya',
@@ -415,7 +439,7 @@ export default function MapView(props: MapProps) {
 
     const isRidgeLike = (type: string) => type === 'ridge' || type === 'mountain' || type === 'valley';
     const isWaterLike = (type: string) => type === 'river' || type === 'wadi' || type === 'water';
-    const compactRidgeIds = new Set(['jabal-amel', 'bint-jbeil-ridge', 'nabatieh-plateau']);
+    const compactRidgeIds = new Set(['jabal-amel', 'bint-jbeil-ridge', 'nabatieh-plateau', 'silvester-ridge']);
     const compactWaterIds = new Set(['litani', 'zahrani', 'hasbani']);
     const terrainToLabel = terrainFeatures.filter(f => {
       if (isRidgeLike(f.type) && !props.visible.ridgeLabels) return false;

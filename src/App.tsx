@@ -563,6 +563,7 @@ export default function App() {
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(TYPES));
   const [sevFilter, setSevFilter] = useState<Set<string>>(new Set(SEVS));
   const [query, setQuery] = useState('');
+  const [mapSearchQuery, setMapSearchQuery] = useState('');
 
   // -------- selection / measure --------
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -577,7 +578,7 @@ export default function App() {
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
   const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
-  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string } | null>(() =>
+  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string; label?: string } | null>(() =>
     initialMapViewRef.current
       ? { ...initialMapViewRef.current, id: 'restore-last-map-view' }
       : null
@@ -806,6 +807,64 @@ export default function App() {
       }));
     return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...zoneMatches, ...incidentMatches].slice(0, 12);
   }, [query, customPois]);
+
+  const mapSearchResults = useMemo(() => {
+    const q = clean(mapSearchQuery);
+    if (!q) return [];
+    const townMatches = towns
+      .filter(t => clean(`${t.name_he} ${t.name_en} ${t.note ?? ''} ${t.side === 'LB' ? 'לבנון כפר ישוב יישוב' : 'ישראל ישוב יישוב'}`).includes(q))
+      .map(t => ({
+        id: `map-town-${t.id}`,
+        title: t.name_he,
+        subtitle: `${t.name_en} · ${t.side === 'LB' ? 'יישוב/כפר בלבנון' : 'יישוב ייחוס בישראל'}`,
+        lat: t.lat,
+        lon: t.lon,
+        zoom: t.pop_band === 'xl' ? 13 : 15,
+      }));
+    const terrainMatches = terrainFeatures
+      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים הר הרים נחל נחלים נהר נהרות ואדי עמק תוואי שטח זהרני זהראני סילבסטר`).includes(q))
+      .map(f => ({
+        id: `map-terrain-${f.id}`,
+        title: f.name_he,
+        subtitle: `${f.name_en} · ${f.type === 'mountain' ? 'הר' : f.type === 'ridge' ? 'רכס' : f.type === 'river' ? 'נהר' : f.type === 'wadi' ? 'ואדי/נחל' : 'תוואי שטח'}`,
+        lat: f.lat,
+        lon: f.lon,
+        zoom: f.type === 'river' || f.type === 'wadi' ? 13 : 15,
+      }));
+    const unifilMatches = unifilPoints
+      .filter(u => clean(`${u.name_he} ${u.name_en} ${u.note_he} יוניפיל unifil`).includes(q))
+      .map(u => ({
+        id: `map-unifil-${u.id}`,
+        title: u.name_he,
+        subtitle: `${u.name_en} · נקודת יוניפי״ל ציבורית/מקורבת`,
+        lat: u.lat,
+        lon: u.lon,
+        zoom: 14,
+      }));
+    const poiMatches = customPois
+      .filter(p => clean(`${p.name} ${p.description} נקודת עניין`).includes(q))
+      .map(p => ({
+        id: `map-poi-${p.id}`,
+        title: p.name,
+        subtitle: `נקודת עניין אישית · ${p.description || 'ללא תיאור'}`,
+        lat: p.lat,
+        lon: p.lon,
+        zoom: 16,
+      }));
+    const incidentMatches = incidents
+      .filter(i => clean(`${i.title_he} ${i.desc_he} ${i.source_label} ${TYPE_LABEL[i.type]} אירוע`).includes(q))
+      .slice(0, 8)
+      .map(i => ({
+        id: `map-incident-${i.id}`,
+        incidentId: i.id,
+        title: i.title_he,
+        subtitle: `${fmtDate(i.date)} · ${TYPE_LABEL[i.type]} · ${i.approx ? 'מיקום מקורב' : 'מיקום מדווח'}`,
+        lat: i.lat,
+        lon: i.lon,
+        zoom: 14,
+      }));
+    return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...incidentMatches].slice(0, 18);
+  }, [mapSearchQuery, customPois]);
 
   const selected = useMemo(
     () => filtered.find(i => i.id === selectedId) || incidents.find(i => i.id === selectedId) || null,
@@ -1890,6 +1949,48 @@ export default function App() {
       {/* ============ Left panel: layers + filters ============ */}
       <aside className="panel left" data-testid="panel-layers">
         <div className="panel-scroll">
+          <div className="panel-section map-search-section">
+            <h3>חיפוש במפה</h3>
+            <input
+              className="search"
+              placeholder="חפש כפר, עיר, רכס, הר, נחל או נקודת עניין…"
+              value={mapSearchQuery}
+              onChange={e => setMapSearchQuery(e.target.value)}
+              data-testid="input-map-search"
+            />
+            <p className="legend-note">
+              בחירה בתוצאה ממקמת את הנקודה במרכז המפה, פותחת זום קרוב ומציגה סמן מיקוד.
+            </p>
+            {mapSearchResults.length > 0 && (
+              <div className="search-results map-search-results" data-testid="map-search-results">
+                {mapSearchResults.map(result => (
+                  <button
+                    key={result.id}
+                    className="search-result"
+                    onClick={() => {
+                      setFocusTarget({
+                        lat: result.lat,
+                        lon: result.lon,
+                        zoom: result.zoom,
+                        label: result.title,
+                        id: `${result.id}-${Date.now()}`,
+                      });
+                      setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
+                      if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
+                    }}
+                    data-testid={`button-map-search-result-${result.id}`}
+                  >
+                    <span>{result.title}</span>
+                    <small>{result.subtitle}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+            {mapSearchQuery.trim().length > 1 && mapSearchResults.length === 0 && (
+              <p className="legend-note" data-testid="map-search-empty">לא נמצאו תוצאות. נסה כתיב עברי/אנגלי אחר או שם סמוך.</p>
+            )}
+          </div>
+
           <div className="panel-section">
             <h3>שכבות מידע</h3>
             <div className="layer-group-title">שכבות בסיס, ביטחון ותבליט</div>
