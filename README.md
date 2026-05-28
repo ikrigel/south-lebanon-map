@@ -42,7 +42,8 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
   and orientation.
 - **Search and focus** – search settlements, incidents, UNIFIL points,
   influence zones and user-created points of interest.
-- **Theme modes** – dark, light and automatic day/night mode.
+- **Theme modes** – dark, light and automatic day/night mode, persisted in
+  browser-local storage so the app reopens in the last selected display mode.
 - **Large labels** – enlarged Hebrew labels with English/transliterated names.
 - **Mini navigation window** – “חלון מוקטן” opens an in-app floating mini
   navigation overlay on mobile browsers, including Chrome and Samsung Internet,

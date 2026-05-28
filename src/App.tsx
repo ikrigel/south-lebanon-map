@@ -16,6 +16,7 @@ const MAX_IMPORTED_POIS = 500;
 const POI_STORAGE_KEY = 'south-lebanon-map:custom-pois:v1';
 const NAV_SESSION_KEY = 'south-lebanon-map:navigation-session:v1';
 const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
+const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
 const POI_COLORS = [
   { value: '#f6c453', label: 'זהב' },
@@ -384,6 +385,17 @@ const safeStorageSet = (key: string, value: unknown) => {
   }
 };
 
+const loadLocalThemeMode = (): ThemeMode => {
+  try {
+    const raw = safeStorageGet(THEME_STORAGE_KEY);
+    if (!raw) return 'dark';
+    const parsed = JSON.parse(raw);
+    return parsed === 'light' || parsed === 'dark' || parsed === 'auto' ? parsed : 'dark';
+  } catch {
+    return 'dark';
+  }
+};
+
 const normalizeRoutePath = (path: unknown): [number, number][] | undefined => {
   if (!Array.isArray(path)) return undefined;
   const points = path.slice(0, MAX_ROUTE_POINTS).filter((p): p is [number, number] =>
@@ -493,7 +505,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  const [themeMode, setThemeMode] = useState<ThemeMode>('dark');
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadLocalThemeMode());
   const [autoDay, setAutoDay] = useState(isDaytime());
   const [largeLabels, setLargeLabels] = useState(false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
@@ -548,6 +560,10 @@ export default function App() {
   useEffect(() => {
     saveLocalPois(customPois);
   }, [customPois]);
+
+  useEffect(() => {
+    safeStorageSet(THEME_STORAGE_KEY, themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     safeStorageSet(NAV_SESSION_KEY, {
