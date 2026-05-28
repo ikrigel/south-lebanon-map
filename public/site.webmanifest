@@ -1,0 +1,26 @@
+{
+  "name": "מפת דרום לבנון",
+  "short_name": "דרום לבנון",
+  "description": "מפה אינטראקטיבית חינוכית של מרחב דרום לבנון עד נהר הליטני.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1217",
+  "theme_color": "#0f1217",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
