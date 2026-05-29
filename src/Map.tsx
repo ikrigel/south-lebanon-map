@@ -129,34 +129,27 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     invalidateSize: () => {
       // App.tsx already waited double-rAF so the CSS grid is applied.
       //
-      // Root-cause: Leaflet's invalidateSize sets _sizeChanged=true BEFORE
-      // reading oldSize, so oldSize===newSize, offset===0, and the internal
-      // pan correction is a no-op. The _pixelOrigin then gets recalculated
-      // for the new container size, shifting the visible area.
+      // Root cause: when the container resizes, Leaflet recalculates
+      // _pixelOrigin = project(center) - viewHalf + panePos.
+      // viewHalf changes with the container, so _pixelOrigin drifts and
+      // the visible area shifts east/west. _rawPanBy only moves the pane
+      // but does not fix _pixelOrigin, so it cannot cure the drift.
       //
-      // Fix: snapshot the map-pane's raw pixel position (_leaflet_pos)
-      // BEFORE invalidateSize, then restore it AFTER. This is the same
-      // value _rawPanBy writes, so it's the canonical Leaflet position store.
+      // Fix: capture the geo-center from snapshotCenter() (taken before any
+      // layout change), let Leaflet invalidate tile bounds, then call setView
+      // with the saved center and the CURRENT zoom (which invalidateSize
+      // never changes). This forces _pixelOrigin to be recalculated correctly
+      // for the new container size, keeping the viewport locked on the same
+      // geographic point.
       const map = mapRef.current;
       if (!map) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const m = map as any;
-      const pane = m._mapPane as HTMLElement | undefined;
-      if (!pane) { map.invalidateSize({ animate: false, pan: false }); return; }
-
-      // Save pixel position of the pane before resize
-      const posBefore = m._getMapPanePos().clone();
-
+      const saved = savedViewRef.current;
+      const center = saved ? saved.center : map.getCenter();
+      const zoom = map.getZoom(); // invalidateSize never changes zoom
       map.invalidateSize({ animate: false, pan: false });
-
-      // Restore pixel position — this undoes any drift from _pixelOrigin recalc.
-      // _rawPanBy subtracts the argument from the current pane pos, so to get
-      // back to posBefore we need to subtract the difference (posAfter - posBefore).
-      const posAfter = m._getMapPanePos();
-      const drift = posAfter.subtract(posBefore);
-      if (Math.abs(drift.x) > 0.5 || Math.abs(drift.y) > 0.5) {
-        m._rawPanBy(drift);
-      }
+      // setView recalculates _pixelOrigin for the new container size,
+      // anchoring it on the saved geo-center without changing zoom.
+      map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
     },
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
