@@ -191,12 +191,35 @@ body {
 }
 
 .map-wrap { grid-area: map; position: relative; background: var(--bg); }
-#map { position: absolute; inset: 0; }
+#map {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  transition: transform .15s ease, inset .15s ease;
+}
+
+/* compass-follow: auto-rotate to match device heading */
 #map.compass-follow {
   inset: -18%;
   transform: rotate(var(--map-rotation, 0deg)) scale(1.22);
   transform-origin: center center;
   transition: transform .35s ease;
+}
+
+/* map-rotated: manual user rotation (two-finger twist / right-click drag).
+   Expand the tile area so corners don’t get clipped at any angle. */
+#map.map-rotated {
+  inset: -22%;
+  transform: rotate(var(--map-rotation, 0deg)) scale(1.3);
+  transform-origin: center center;
+  transition: transform .15s ease;
+}
+
+/* Both active simultaneously: compass + manual rotation */
+#map.compass-follow.map-rotated {
+  inset: -22%;
+  transform: rotate(var(--map-rotation, 0deg)) scale(1.3);
+  transition: transform .15s ease;
 }
 
 .footer {
