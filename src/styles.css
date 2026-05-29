@@ -1116,9 +1116,13 @@ body {
 }
 .compass-button span:not(.compass-needle) { font-weight: 800; font-size: 12px; line-height: 1.1; }
 .compass-button small { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
-/* Reset-north button — shown when map is manually rotated */
+/* Reset-north button — shown when map is manually rotated.
+   Positioned at top-right to avoid overlapping the compass / menu buttons on the left. */
 .reset-north-btn {
-  top: 76px; /* below the main compass button */
+  /* Override left-anchor from .compass-button */
+  inset-inline-start: unset !important;
+  inset-inline-end: 12px;
+  top: 12px;
   border-color: rgba(246, 196, 83, 0.5) !important;
   background: color-mix(in srgb, rgba(246,196,83,0.12) 100%, transparent) !important;
 }
@@ -1498,6 +1502,11 @@ body {
     top: 8px;
     inset-inline-start: 8px;
     min-width: 88px;
+  }
+  .reset-north-btn {
+    top: 8px;
+    inset-inline-end: 8px;
+    inset-inline-start: unset !important;
   }
   .map-menu-fab {
     top: 64px;

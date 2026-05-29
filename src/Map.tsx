@@ -108,17 +108,14 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
   useImperativeHandle(ref, () => ({
     invalidateSize: () => {
-      // Double-rAF: first frame applies CSS grid change, second measures new size.
-      // We lock the geo-center before resize and restore it after, so the
-      // viewport does not drift east/west when the panel opens or closes.
-      requestAnimationFrame(() => {
-        const map = mapRef.current;
-        if (!map) return;
-        const center = map.getCenter(); // capture before resize
-        map.invalidateSize({ animate: false, pan: false });
-        // Restore center immediately (no animation) to prevent drift
-        map.setView(center, map.getZoom(), { animate: false });
-      });
+      // Called after double-rAF from App.tsx (CSS grid already applied).
+      // Capture center+zoom BEFORE Leaflet recalculates, restore immediately.
+      const map = mapRef.current;
+      if (!map) return;
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      map.invalidateSize({ animate: false, pan: false });
+      map.setView(center, zoom, { animate: false });
     },
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
@@ -356,6 +353,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 2) return;
+      // Prevent Leaflet from capturing this two-finger gesture
+      e.preventDefault();
+      e.stopPropagation();
       initialAngle = getTouchAngle(e.touches[0], e.touches[1]);
       startRotation = props.userRotation;
       rotating = true;
@@ -363,6 +363,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!rotating || e.touches.length !== 2) return;
+      // Prevent Leaflet pan/zoom during two-finger rotation
+      e.preventDefault();
+      e.stopPropagation();
       const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
       const delta = currentAngle - initialAngle;
       props.onUserRotationChange(startRotation + delta);
@@ -379,7 +382,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     const onContextMenuDown = (e: MouseEvent) => {
       if (e.button !== 2) return;
+      // Stop Leaflet from getting this right-click
       e.preventDefault();
+      e.stopPropagation();
       dragStartX = e.clientX;
       dragStartRotation = props.userRotation;
       dragging = true;
@@ -397,22 +402,24 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (dragging || Math.abs((props.userRotation - dragStartRotation)) > 2) e.preventDefault();
     };
 
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    el.addEventListener('mousedown', onContextMenuDown);
+    // Use capture phase + non-passive so we can preventDefault and beat Leaflet
+    el.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+    // mousedown capture: intercept right-click before Leaflet swallows it
+    el.addEventListener('mousedown', onContextMenuDown, { capture: true });
     window.addEventListener('mousemove', onContextMenuMove);
     window.addEventListener('mouseup', onContextMenuUp);
-    el.addEventListener('contextmenu', suppressContextMenu);
+    el.addEventListener('contextmenu', suppressContextMenu, { capture: true });
 
     return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('mousedown', onContextMenuDown);
+      el.removeEventListener('touchstart', onTouchStart, { capture: true } as EventListenerOptions);
+      el.removeEventListener('touchmove', onTouchMove, { capture: true } as EventListenerOptions);
+      el.removeEventListener('touchend', onTouchEnd, { capture: true } as EventListenerOptions);
+      el.removeEventListener('mousedown', onContextMenuDown, { capture: true } as EventListenerOptions);
       window.removeEventListener('mousemove', onContextMenuMove);
       window.removeEventListener('mouseup', onContextMenuUp);
-      el.removeEventListener('contextmenu', suppressContextMenu);
+      el.removeEventListener('contextmenu', suppressContextMenu, { capture: true } as EventListenerOptions);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.userRotation, props.onUserRotationChange]);
