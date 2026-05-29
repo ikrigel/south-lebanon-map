@@ -128,24 +128,34 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     },
     invalidateSize: () => {
       // App.tsx already waited double-rAF so the CSS grid is applied.
-      // Strategy: invalidate tile bounds, then correct ONLY the pixel drift
-      // using _rawPanBy - moves the map pane directly without calling
-      // setView/_resetView, so zoom level and moveend are never touched.
-      // This prevents both center-drift AND zoom-jump on mobile.
+      //
+      // Root-cause: Leaflet's invalidateSize sets _sizeChanged=true BEFORE
+      // reading oldSize, so oldSize===newSize, offset===0, and the internal
+      // pan correction is a no-op. The _pixelOrigin then gets recalculated
+      // for the new container size, shifting the visible area.
+      //
+      // Fix: snapshot the map-pane's raw pixel position (_leaflet_pos)
+      // BEFORE invalidateSize, then restore it AFTER. This is the same
+      // value _rawPanBy writes, so it's the canonical Leaflet position store.
       const map = mapRef.current;
       if (!map) return;
-      const saved = savedViewRef.current;
-      const wantedCenter = saved ? saved.center : map.getCenter();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const m = map as any;
+      const pane = m._mapPane as HTMLElement | undefined;
+      if (!pane) { map.invalidateSize({ animate: false, pan: false }); return; }
+
+      // Save pixel position of the pane before resize
+      const posBefore = m._getMapPanePos().clone();
+
       map.invalidateSize({ animate: false, pan: false });
-      // Compute pixel drift at current zoom: where Leaflet thinks the center
-      // is now vs where we want it. Apply correction via raw pane move.
-      const zoom = map.getZoom();
-      const currentPixel = map.project(map.getCenter(), zoom);
-      const wantedPixel  = map.project(wantedCenter, zoom);
-      const drift = currentPixel.subtract(wantedPixel);
+
+      // Restore pixel position — this undoes any drift from _pixelOrigin recalc.
+      // _rawPanBy subtracts the argument from the current pane pos, so to get
+      // back to posBefore we need to subtract the difference (posAfter - posBefore).
+      const posAfter = m._getMapPanePos();
+      const drift = posAfter.subtract(posBefore);
       if (Math.abs(drift.x) > 0.5 || Math.abs(drift.y) > 0.5) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (map as any)._rawPanBy(drift);
+        m._rawPanBy(drift);
       }
     },
   }), []);
