@@ -8,6 +8,9 @@ import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm } from './util';
 
 /** Imperative handle exposed to parent via ref */
 export type MapHandle = {
+  /** Snapshot the current geo-center. Call BEFORE any layout change so the
+   *  snapshot is taken before Leaflet’s own ResizeObserver fires. */
+  snapshotCenter: () => void;
   /** Call after any layout change so Leaflet recalculates tile bounds */
   invalidateSize: () => void;
 };
@@ -115,19 +118,25 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const userRotationRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
-    invalidateSize: () => {
-      // App.tsx already waited double-rAF so the CSS grid is applied.
-      // We restore the saved view (captured before the layout change)
-      // instead of reading map.getCenter() which is already stale.
+    snapshotCenter: () => {
+      // Called SYNCHRONOUSLY before any layout change (before rAF).
+      // Leaflet's ResizeObserver may fire during the rAF gap and corrupt
+      // getCenter(), so we snapshot here while the layout is still stable.
       const map = mapRef.current;
       if (!map) return;
-      // Capture NOW — before invalidateSize recalculates pixel origin
+      savedViewRef.current = { center: map.getCenter(), zoom: map.getZoom() };
+    },
+    invalidateSize: () => {
+      // App.tsx already waited double-rAF so the CSS grid is applied.
+      // Use the center snapshot taken before the layout change (snapshotCenter).
+      // Only restore center (panTo), not zoom — zoom must not change on
+      // open/close so the viewport doesn’t jump vertically on mobile.
+      const map = mapRef.current;
+      if (!map) return;
       const saved = savedViewRef.current;
       const center = saved ? saved.center : map.getCenter();
-      const zoom   = saved ? saved.zoom   : map.getZoom();
       map.invalidateSize({ animate: false, pan: false });
-      // Use setView with noMoveStart so we don't trigger spurious move events
-      map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
+      map.panTo(center, { animate: false, noMoveStart: true });
     },
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);

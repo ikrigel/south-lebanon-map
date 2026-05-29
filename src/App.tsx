@@ -1533,7 +1533,10 @@ export default function App() {
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
   useEffect(() => {
-    // Double rAF: first frame applies the CSS grid change, second measures the new size
+    // Snapshot BEFORE any layout change fires — this captures the correct
+    // geo-center before Leaflet's own ResizeObserver can corrupt it.
+    mapViewRef.current?.snapshotCenter();
+    // Double rAF: frame 1 → CSS grid changes; frame 2 → Leaflet sees new size.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         mapViewRef.current?.invalidateSize();
