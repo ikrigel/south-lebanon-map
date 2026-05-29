@@ -1,10 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import L from 'leaflet';
 import {
   blueLine, litaniRiver, litaniBufferZone, towns, unifilPoints, influenceZones, terrainFeatures,
   Incident, Town,
 } from './data/geo';
 import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm } from './util';
+
+/** Imperative handle exposed to parent via ref */
+export type MapHandle = {
+  /** Call after any layout change so Leaflet recalculates tile bounds */
+  invalidateSize: () => void;
+};
 
 export type LayerVis = {
   pop: boolean;
@@ -93,9 +99,18 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
   return `<span class="poi-pin ${poiShapeClass(shape)}${draft ? ' poi-pin-draft' : ''}" style="width:${px}px;height:${px}px;background:${safeColor};transform:${rotation};"><span style="${symbolRotation}">${poiSymbol(shape, draft)}</span></span>`;
 };
 
-export default function MapView(props: MapProps) {
+const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    invalidateSize: () => {
+      // Use rAF so Leaflet reads the final post-layout size
+      requestAnimationFrame(() => {
+        mapRef.current?.invalidateSize({ animate: false, pan: false });
+      });
+    },
+  }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
   const liveFollowDetachedRef = useRef(false);
 
@@ -893,4 +908,6 @@ export default function MapView(props: MapProps) {
       data-testid="map-canvas"
     />
   );
-}
+});
+
+export default MapView;

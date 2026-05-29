@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
-import MapView, { LayerVis } from './Map';
+import MapView, { LayerVis, MapHandle } from './Map';
 import { incidents, blueLine, Incident, towns, unifilPoints, influenceZones, terrainFeatures } from './data/geo';
 import { sources } from './data/sources';
 import {
@@ -625,6 +625,7 @@ export default function App() {
   const [largeLabels, setLargeLabels] = useState(() => initialLabelPrefsRef.current?.largeLabels ?? false);
   const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
+  const mapViewRef = useRef<MapHandle>(null);
   // Draggable panel height (mobile only) — percentage of viewport height
   const [panelHeightPct, setPanelHeightPct] = useState(35); // default ~35vh (3rd anchor)
   const panelDragRef = useRef<{ startY: number; startPct: number } | null>(null);
@@ -1524,6 +1525,16 @@ export default function App() {
     showToast('מבקש הרשאת מיקום מהמכשיר…');
     beginLiveLocationWatch();
   };
+
+  // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
+  useEffect(() => {
+    // Double rAF: first frame applies the CSS grid change, second measures the new size
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        mapViewRef.current?.invalidateSize();
+      });
+    });
+  }, [panelsCollapsed]);
 
   // ---- Panel drag handlers (mobile bottom-sheet) ----
   const handlePanelDragStart = useCallback((clientY: number) => {
@@ -3186,6 +3197,7 @@ export default function App() {
           largeLabels={largeLabels}
           allLabels={allLabels}
           focusTarget={focusTarget}
+          ref={mapViewRef}
           navigationRoute={navigationRoute}
           alternativeRoute={alternativeRoute}
           activeRouteIndex={activeRouteIndex}
