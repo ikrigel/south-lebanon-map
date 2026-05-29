@@ -105,17 +105,26 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
 const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  // Tracks the last known geo-center/zoom, updated on every moveend/zoomend.
+  // Used by invalidateSize to restore view after layout changes, because
+  // map.getCenter() is unreliable once Leaflet has already recalculated its
+  // pixel origin for the new container size.
+  const savedViewRef = useRef<{ center: L.LatLng; zoom: number } | null>(null);
 
   useImperativeHandle(ref, () => ({
     invalidateSize: () => {
-      // Called after double-rAF from App.tsx (CSS grid already applied).
-      // Capture center+zoom BEFORE Leaflet recalculates, restore immediately.
+      // App.tsx already waited double-rAF so the CSS grid is applied.
+      // We restore the saved view (captured before the layout change)
+      // instead of reading map.getCenter() which is already stale.
       const map = mapRef.current;
       if (!map) return;
-      const center = map.getCenter();
-      const zoom = map.getZoom();
+      // Capture NOW — before invalidateSize recalculates pixel origin
+      const saved = savedViewRef.current;
+      const center = saved ? saved.center : map.getCenter();
+      const zoom   = saved ? saved.zoom   : map.getZoom();
       map.invalidateSize({ animate: false, pan: false });
-      map.setView(center, zoom, { animate: false });
+      // Use setView with noMoveStart so we don't trigger spurious move events
+      map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
     },
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
@@ -291,12 +300,17 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     const reportView = () => {
       const center = map.getCenter();
+      const zoom = map.getZoom();
+      // Keep savedViewRef in sync — used by invalidateSize to restore view
+      savedViewRef.current = { center, zoom };
       props.onMapViewChange({
         lat: center.lat,
         lon: center.lng,
-        zoom: map.getZoom(),
+        zoom,
       });
     };
+    // Also capture initial view immediately after fitBounds settles
+    map.once('moveend', reportView);
     map.on('moveend zoomend', reportView);
 
     return () => {
@@ -344,35 +358,51 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (!el) return;
 
     // --- touch two-finger rotation ---
+    // Strategy: let Leaflet handle pinch-zoom freely.
+    // We detect TWIST (angle change without significant distance change) and
+    // apply rotation on top. Both can happen simultaneously.
     let initialAngle = 0;
+    let initialDist = 0;
     let startRotation = 0;
-    let rotating = false;
+    let tracking = false;
 
     const getTouchAngle = (t1: Touch, t2: Touch) =>
       Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
 
+    const getTouchDist = (t1: Touch, t2: Touch) => {
+      const dx = t2.clientX - t1.clientX;
+      const dy = t2.clientY - t1.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return;
-      // Prevent Leaflet from capturing this two-finger gesture
-      e.preventDefault();
-      e.stopPropagation();
+      if (e.touches.length !== 2) { tracking = false; return; }
+      // Do NOT preventDefault — let Leaflet handle pinch-zoom normally
       initialAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      initialDist  = getTouchDist(e.touches[0], e.touches[1]);
       startRotation = props.userRotation;
-      rotating = true;
+      tracking = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!rotating || e.touches.length !== 2) return;
-      // Prevent Leaflet pan/zoom during two-finger rotation
-      e.preventDefault();
-      e.stopPropagation();
+      if (!tracking || e.touches.length !== 2) return;
       const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
-      const delta = currentAngle - initialAngle;
-      props.onUserRotationChange(startRotation + delta);
+      const currentDist  = getTouchDist(e.touches[0], e.touches[1]);
+      const angleDelta = currentAngle - initialAngle;
+      // Only apply rotation when twist is dominant (angle change > 8° and
+      // distance change is less than 25% of initial distance)
+      const distChange = Math.abs(currentDist - initialDist) / Math.max(initialDist, 1);
+      if (Math.abs(angleDelta) > 8 && distChange < 0.25) {
+        props.onUserRotationChange(startRotation + angleDelta);
+      }
+      // Let Leaflet handle pinch-zoom — no preventDefault
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) rotating = false;
+      if (e.touches.length < 2) {
+        tracking = false;
+        // Re-capture baseline if one finger stays
+      }
     };
 
     // --- right-click drag rotation (desktop) ---
@@ -402,20 +432,21 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (dragging || Math.abs((props.userRotation - dragStartRotation)) > 2) e.preventDefault();
     };
 
-    // Use capture phase + non-passive so we can preventDefault and beat Leaflet
-    el.addEventListener('touchstart', onTouchStart, { passive: false, capture: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
-    // mousedown capture: intercept right-click before Leaflet swallows it
+    // Touch: passive listeners — we never call preventDefault, so Leaflet
+    // pinch-zoom works normally. We just read coordinates on top of it.
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    // Right-click drag: capture phase so we beat Leaflet's context-menu handler
     el.addEventListener('mousedown', onContextMenuDown, { capture: true });
     window.addEventListener('mousemove', onContextMenuMove);
     window.addEventListener('mouseup', onContextMenuUp);
     el.addEventListener('contextmenu', suppressContextMenu, { capture: true });
 
     return () => {
-      el.removeEventListener('touchstart', onTouchStart, { capture: true } as EventListenerOptions);
-      el.removeEventListener('touchmove', onTouchMove, { capture: true } as EventListenerOptions);
-      el.removeEventListener('touchend', onTouchEnd, { capture: true } as EventListenerOptions);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('mousedown', onContextMenuDown, { capture: true } as EventListenerOptions);
       window.removeEventListener('mousemove', onContextMenuMove);
       window.removeEventListener('mouseup', onContextMenuUp);
