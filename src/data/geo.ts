@@ -240,7 +240,7 @@ export const towns: Town[] = [
   // Western heights: Adamit ridge
   { id: 'ya-ara',    name_he: 'יערא', name_en: "Ya'ara", lat: 33.0669, lon: 35.1847, pop_band: 'sm', pop_estimate: 650, side: 'IL' },
   { id: 'adamit',    name_he: 'אדמית', name_en: 'Adamit', lat: 33.0783, lon: 35.2111, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
-  { id: 'zarit',     name_he: 'זרעית', name_en: 'Zarit', lat: 33.0933, lon: 35.2864, pop_band: 'sm', pop_estimate: 300, side: 'IL' },
+  { id: 'zarit',     name_he: 'זרעית', name_en: 'Zarit', lat: 33.1000, lon: 35.2886, pop_band: 'sm', pop_estimate: 300, side: 'IL' },
   { id: 'shtula',    name_he: 'שתולה', name_en: 'Shtula', lat: 33.0856, lon: 35.3131, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
   { id: 'goren',     name_he: 'גורן', name_en: 'Goren', lat: 33.0567, lon: 35.2392, pop_band: 'sm', pop_estimate: 600, side: 'IL' },
   // Central Galilee: Maalot area
@@ -263,7 +263,7 @@ export const towns: Town[] = [
   { id: 'manara',    name_he: 'מנרה', name_en: 'Manara', lat: 33.1958, lon: 35.5444, pop_band: 'sm', pop_estimate: 250, side: 'IL' },
   { id: 'margaliot', name_he: 'מרגליות', name_en: 'Margaliot', lat: 33.2144, lon: 35.5447, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
   { id: 'misgav',    name_he: 'משגב עם', name_en: 'Misgav Am', lat: 33.2478, lon: 35.5483, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
-  { id: 'metula',    name_he: 'מטולה', name_en: 'Metula', lat: 33.2790, lon: 35.5790, pop_band: 'sm', pop_estimate: 1800, side: 'IL' },
+  { id: 'metula',    name_he: 'מטולה', name_en: 'Metula', lat: 33.2789, lon: 35.5744, pop_band: 'sm', pop_estimate: 1800, side: 'IL' },
   { id: 'kiryat',    name_he: 'קריית שמונה', name_en: 'Kiryat Shmona', lat: 33.2070, lon: 35.5700, pop_band: 'lg', pop_estimate: 24000, side: 'IL' },
   // Hula Valley – Hermon foothills
   { id: 'she-ar-yashuv', name_he: 'שאר ישוב', name_en: "She'ar Yashuv", lat: 33.2264, lon: 35.6467, pop_band: 'sm', pop_estimate: 500, side: 'IL' },
