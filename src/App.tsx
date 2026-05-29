@@ -20,6 +20,10 @@ const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
 const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
 const MAP_VIEW_STORAGE_KEY = 'south-lebanon-map:last-map-view:v1';
 const LABEL_PREF_STORAGE_KEY = 'south-lebanon-map:label-preferences:v1';
+const UI_STATE_STORAGE_KEY = 'south-lebanon-map:ui-state:v1';
+const FILTER_STATE_STORAGE_KEY = 'south-lebanon-map:filter-state:v1';
+const SAVED_ROUTES_STORAGE_KEY = 'south-lebanon-map:saved-routes:v1';
+const SAVED_MULTI_ROUTES_STORAGE_KEY = 'south-lebanon-map:saved-multi-routes:v1';
 const DEFAULT_THEME_MODE: ThemeMode = 'dark';
 const DEFAULT_MAP_VIEW = { lat: 33.25, lon: 35.38, zoom: 10 };
 const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
@@ -586,6 +590,90 @@ const loadLocalRecordingSession = (): LocalRecordingSession => {
   }
 };
 
+// ---- UI state (panelsCollapsed, panelHeightPct, userMapRotation) ----
+type LocalUiState = {
+  panelsCollapsed?: boolean;
+  panelHeightPct?: number;
+  userMapRotation?: number;
+};
+
+const loadLocalUiState = (): LocalUiState => {
+  try {
+    const raw = safeStorageGet(UI_STATE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as LocalUiState;
+    return {
+      panelsCollapsed: typeof parsed.panelsCollapsed === 'boolean' ? parsed.panelsCollapsed : undefined,
+      panelHeightPct:
+        typeof parsed.panelHeightPct === 'number' && isFinite(parsed.panelHeightPct)
+          ? Math.min(90, Math.max(8, parsed.panelHeightPct))
+          : undefined,
+      userMapRotation:
+        typeof parsed.userMapRotation === 'number' && isFinite(parsed.userMapRotation)
+          ? ((parsed.userMapRotation % 360) + 360) % 360
+          : undefined,
+    };
+  } catch {
+    return {};
+  }
+};
+
+// ---- Incident filter state ----
+type LocalFilterState = {
+  yearFrom?: number;
+  yearTo?: number;
+  typeFilter?: string[];
+  sevFilter?: string[];
+};
+
+const loadLocalFilterState = (): LocalFilterState => {
+  try {
+    const raw = safeStorageGet(FILTER_STATE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as LocalFilterState;
+    return {
+      yearFrom: typeof parsed.yearFrom === 'number' && isFinite(parsed.yearFrom) ? parsed.yearFrom : undefined,
+      yearTo:   typeof parsed.yearTo   === 'number' && isFinite(parsed.yearTo)   ? parsed.yearTo   : undefined,
+      typeFilter: Array.isArray(parsed.typeFilter) ? parsed.typeFilter.filter(t => typeof t === 'string') : undefined,
+      sevFilter:  Array.isArray(parsed.sevFilter)  ? parsed.sevFilter.filter(s => typeof s === 'string')  : undefined,
+    };
+  } catch {
+    return {};
+  }
+};
+
+// ---- Saved routes ----
+const loadLocalSavedRoutes = (): SavedRoute[] => {
+  try {
+    const raw = safeStorageGet(SAVED_ROUTES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (r): r is SavedRoute =>
+        r && typeof r.id === 'string' && typeof r.name === 'string' && r.start && r.end,
+    );
+  } catch {
+    return [];
+  }
+};
+
+// ---- Saved multi-point routes ----
+const loadLocalSavedMultiRoutes = (): MultiPointRoute[] => {
+  try {
+    const raw = safeStorageGet(SAVED_MULTI_ROUTES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (r): r is MultiPointRoute =>
+        r && typeof r.id === 'string' && typeof r.name === 'string' && Array.isArray(r.points),
+    );
+  } catch {
+    return [];
+  }
+};
+
 const miniEscape = (value: unknown) =>
   String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] ?? ch));
 
@@ -598,6 +686,10 @@ export default function App() {
   if (initialMapViewRef.current === null) initialMapViewRef.current = loadLocalMapView();
   const initialLabelPrefsRef = useRef<Required<LocalLabelPreferences> | null>(null);
   if (initialLabelPrefsRef.current === null) initialLabelPrefsRef.current = loadLocalLabelPreferences();
+  const initialUiStateRef = useRef<LocalUiState | null>(null);
+  if (initialUiStateRef.current === null) initialUiStateRef.current = loadLocalUiState();
+  const initialFilterStateRef = useRef<LocalFilterState | null>(null);
+  if (initialFilterStateRef.current === null) initialFilterStateRef.current = loadLocalFilterState();
 
   // -------- layer toggles --------
   const [visible, setVisible] = useState<LayerVis>(() => loadLocalLayerVisibility());
@@ -606,10 +698,24 @@ export default function App() {
   const minYear = Math.min(...incidents.map(i => i.year));
   const maxYear = Math.max(...incidents.map(i => i.year));
   const years = Array.from({ length: maxYear - minYear + 1 }, (_, idx) => minYear + idx);
-  const [yearFrom, setYearFrom] = useState(minYear);
-  const [yearTo, setYearTo] = useState(maxYear);
-  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set(TYPES));
-  const [sevFilter, setSevFilter] = useState<Set<string>>(new Set(SEVS));
+  const [yearFrom, setYearFrom] = useState(() => {
+    const saved = initialFilterStateRef.current?.yearFrom;
+    return saved !== undefined && saved >= minYear && saved <= maxYear ? saved : minYear;
+  });
+  const [yearTo, setYearTo] = useState(() => {
+    const saved = initialFilterStateRef.current?.yearTo;
+    return saved !== undefined && saved >= minYear && saved <= maxYear ? saved : maxYear;
+  });
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(() => {
+    const saved = initialFilterStateRef.current?.typeFilter;
+    if (saved && saved.length > 0) return new Set(saved.filter(t => (TYPES as string[]).includes(t)));
+    return new Set(TYPES);
+  });
+  const [sevFilter, setSevFilter] = useState<Set<string>>(() => {
+    const saved = initialFilterStateRef.current?.sevFilter;
+    if (saved && saved.length > 0) return new Set(saved.filter(s => (SEVS as string[]).includes(s)));
+    return new Set(SEVS);
+  });
   const [query, setQuery] = useState('');
   const [mapSearchQuery, setMapSearchQuery] = useState('');
 
@@ -624,13 +730,17 @@ export default function App() {
   const [autoDay, setAutoDay] = useState(isDaytime());
   const [largeLabels, setLargeLabels] = useState(() => initialLabelPrefsRef.current?.largeLabels ?? false);
   const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
-  const [panelsCollapsed, setPanelsCollapsed] = useState(false);
+  const [panelsCollapsed, setPanelsCollapsed] = useState(
+    () => initialUiStateRef.current?.panelsCollapsed ?? false,
+  );
   const mapViewRef = useRef<MapHandle>(null);
   // Skip snapshotCenter on the initial mount — the map is still animating
   // to the restored position from localStorage (focusTarget flyTo).
   const panelsCollapseIsFirstMount = useRef(true);
   // Draggable panel height (mobile only) — percentage of viewport height
-  const [panelHeightPct, setPanelHeightPct] = useState(35); // default ~35vh (3rd anchor)
+  const [panelHeightPct, setPanelHeightPct] = useState(
+    () => initialUiStateRef.current?.panelHeightPct ?? 35,
+  );
   const panelDragRef = useRef<{ startY: number; startPct: number } | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
@@ -651,13 +761,15 @@ export default function App() {
   const [activeRouteIndex, setActiveRouteIndex] = useState<0 | 1>(0);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [routeName, setRouteName] = useState(() => initialNavSessionRef.current?.routeName ?? '');
-  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => loadLocalSavedRoutes());
   const [activeSavedRoute, setActiveSavedRoute] = useState<SavedRoute | null>(() => initialNavSessionRef.current?.activeSavedRoute ?? null);
   const [liveLocation, setLiveLocation] = useState<{ lat: number; lon: number; accuracy?: number; heading?: number | null } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error' | 'unsupported'>('idle');
   const [watchId, setWatchId] = useState<number | null>(null);
   const [compassMode, setCompassMode] = useState(false);
-  const [userMapRotation, setUserMapRotation] = useState(0); // degrees, 0 = north up
+  const [userMapRotation, setUserMapRotation] = useState(
+    () => initialUiStateRef.current?.userMapRotation ?? 0,
+  );
   const handleUserRotationChange = useCallback((deg: number) => {
     setUserMapRotation(((deg % 360) + 360) % 360);
   }, []);
@@ -696,7 +808,7 @@ export default function App() {
   const [multiRouteDescription, setMultiRouteDescription] = useState('');
   const [multiRouteDifficulty, setMultiRouteDifficulty] = useState<DifficultyLevel>('medium');
   const [multiRoutePassability, setMultiRoutePassability] = useState<PassabilityLevel>('dirt');
-  const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>([]);
+  const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>(() => loadLocalSavedMultiRoutes());
   const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
   const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
 
@@ -748,6 +860,31 @@ export default function App() {
   useEffect(() => {
     safeStorageSet(LABEL_PREF_STORAGE_KEY, { largeLabels, allLabels } satisfies LocalLabelPreferences);
   }, [largeLabels, allLabels]);
+
+  useEffect(() => {
+    safeStorageSet(UI_STATE_STORAGE_KEY, {
+      panelsCollapsed,
+      panelHeightPct,
+      userMapRotation,
+    } satisfies LocalUiState);
+  }, [panelsCollapsed, panelHeightPct, userMapRotation]);
+
+  useEffect(() => {
+    safeStorageSet(FILTER_STATE_STORAGE_KEY, {
+      yearFrom,
+      yearTo,
+      typeFilter: [...typeFilter],
+      sevFilter: [...sevFilter],
+    } satisfies LocalFilterState);
+  }, [yearFrom, yearTo, typeFilter, sevFilter]);
+
+  useEffect(() => {
+    safeStorageSet(SAVED_ROUTES_STORAGE_KEY, savedRoutes);
+  }, [savedRoutes]);
+
+  useEffect(() => {
+    safeStorageSet(SAVED_MULTI_ROUTES_STORAGE_KEY, savedMultiRoutes);
+  }, [savedMultiRoutes]);
 
   useEffect(() => {
     safeStorageSet(NAV_SESSION_KEY, {
