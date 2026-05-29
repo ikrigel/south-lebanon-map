@@ -236,7 +236,7 @@ export const towns: Town[] = [
   { id: 'shlomi',    name_he: 'שלומי', name_en: 'Shlomi', lat: 33.0760, lon: 35.1430, pop_band: 'md', pop_estimate: 6500, side: 'IL' },
   { id: 'liman',     name_he: 'לימן', name_en: 'Liman', lat: 33.0589, lon: 35.1128, pop_band: 'sm', pop_estimate: 480, side: 'IL' },
   { id: 'kabri',     name_he: 'כברי', name_en: 'Kibbutz Kabri', lat: 33.0208, lon: 35.1489, pop_band: 'sm', pop_estimate: 800, side: 'IL' },
-  { id: 'evron',     name_he: 'אבירם', name_en: 'Evron', lat: 32.9914, lon: 35.1003, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
+  { id: 'evron',     name_he: 'עברון', name_en: 'Evron', lat: 32.9914, lon: 35.1003, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
   // Western heights: Adamit ridge
   { id: 'ya-ara',    name_he: 'יערא', name_en: "Ya'ara", lat: 33.0669, lon: 35.1847, pop_band: 'sm', pop_estimate: 650, side: 'IL' },
   { id: 'adamit',    name_he: 'אדמית', name_en: 'Adamit', lat: 33.0783, lon: 35.2111, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
