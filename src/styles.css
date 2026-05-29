@@ -1116,6 +1116,17 @@ body {
 }
 .compass-button span:not(.compass-needle) { font-weight: 800; font-size: 12px; line-height: 1.1; }
 .compass-button small { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+/* Reset-north button — shown when map is manually rotated */
+.reset-north-btn {
+  top: 76px; /* below the main compass button */
+  border-color: rgba(246, 196, 83, 0.5) !important;
+  background: color-mix(in srgb, rgba(246,196,83,0.12) 100%, transparent) !important;
+}
+.reset-north-btn:hover {
+  background: color-mix(in srgb, rgba(246,196,83,0.22) 100%, transparent) !important;
+  border-color: rgba(246, 196, 83, 0.75) !important;
+}
+.reset-north-btn .compass-needle { color: #f6c453; }
 .map-menu-fab {
   position: absolute;
   top: 72px;

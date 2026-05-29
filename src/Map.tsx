@@ -59,6 +59,9 @@ export type MapProps = {
   recordedTrack: [number, number][];
   compassMode: boolean;
   mapBearing: number;
+  /** User-controlled map rotation in degrees (0 = north up) */
+  userRotation: number;
+  onUserRotationChange: (deg: number) => void;
   poiDraft: { lat: number; lon: number } | null;
   poiDraftStyle: { markerColor: string; markerShape: string; markerSize: string };
   customPois: {
@@ -105,9 +108,16 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
   useImperativeHandle(ref, () => ({
     invalidateSize: () => {
-      // Use rAF so Leaflet reads the final post-layout size
+      // Double-rAF: first frame applies CSS grid change, second measures new size.
+      // We lock the geo-center before resize and restore it after, so the
+      // viewport does not drift east/west when the panel opens or closes.
       requestAnimationFrame(() => {
-        mapRef.current?.invalidateSize({ animate: false, pan: false });
+        const map = mapRef.current;
+        if (!map) return;
+        const center = map.getCenter(); // capture before resize
+        map.invalidateSize({ animate: false, pan: false });
+        // Restore center immediately (no animation) to prevent drift
+        map.setView(center, map.getZoom(), { animate: false });
       });
     },
   }), []);
@@ -319,13 +329,93 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }
   }, [props.theme, props.visible.topo]);
 
-  // ---- visual compass rotation ----
+  // ---- visual compass rotation (compass mode) + user rotation (manual) ----
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    el.style.setProperty('--map-rotation', `${props.compassMode ? -props.mapBearing : 0}deg`);
+    const compassDeg = props.compassMode ? -props.mapBearing : 0;
+    // User rotation is additive on top of compass mode
+    const totalDeg = compassDeg + props.userRotation;
+    el.style.setProperty('--map-rotation', `${totalDeg}deg`);
     el.classList.toggle('compass-follow', props.compassMode);
-  }, [props.compassMode, props.mapBearing]);
+    el.classList.toggle('map-rotated', props.userRotation !== 0);
+  }, [props.compassMode, props.mapBearing, props.userRotation]);
+
+  // ---- Two-finger rotate (touch) + Right-click drag (desktop) ----
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // --- touch two-finger rotation ---
+    let initialAngle = 0;
+    let startRotation = 0;
+    let rotating = false;
+
+    const getTouchAngle = (t1: Touch, t2: Touch) =>
+      Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      initialAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      startRotation = props.userRotation;
+      rotating = true;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!rotating || e.touches.length !== 2) return;
+      const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      const delta = currentAngle - initialAngle;
+      props.onUserRotationChange(startRotation + delta);
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) rotating = false;
+    };
+
+    // --- right-click drag rotation (desktop) ---
+    let dragStartX = 0;
+    let dragStartRotation = 0;
+    let dragging = false;
+
+    const onContextMenuDown = (e: MouseEvent) => {
+      if (e.button !== 2) return;
+      e.preventDefault();
+      dragStartX = e.clientX;
+      dragStartRotation = props.userRotation;
+      dragging = true;
+    };
+
+    const onContextMenuMove = (e: MouseEvent) => {
+      if (!dragging) return;
+      const delta = (e.clientX - dragStartX) * 0.5; // 0.5 deg per pixel
+      props.onUserRotationChange(dragStartRotation + delta);
+    };
+
+    const onContextMenuUp = () => { dragging = false; };
+
+    const suppressContextMenu = (e: Event) => {
+      if (dragging || Math.abs((props.userRotation - dragStartRotation)) > 2) e.preventDefault();
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('mousedown', onContextMenuDown);
+    window.addEventListener('mousemove', onContextMenuMove);
+    window.addEventListener('mouseup', onContextMenuUp);
+    el.addEventListener('contextmenu', suppressContextMenu);
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('mousedown', onContextMenuDown);
+      window.removeEventListener('mousemove', onContextMenuMove);
+      window.removeEventListener('mouseup', onContextMenuUp);
+      el.removeEventListener('contextmenu', suppressContextMenu);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.userRotation, props.onUserRotationChange]);
 
   // ---- focus map from search results ----
   useEffect(() => {

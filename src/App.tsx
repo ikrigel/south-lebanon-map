@@ -654,6 +654,11 @@ export default function App() {
   const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error' | 'unsupported'>('idle');
   const [watchId, setWatchId] = useState<number | null>(null);
   const [compassMode, setCompassMode] = useState(false);
+  const [userMapRotation, setUserMapRotation] = useState(0); // degrees, 0 = north up
+  const handleUserRotationChange = useCallback((deg: number) => {
+    setUserMapRotation(((deg % 360) + 360) % 360);
+  }, []);
+  const resetMapRotation = useCallback(() => setUserMapRotation(0), []);
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'error' | 'unsupported'>('idle');
   const [recordingWatchId, setRecordingWatchId] = useState<number | null>(null);
   const [recordedTrack, setRecordedTrack] = useState<[number, number][]>(() => initialRecordingSessionRef.current?.recordedTrack ?? []);
@@ -3208,6 +3213,8 @@ export default function App() {
           recordedTrack={recordedTrack}
           compassMode={compassMode}
           mapBearing={mapBearing}
+          userRotation={userMapRotation}
+          onUserRotationChange={handleUserRotationChange}
           poiDraft={poiDraft}
           poiDraftStyle={{
             markerColor: poiMarkerColor,
@@ -3225,10 +3232,28 @@ export default function App() {
           data-testid="button-compass"
           title={compassMode ? 'חזרה לצפון למעלה' : 'סובב לפי כיוון הנסיעה'}
         >
-          <span className="compass-needle" style={{ transform: `rotate(${mapBearing}deg)` }}>▲</span>
+          <span
+            className="compass-needle"
+            style={{ transform: `rotate(${mapBearing + userMapRotation}deg)` }}
+          >▲</span>
           <span>{compassMode ? 'כיוון נסיעה' : 'צפון'}</span>
           <small>אזימוט {Math.round(mapBearing)}°</small>
         </button>
+        {userMapRotation !== 0 && (
+          <button
+            className="compass-button reset-north-btn"
+            onClick={resetMapRotation}
+            data-testid="button-reset-north"
+            title={`הצפן מחדש (סבב ${Math.round(userMapRotation)}°)`}
+          >
+            <span
+              className="compass-needle"
+              style={{ transform: `rotate(${userMapRotation}deg)`, color: 'var(--accent-warm, #f6c453)' }}
+            >▲</span>
+            <span>הצפן</span>
+            <small>{Math.round(userMapRotation)}° מסובב</small>
+          </button>
+        )}
         <button
           className="map-menu-fab"
           onClick={() => setPanelsCollapsed(v => !v)}
