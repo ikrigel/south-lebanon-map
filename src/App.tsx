@@ -1535,14 +1535,21 @@ export default function App() {
   };
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
+  //
+  // WHY snapshotCenter is NOT called here:
+  // useEffect runs AFTER React commits the DOM — the CSS class panels-collapsed
+  // has already been applied, the CSS grid has already changed, and
+  // container.clientHeight already reflects the new size. If we called
+  // snapshotCenter() here, map.getCenter() would compute from _pixelOrigin
+  // (built for the OLD size) and viewHalf (now the NEW size) → wrong geo-center.
+  //
+  // Instead, snapshotCenter() is called from handlePanelToggle() SYNCHRONOUSLY
+  // before setPanelsCollapsed(), while the DOM still has the old layout.
   useEffect(() => {
-    // On the very first mount, the map is still flying to the restored
-    // position from localStorage. Snapshotting here would capture the wrong
-    // (default fitBounds) center. Skip snapshot on mount; the moveend from
-    // the restore flyTo will update savedViewRef correctly.
     if (panelsCollapseIsFirstMount.current) {
       panelsCollapseIsFirstMount.current = false;
-      // Still need to invalidate on mount so Leaflet measures the real size.
+      // On first mount: invalidate so Leaflet measures the real container size.
+      // No snapshot needed — the map is still restoring from localStorage.
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           mapViewRef.current?.invalidateSize();
@@ -1550,16 +1557,29 @@ export default function App() {
       });
       return;
     }
-    // Snapshot BEFORE any layout change fires — this captures the correct
-    // geo-center before Leaflet's own ResizeObserver can corrupt it.
-    mapViewRef.current?.snapshotCenter();
-    // Double rAF: frame 1 → CSS grid changes; frame 2 → Leaflet sees new size.
+    // snapshotCenter() was already called synchronously in handlePanelToggle.
+    // Double rAF: frame 1 → CSS grid layout settles; frame 2 → Leaflet
+    // measures the new clientHeight and setView anchors the correct geo-center.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         mapViewRef.current?.invalidateSize();
       });
     });
   }, [panelsCollapsed]);
+
+  // ---- Panel toggle — snapshot center BEFORE DOM change ----
+  //
+  // Calling snapshotCenter() here is the ONLY safe place: we are still in the
+  // synchronous click-event handler, the CSS class has NOT been applied yet,
+  // the CSS grid still has its OLD dimensions, and Leaflet's internal
+  // _pixelOrigin was computed for the OLD size. map.getCenter() therefore
+  // returns the correct geo-center. The double-rAF in the useEffect above
+  // will call invalidateSize() once the new layout has settled, which calls
+  // setView(snapshotted-center) to lock the viewport on that geo-center.
+  const handlePanelToggle = useCallback(() => {
+    mapViewRef.current?.snapshotCenter();
+    setPanelsCollapsed(v => !v);
+  }, []);
 
   // ---- Panel drag handlers (mobile bottom-sheet) ----
   const handlePanelDragStart = useCallback((clientY: number) => {
@@ -2079,7 +2099,7 @@ export default function App() {
         <div className="header-actions">
           <button
             className="btn menu-toggle"
-            onClick={() => setPanelsCollapsed(v => !v)}
+            onClick={handlePanelToggle}
             aria-pressed={panelsCollapsed}
             data-testid="button-toggle-menu"
           >
@@ -3276,7 +3296,7 @@ export default function App() {
         )}
         <button
           className="map-menu-fab"
-          onClick={() => setPanelsCollapsed(v => !v)}
+          onClick={handlePanelToggle}
           aria-pressed={panelsCollapsed}
           data-testid="button-map-toggle-menu"
         >

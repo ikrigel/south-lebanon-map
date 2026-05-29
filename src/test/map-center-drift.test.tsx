@@ -130,18 +130,15 @@ function TestHost({
 }) {
   const [collapsed, setCollapsed]         = useState(false);
   const mapRef                            = useRef<MapHandle>(null);
-  const isFirstMount                      = useRef(true);
 
+  // Mirrors handlePanelToggle in App.tsx:
+  // snapshotCenter() is called SYNCHRONOUSLY before the state update,
+  // while the DOM still has the old layout dimensions.
   const toggle = () => {
-    // Snapshot BEFORE layout change (mirrors App.tsx synchronous snapshot)
-    if (!isFirstMount.current) {
-      mapRef.current?.snapshotCenter();
-    }
-    isFirstMount.current = false;
-
-    const next = !collapsed;
-    setCollapsed(next);
-    onToggle?.(next);
+    // Always snapshot before state change (new behavior after the fix)
+    mapRef.current?.snapshotCenter();
+    setCollapsed(v => !v);
+    onToggle?.(!collapsed);
 
     // Simulate double-rAF synchronously in tests
     mapRef.current?.invalidateSize();

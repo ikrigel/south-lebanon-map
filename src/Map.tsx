@@ -508,10 +508,21 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.focusTarget) return;
-    map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
-      animate: true,
-      duration: 0.7,
-    });
+    // 'restore-last-map-view': use instant setView so savedViewRef is correct
+    // immediately and not subject to async flyTo moveend timing issues.
+    // All other focus targets (search results, incidents) use animated flyTo.
+    if (props.focusTarget.id === 'restore-last-map-view') {
+      map.setView(
+        [props.focusTarget.lat, props.focusTarget.lon],
+        props.focusTarget.zoom ?? 12,
+        { animate: false, noMoveStart: true },
+      );
+    } else {
+      map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
+        animate: true,
+        duration: 0.7,
+      });
+    }
     if (props.focusTarget.label) {
       if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
       const focusGroup = layersRef.current.focus;
