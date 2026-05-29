@@ -118,6 +118,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   // Always reflects the current userRotation without causing effect re-runs.
   // Used by the predrag compensation handler.
   const userRotationRef = useRef(0);
+  // Tracks props.userRotation (without compass offset) for the touch-rotation handler.
+  const userOnlyRotationRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     snapshotCenter: () => {
@@ -407,8 +409,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     el.style.setProperty('--map-rotation', `${totalDeg}deg`);
     el.classList.toggle('compass-follow', props.compassMode);
     el.classList.toggle('map-rotated', props.userRotation !== 0 || props.compassMode);
-    // Keep ref in sync for the predrag compensation handler
-    userRotationRef.current = totalDeg;
+    // Keep refs in sync
+    userRotationRef.current = totalDeg;        // total (compass+user) — for predrag
+    userOnlyRotationRef.current = props.userRotation; // user only — for touch rotate
   }, [props.compassMode, props.mapBearing, props.userRotation]);
 
   // ---- Two-finger rotate (touch) + Right-click drag (desktop) ----
@@ -420,10 +423,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     // Strategy: let Leaflet handle pinch-zoom freely.
     // We detect TWIST (angle change without significant distance change) and
     // apply rotation on top. Both can happen simultaneously.
-    let initialAngle = 0;
-    let initialDist = 0;
-    let startRotation = 0;
+    let prevAngle = 0;
+    let prevDist = 0;
     let tracking = false;
+    // Accumulated rotation delta — updated incrementally each touchmove
+    // so large cumulative rotation works even if each step is small.
+    let accumulatedDelta = 0;
+    // Whether we have "committed" to a rotate gesture (past the dead-zone).
+    // Once committed, we keep tracking until touchend.
+    let committed = false;
 
     const getTouchAngle = (t1: Touch, t2: Touch) =>
       Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
@@ -434,12 +442,21 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       return Math.sqrt(dx * dx + dy * dy);
     };
 
+    // Normalise angle difference to [-180, 180]
+    const angleDiff = (a: number, b: number) => {
+      let d = a - b;
+      while (d > 180) d -= 360;
+      while (d < -180) d += 360;
+      return d;
+    };
+
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 2) { tracking = false; return; }
+      if (e.touches.length !== 2) { tracking = false; committed = false; accumulatedDelta = 0; return; }
       // Do NOT preventDefault — let Leaflet handle pinch-zoom normally
-      initialAngle = getTouchAngle(e.touches[0], e.touches[1]);
-      initialDist  = getTouchDist(e.touches[0], e.touches[1]);
-      startRotation = props.userRotation;
+      prevAngle = getTouchAngle(e.touches[0], e.touches[1]);
+      prevDist  = getTouchDist(e.touches[0], e.touches[1]);
+      accumulatedDelta = 0;
+      committed = false;
       tracking = true;
     };
 
@@ -447,20 +464,41 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (!tracking || e.touches.length !== 2) return;
       const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
       const currentDist  = getTouchDist(e.touches[0], e.touches[1]);
-      const angleDelta = currentAngle - initialAngle;
-      // Only apply rotation when twist is dominant (angle change > 8° and
-      // distance change is less than 25% of initial distance)
-      const distChange = Math.abs(currentDist - initialDist) / Math.max(initialDist, 1);
-      if (Math.abs(angleDelta) > 8 && distChange < 0.25) {
-        props.onUserRotationChange(startRotation + angleDelta);
+
+      // Incremental step for this frame
+      const stepAngle = angleDiff(currentAngle, prevAngle);
+      const distChange = Math.abs(currentDist - prevDist) / Math.max(prevDist, 1);
+
+      // Accept rotation step when angle dominates over zoom change.
+      // distChange < 0.4 allows realistic two-finger twists that also
+      // change spread slightly. stepAngle threshold 1° prevents drift noise.
+      if (Math.abs(stepAngle) > 1 && distChange < 0.4) {
+        accumulatedDelta += stepAngle;
       }
+
+      // Commit to rotate gesture once accumulated delta exceeds 3° dead-zone
+      if (!committed && Math.abs(accumulatedDelta) > 3) {
+        committed = true;
+      }
+
+      if (committed) {
+        // Use ref (not props.userRotation) so this handler doesn't need
+        // props.userRotation in the deps array — which would cause the
+        // effect (and its local state) to reset on every rotation update.
+        props.onUserRotationChange(userOnlyRotationRef.current + stepAngle);
+      }
+
+      // Update baseline for next frame (incremental tracking)
+      prevAngle = currentAngle;
+      prevDist  = currentDist;
       // Let Leaflet handle pinch-zoom — no preventDefault
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         tracking = false;
-        // Re-capture baseline if one finger stays
+        committed = false;
+        accumulatedDelta = 0;
       }
     };
 
@@ -475,7 +513,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       e.preventDefault();
       e.stopPropagation();
       dragStartX = e.clientX;
-      dragStartRotation = props.userRotation;
+      dragStartRotation = userOnlyRotationRef.current;
       dragging = true;
     };
 
@@ -488,7 +526,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const onContextMenuUp = () => { dragging = false; };
 
     const suppressContextMenu = (e: Event) => {
-      if (dragging || Math.abs((props.userRotation - dragStartRotation)) > 2) e.preventDefault();
+      if (dragging || Math.abs((userOnlyRotationRef.current - dragStartRotation)) > 2) e.preventDefault();
     };
 
     // Touch: passive listeners — we never call preventDefault, so Leaflet
@@ -511,8 +549,10 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       window.removeEventListener('mouseup', onContextMenuUp);
       el.removeEventListener('contextmenu', suppressContextMenu, { capture: true } as EventListenerOptions);
     };
+  // props.userRotation intentionally omitted — we read it via userOnlyRotationRef
+  // so the effect (and its local gesture state) is NOT reset on every rotation update.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.userRotation, props.onUserRotationChange]);
+  }, [props.onUserRotationChange]);
 
   // ---- focus map from search results ----
   useEffect(() => {
