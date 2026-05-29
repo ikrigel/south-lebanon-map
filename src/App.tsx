@@ -626,7 +626,7 @@ export default function App() {
   const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
   // Draggable panel height (mobile only) — percentage of viewport height
-  const [panelHeightPct, setPanelHeightPct] = useState(40); // default ~40vh
+  const [panelHeightPct, setPanelHeightPct] = useState(35); // default ~35vh (3rd anchor)
   const panelDragRef = useRef<{ startY: number; startPct: number } | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
@@ -1535,16 +1535,16 @@ export default function App() {
     const { startY, startPct } = panelDragRef.current;
     const deltaY = startY - clientY; // drag up = positive
     const deltaPct = (deltaY / window.innerHeight) * 100;
-    const newPct = Math.min(85, Math.max(12, startPct + deltaPct));
+    const newPct = Math.min(90, Math.max(8, startPct + deltaPct));
     setPanelHeightPct(newPct);
   }, []);
 
   const handlePanelDragEnd = useCallback(() => {
     panelDragRef.current = null;
-    // Snap to nearest anchor: 12%, 40%, 70%, 85%
+    // Snap to nearest anchor: 8%, 20%, 35%, 50%, 65%, 78%, 90%
     setPanelHeightPct(prev => {
-      const anchors = [12, 40, 70, 85];
-      return anchors.reduce((best, a) => Math.abs(a - prev) < Math.abs(best - prev) ? a : best, anchors[1]);
+      const anchors = [8, 20, 35, 50, 65, 78, 90];
+      return anchors.reduce((best, a) => Math.abs(a - prev) < Math.abs(best - prev) ? a : best, anchors[2]);
     });
   }, []);
 
