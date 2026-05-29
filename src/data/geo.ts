@@ -235,8 +235,8 @@ export const towns: Town[] = [
   { id: 'rosh',      name_he: 'ראש הנקרה', name_en: 'Rosh HaNikra', lat: 33.0890, lon: 35.1100, pop_band: 'sm', pop_estimate: 200, side: 'IL' },
   { id: 'shlomi',    name_he: 'שלומי', name_en: 'Shlomi', lat: 33.0760, lon: 35.1430, pop_band: 'md', pop_estimate: 6500, side: 'IL' },
   { id: 'liman',     name_he: 'לימן', name_en: 'Liman', lat: 33.0589, lon: 35.1128, pop_band: 'sm', pop_estimate: 480, side: 'IL' },
-  { id: 'kabri',     name_he: 'כברי', name_en: 'Kibbutz Kabri', lat: 33.0110, lon: 35.1490, pop_band: 'sm', pop_estimate: 800, side: 'IL' },
-  { id: 'evron',     name_he: 'אבירם', name_en: 'Evron', lat: 33.0120, lon: 35.1290, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
+  { id: 'kabri',     name_he: 'כברי', name_en: 'Kibbutz Kabri', lat: 33.0208, lon: 35.1489, pop_band: 'sm', pop_estimate: 800, side: 'IL' },
+  { id: 'evron',     name_he: 'אבירם', name_en: 'Evron', lat: 32.9914, lon: 35.1003, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
   // Western heights: Adamit ridge
   { id: 'ya-ara',    name_he: 'יערא', name_en: "Ya'ara", lat: 33.0669, lon: 35.1847, pop_band: 'sm', pop_estimate: 650, side: 'IL' },
   { id: 'adamit',    name_he: 'אדמית', name_en: 'Adamit', lat: 33.0783, lon: 35.2111, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
@@ -250,7 +250,7 @@ export const towns: Town[] = [
   { id: 'fassouta',  name_he: 'פסוטה', name_en: 'Fassouta', lat: 33.0494, lon: 35.3058, pop_band: 'sm', pop_estimate: 3500, side: 'IL' },
   { id: 'peqi-in',   name_he: 'פקיעין', name_en: "Peki'in", lat: 32.9742, lon: 35.3314, pop_band: 'sm', pop_estimate: 4800, side: 'IL' },
   { id: 'hurfeish',  name_he: 'חורפיש', name_en: 'Hurfeish', lat: 33.0178, lon: 35.3461, pop_band: 'sm', pop_estimate: 5500, side: 'IL' },
-  { id: 'beit-jann', name_he: "בית ג'ן", name_en: 'Beit Jann', lat: 32.9890, lon: 35.3650, pop_band: 'sm', pop_estimate: 6500, side: 'IL' },
+  { id: 'beit-jann', name_he: "בית ג'ן", name_en: 'Beit Jann', lat: 32.9653, lon: 35.3794, pop_band: 'sm', pop_estimate: 6500, side: 'IL' },
   // Upper Galilee: Meron → Baram area
   { id: 'sasa',      name_he: 'סאסא', name_en: 'Sasa', lat: 33.0269, lon: 35.3944, pop_band: 'sm', pop_estimate: 750, side: 'IL' },
   { id: 'dovev',     name_he: 'דובב', name_en: 'Dovev', lat: 33.0522, lon: 35.4075, pop_band: 'sm', pop_estimate: 400, side: 'IL' },

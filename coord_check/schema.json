@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "string", "title": "ID" },
+    "correct_lat": { "type": "string", "title": "Correct Lat (Wikipedia)" },
+    "correct_lon": { "type": "string", "title": "Correct Lon (Wikipedia)" },
+    "current_lat": { "type": "string", "title": "Current Lat (in code)" },
+    "current_lon": { "type": "string", "title": "Current Lon (in code)" },
+    "error_km": { "type": "string", "title": "Error (km approx)" },
+    "status": { "type": "string", "title": "Status (OK / WRONG)" },
+    "source_url": { "type": "string", "title": "Source URL" }
+  }
+}

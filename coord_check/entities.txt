@@ -1,0 +1,42 @@
+nahari|נהריה|Nahariya|33.0070|35.0980
+rosh|ראש הנקרה|Rosh HaNikra|33.0890|35.1100
+shlomi|שלומי|Shlomi|33.0760|35.1430
+liman|לימן|Liman|33.0589|35.1128
+kabri|כברי|Kibbutz Kabri|33.0110|35.1490
+evron|אבירם|Evron|33.0120|35.1290
+ya-ara|יערא|Ya'ara|33.0669|35.1847
+adamit|אדמית|Adamit|33.0783|35.2111
+zarit|זרעית|Zarit|33.1000|35.2886
+shtula|שתולה|Shtula|33.0856|35.3131
+goren|גורן|Goren|33.0567|35.2392
+tzurit|צורית|Tzurit|32.9019|35.2506
+kfar-vradim|כפר ורדים|Kfar Vradim|32.9906|35.2736
+maalot-tarshiha|מעלות-תרשיחא|Ma'alot-Tarshiha|33.0167|35.2708
+fassouta|פסוטה|Fassouta|33.0494|35.3058
+peqi-in|פקיעין|Peki'in|32.9742|35.3314
+hurfeish|חורפיש|Hurfeish|33.0178|35.3461
+beit-jann|בית ג'ן|Beit Jann|32.9890|35.3650
+sasa|סאסא|Sasa|33.0269|35.3944
+dovev|דובב|Dovev|33.0522|35.4075
+baram|ברעם|Bar'am|33.0583|35.4333
+yiron|יראון|Yir'on|33.0769|35.4550
+avivim|אביבים|Avivim|33.0892|35.4719
+malkia|מלכייה|Malkia|33.0983|35.5111
+kfar-blum|כפר בלום|Kfar Blum|33.1722|35.6097
+manara|מנרה|Manara|33.1958|35.5444
+margaliot|מרגליות|Margaliot|33.2144|35.5447
+misgav|משגב עם|Misgav Am|33.2478|35.5483
+metula|מטולה|Metula|33.2789|35.5744
+kiryat|קריית שמונה|Kiryat Shmona|33.2070|35.5700
+she-ar-yashuv|שאר ישוב|She'ar Yashuv|33.2264|35.6467
+snir|שניר|Snir|33.2403|35.6778
+dan-kibbutz|דן|Dan|33.2403|35.6531
+neve-ativ|נווה אטיב|Neve Ativ|33.2617|35.7411
+nimrod|נמרוד|Nimrod|33.2453|35.7514
+ein-qiniyye|עין קיניה|Ein Qiniyye|33.2369|35.7308
+majdal-shams|מג'דל שמס|Majdal Shams|33.2670|35.7670
+masada-golan|מסעדה|Mas'ade|33.2331|35.7575
+buqata|בוקעתא|Buq'ata|33.2000|35.7830
+el-rom|אל-רום|El-Rom|33.1794|35.7714
+rosh-pina|ראש פינה|Rosh Pinna|32.9700|35.5422
+hazor|חצור הגלילית|Hazor HaGlilit|32.9794|35.5436
