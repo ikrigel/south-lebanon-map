@@ -110,6 +110,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   // map.getCenter() is unreliable once Leaflet has already recalculated its
   // pixel origin for the new container size.
   const savedViewRef = useRef<{ center: L.LatLng; zoom: number } | null>(null);
+  // Always reflects the current userRotation without causing effect re-runs.
+  // Used by the predrag compensation handler.
+  const userRotationRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     invalidateSize: () => {
@@ -162,6 +165,28 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       attributionControl: true,
     });
     mapRef.current = map;
+
+    // ---- Pan compensation for map rotation ----
+    // Leaflet computes drag offsets in raw screen-pixel space and does not know
+    // that the #map container is CSS-rotated. We listen on 'predrag' (fires
+    // before Leaflet moves the map pane) and counter-rotate the offset vector
+    // by -θ so dragging always follows the user's finger direction on screen.
+    map.whenReady(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const draggable = (map.dragging as any)?._draggable;
+      if (!draggable) return;
+      draggable.on('predrag', () => {
+        const deg = userRotationRef.current;
+        if (!deg) return;
+        const rad = (deg * Math.PI) / 180;
+        const cos = Math.cos(-rad);
+        const sin = Math.sin(-rad);
+        const dx = draggable._newPos.x - draggable._startPos.x;
+        const dy = draggable._newPos.y - draggable._startPos.y;
+        draggable._newPos.x = draggable._startPos.x + (dx * cos - dy * sin);
+        draggable._newPos.y = draggable._startPos.y + (dx * sin + dy * cos);
+      });
+    });
 
     const base = L.tileLayer(TILESETS[props.theme], {
       attribution:
@@ -349,7 +374,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const totalDeg = compassDeg + props.userRotation;
     el.style.setProperty('--map-rotation', `${totalDeg}deg`);
     el.classList.toggle('compass-follow', props.compassMode);
-    el.classList.toggle('map-rotated', props.userRotation !== 0);
+    el.classList.toggle('map-rotated', props.userRotation !== 0 || props.compassMode);
+    // Keep ref in sync for the predrag compensation handler
+    userRotationRef.current = totalDeg;
   }, [props.compassMode, props.mapBearing, props.userRotation]);
 
   // ---- Two-finger rotate (touch) + Right-click drag (desktop) ----
