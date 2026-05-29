@@ -734,8 +734,7 @@ export default function App() {
     () => initialUiStateRef.current?.panelsCollapsed ?? false,
   );
   const mapViewRef = useRef<MapHandle>(null);
-  // Skip snapshotCenter on the initial mount — the map is still animating
-  // to the restored position from localStorage (focusTarget flyTo).
+  // Skip snapshotCenter on the initial mount — map is still setting up.
   const panelsCollapseIsFirstMount = useRef(true);
   // Draggable panel height (mobile only) — percentage of viewport height
   const [panelHeightPct, setPanelHeightPct] = useState(
@@ -745,11 +744,9 @@ export default function App() {
   const panelRef = useRef<HTMLElement | null>(null);
   const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
   const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
-  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string; label?: string } | null>(() =>
-    initialMapViewRef.current
-      ? { ...initialMapViewRef.current, id: 'restore-last-map-view' }
-      : null
-  );
+  // focusTarget: used only for user-triggered focus (search results, incidents).
+  // Initial map view is handled by the initialCenter prop passed to MapView directly.
+  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string; label?: string } | null>(null);
   const [liveFollowDetached, setLiveFollowDetached] = useState(false);
   const [liveCenterRequestId, setLiveCenterRequestId] = useState(0);
   const [navStartId, setNavStartId] = useState(() => initialNavSessionRef.current?.navStartId ?? '');
@@ -3366,6 +3363,7 @@ export default function App() {
       {/* ============ Map ============ */}
       <div className="map-wrap">
         <MapView
+          initialCenter={initialMapViewRef.current ?? undefined}
           visible={visible}
           filteredIncidents={filtered}
           selectedIncident={selected}
@@ -3402,6 +3400,10 @@ export default function App() {
           multiRouteDraft={multiRouteDraftPoints}
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
         />
+      </div>
+
+      {/* ============ Map overlay buttons (outside map-wrap to avoid stacking-context conflict with header) ============ */}
+      <div className="map-overlays">
         <button
           className="compass-button"
           onClick={() => setCompassMode(v => !v)}

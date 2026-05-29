@@ -29,6 +29,8 @@ export type LayerVis = {
 };
 
 export type MapProps = {
+  /** Initial center to use when the map first mounts. When provided, fitBounds is skipped. */
+  initialCenter?: { lat: number; lon: number; zoom: number };
   visible: LayerVis;
   filteredIncidents: Incident[];
   selectedIncident: Incident | null;
@@ -219,11 +221,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }).addTo(map);
     layersRef.current.base = base;
 
-    // initial bounds: focus on south Lebanon
-    map.fitBounds([
-      [33.05, 35.05],
-      [33.45, 35.70],
-    ]);
+    // initial bounds: use saved view if available, otherwise fit default south Lebanon bounds
+    if (props.initialCenter) {
+      map.setView(
+        [props.initialCenter.lat, props.initialCenter.lon],
+        props.initialCenter.zoom,
+        { animate: false, noMoveStart: true },
+      );
+    } else {
+      map.fitBounds([
+        [33.05, 35.05],
+        [33.45, 35.70],
+      ]);
+    }
 
     // ---- Blue Line layer ----
     const blueLineGroup = L.layerGroup();

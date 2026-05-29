@@ -1,6 +1,8 @@
 /* === South Lebanon Map — Dark analytical dashboard, Hebrew RTL === */
 
 :root {
+  /* Header height for positioning overlay buttons below it */
+  --header-h: 48px;
   --bg: #0b0d10;
   --bg-1: #0f1217;
   --bg-2: #131820;
@@ -91,7 +93,7 @@ body {
   background: var(--bg-1);
   border-bottom: 1px solid var(--border);
   position: relative;
-  z-index: 10;
+  z-index: 100;
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-logo { width: 28px; height: 28px; color: var(--accent); }
@@ -150,7 +152,7 @@ body {
   overflow: hidden;
   min-width: 0;
   position: relative;
-  z-index: 10;
+  z-index: 100;
 }
 .panel.left { grid-area: left; border-inline-end: 1px solid var(--border); border-inline-start: none; }
 .panel.right { grid-area: right; }
@@ -202,7 +204,10 @@ body {
 .map-wrap {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  /* z-index: 1 so buttons inside (compass, reset-north, FABs) rendered at z-index 1001
+     sit above the header/panel which are at z-index 100.
+     The map tile layer itself is at z-1 visually but inside this stacking context. */
+  z-index: 1;
   background: var(--bg);
 }
 #map {
@@ -210,6 +215,23 @@ body {
   inset: 0;
   transform-origin: center center;
   transition: transform .15s ease, inset .15s ease;
+}
+
+/* -----------------------------------------------------------------------
+   map-overlays: fixed overlay for compass, FABs, measure-hud.
+   Lives OUTSIDE .map-wrap to avoid its stacking context, so buttons
+   can sit above the header/panel (z-index: 100) without conflict.
+   pointer-events: none on the container so the map stays interactive;
+   each child gets pointer-events: auto.
+   ----------------------------------------------------------------------- */
+.map-overlays {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+.map-overlays > * {
+  pointer-events: auto;
 }
 
 /* compass-follow: auto-rotate to match device heading */
@@ -247,7 +269,7 @@ body {
   color: var(--text-faint);
   gap: 16px;
   position: relative;
-  z-index: 10;
+  z-index: 100;
 }
 .disclaimer-pill {
   background: rgba(212,154,58,0.1);
@@ -1110,7 +1132,7 @@ body {
 /* measure HUD */
 .measure-hud {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-h) + 8px);
   inset-inline-end: 12px;
   z-index: 1000;
   background: var(--bg-1);
@@ -1123,7 +1145,7 @@ body {
 }
 .compass-button {
   position: absolute;
-  top: 12px;
+  top: calc(var(--header-h) + 8px);
   inset-inline-start: 12px;
   z-index: 1001;
   min-width: 98px;
@@ -1161,7 +1183,7 @@ body {
   /* Override left-anchor from .compass-button */
   inset-inline-start: unset !important;
   inset-inline-end: 12px;
-  top: 12px;
+  top: calc(var(--header-h) + 8px);
   border-color: rgba(246, 196, 83, 0.5) !important;
   background: color-mix(in srgb, rgba(246,196,83,0.12) 100%, transparent) !important;
 }
@@ -1172,7 +1194,7 @@ body {
 .reset-north-btn .compass-needle { color: #f6c453; }
 .map-menu-fab {
   position: absolute;
-  top: 72px;
+  top: calc(var(--header-h) + 8px + 70px);
   inset-inline-start: 12px;
   z-index: 1001;
   min-height: 38px;
@@ -1193,7 +1215,7 @@ body {
 }
 .mini-map-fab {
   position: absolute;
-  top: 118px;
+  top: calc(var(--header-h) + 8px + 70px + 46px);
   inset-inline-start: 12px;
   z-index: 1001;
   min-height: 36px;
@@ -1210,7 +1232,7 @@ body {
 .mini-map-fab:hover { border-color: var(--accent); background: var(--bg-2); }
 .center-live-fab {
   position: absolute;
-  top: 118px;
+  top: calc(var(--header-h) + 8px + 70px + 46px);
   inset-inline-start: 12px;
   z-index: 1001;
   min-width: 108px;
@@ -1229,7 +1251,7 @@ body {
   text-align: right;
   line-height: 1.1;
 }
-.center-live-fab.below-mini { top: 164px; }
+.center-live-fab.below-mini { top: calc(var(--header-h) + 8px + 70px + 46px + 44px); }
 .center-live-fab::before {
   content: '◎';
   display: inline-block;
@@ -1500,6 +1522,7 @@ body {
   }
 }
 @media (max-width: 760px) {
+  :root { --header-h: 84px; }
   .app {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr var(--panel-height-pct, 40vh) 34px;
@@ -1533,41 +1556,41 @@ body {
   .footer span:not(.disclaimer-pill) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .measure-hud {
     inset-inline-end: 8px;
-    top: 8px;
+    /* top uses --header-h (84px on mobile) via global rule */
     min-width: 190px;
     max-width: calc(100vw - 132px);
   }
   .compass-button {
-    top: 8px;
+    /* top: calc(var(--header-h) + 8px) = calc(84px + 8px) = 92px — via global rule */
     inset-inline-start: 8px;
     min-width: 88px;
   }
   .reset-north-btn {
-    top: 8px;
+    /* top: same as compass via global rule */
     inset-inline-end: 8px;
     inset-inline-start: unset !important;
   }
   .map-menu-fab {
-    top: 64px;
+    /* top: calc(var(--header-h) + 8px + 70px) via global rule */
     inset-inline-start: 8px;
   }
   .mini-map-fab {
-    top: 108px;
+    /* top: calc(var(--header-h) + 8px + 70px + 46px) via global rule */
     inset-inline-start: 8px;
   }
   .center-live-fab {
-    top: 108px;
+    /* top: calc(var(--header-h) + 8px + 70px + 46px) via global rule */
     inset-inline-start: 8px;
     min-width: 96px;
   }
-  .center-live-fab.below-mini { top: 152px; }
+  /* below-mini uses global calc rule */
   .mini-overlay {
     inset-inline: 10px;
     bottom: 42px;
     width: auto;
   }
   .leaflet-control-zoom {
-    margin-top: 120px !important;
+    margin-top: calc(var(--header-h) + 8px + 70px + 46px + 8px) !important;
   }
   .drawer-panel,
   .help-panel,
