@@ -771,6 +771,26 @@ export default function App() {
     setUserMapRotation(((deg % 360) + 360) % 360);
   }, []);
   const resetMapRotation = useCallback(() => setUserMapRotation(0), []);
+  // Rotation lock: when true, pinch/drag cannot rotate the map;
+  // user picks snap angles (0/45/90/135/180/225/270/315) via a picker.
+  const [rotationLocked, setRotationLocked] = useState(false);
+  const [snapPickerOpen, setSnapPickerOpen] = useState(false);
+  const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+  const SNAP_LABELS: Record<number, string> = {
+    0: '↑ צפון', 45: '↗ ס״מ', 90: '→ מזרח', 135: '↘ ד״מ',
+    180: '↓ דרום', 225: '↙ ד״מ', 270: '← מערב', 315: '↖ ס״מ',
+  };
+  const handleSnapRotation = useCallback((deg: number) => {
+    setUserMapRotation(deg);
+    setSnapPickerOpen(false);
+  }, []);
+  const toggleRotationLock = useCallback(() => {
+    setRotationLocked(v => {
+      const next = !v;
+      if (next) setSnapPickerOpen(true); // open picker when locking
+      return next;
+    });
+  }, []);
   const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'error' | 'unsupported'>('idle');
   const [recordingWatchId, setRecordingWatchId] = useState<number | null>(null);
   const [recordedTrack, setRecordedTrack] = useState<[number, number][]>(() => initialRecordingSessionRef.current?.recordedTrack ?? []);
@@ -3390,6 +3410,7 @@ export default function App() {
           mapBearing={mapBearing}
           userRotation={userMapRotation}
           onUserRotationChange={handleUserRotationChange}
+          rotationLocked={rotationLocked}
           poiDraft={poiDraft}
           poiDraftStyle={{
             markerColor: poiMarkerColor,
@@ -3432,6 +3453,37 @@ export default function App() {
             <span>הצפן</span>
             <small>{Math.round(userMapRotation)}° מסובב</small>
           </button>
+        )}
+        {/* Rotation lock button + snap picker */}
+        <button
+          className={`rotation-lock-btn${rotationLocked ? ' active' : ''}`}
+          onClick={toggleRotationLock}
+          aria-pressed={rotationLocked}
+          data-testid="button-rotation-lock"
+          title={rotationLocked ? 'בטל נעילת סיבוב' : 'נעל סיבוב — סיבוב חופשי באצבעות מבוטל'}
+        >
+          <span className="lock-icon">{rotationLocked ? '🔒' : '🔓'}</span>
+          <span>{rotationLocked ? 'נעול' : 'חופשי'}</span>
+          <small>סיבוב</small>
+        </button>
+        {snapPickerOpen && (
+          <div className="snap-rotation-picker" data-testid="snap-rotation-picker">
+            <div className="snap-picker-title">בחר זוית סיבוב</div>
+            <div className="snap-picker-grid">
+              {SNAP_ANGLES.map(deg => (
+                <button
+                  key={deg}
+                  className={`snap-angle-btn${userMapRotation === deg ? ' selected' : ''}`}
+                  onClick={() => handleSnapRotation(deg)}
+                  title={`סבב ${deg}°`}
+                >
+                  <span style={{ display: 'inline-block', transform: `rotate(${deg}deg)` }}>↑</span>
+                  <span>{SNAP_LABELS[deg]}</span>
+                </button>
+              ))}
+            </div>
+            <button className="snap-picker-close" onClick={() => setSnapPickerOpen(false)}>סגור</button>
+          </div>
         )}
         <button
           className="map-menu-fab"

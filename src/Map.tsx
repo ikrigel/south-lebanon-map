@@ -67,6 +67,8 @@ export type MapProps = {
   /** User-controlled map rotation in degrees (0 = north up) */
   userRotation: number;
   onUserRotationChange: (deg: number) => void;
+  /** When true, pinch gestures only zoom — rotation is locked. */
+  rotationLocked?: boolean;
   poiDraft: { lat: number; lon: number } | null;
   poiDraftStyle: { markerColor: string; markerShape: string; markerSize: string };
   customPois: {
@@ -481,7 +483,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         committed = true;
       }
 
-      if (committed) {
+      if (committed && !props.rotationLocked) {
         // Use ref (not props.userRotation) so this handler doesn't need
         // props.userRotation in the deps array — which would cause the
         // effect (and its local state) to reset on every rotation update.
@@ -518,7 +520,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     };
 
     const onContextMenuMove = (e: MouseEvent) => {
-      if (!dragging) return;
+      if (!dragging || props.rotationLocked) return;
       const delta = (e.clientX - dragStartX) * 0.5; // 0.5 deg per pixel
       props.onUserRotationChange(dragStartRotation + delta);
     };
