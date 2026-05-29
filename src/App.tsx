@@ -626,6 +626,9 @@ export default function App() {
   const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
   const mapViewRef = useRef<MapHandle>(null);
+  // Skip snapshotCenter on the initial mount — the map is still animating
+  // to the restored position from localStorage (focusTarget flyTo).
+  const panelsCollapseIsFirstMount = useRef(true);
   // Draggable panel height (mobile only) — percentage of viewport height
   const [panelHeightPct, setPanelHeightPct] = useState(35); // default ~35vh (3rd anchor)
   const panelDragRef = useRef<{ startY: number; startPct: number } | null>(null);
@@ -1533,6 +1536,20 @@ export default function App() {
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
   useEffect(() => {
+    // On the very first mount, the map is still flying to the restored
+    // position from localStorage. Snapshotting here would capture the wrong
+    // (default fitBounds) center. Skip snapshot on mount; the moveend from
+    // the restore flyTo will update savedViewRef correctly.
+    if (panelsCollapseIsFirstMount.current) {
+      panelsCollapseIsFirstMount.current = false;
+      // Still need to invalidate on mount so Leaflet measures the real size.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          mapViewRef.current?.invalidateSize();
+        });
+      });
+      return;
+    }
     // Snapshot BEFORE any layout change fires — this captures the correct
     // geo-center before Leaflet's own ResizeObserver can corrupt it.
     mapViewRef.current?.snapshotCenter();

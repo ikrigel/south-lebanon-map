@@ -128,15 +128,25 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     },
     invalidateSize: () => {
       // App.tsx already waited double-rAF so the CSS grid is applied.
-      // Use the center snapshot taken before the layout change (snapshotCenter).
-      // Only restore center (panTo), not zoom — zoom must not change on
-      // open/close so the viewport doesn’t jump vertically on mobile.
+      // Strategy: invalidate tile bounds, then correct ONLY the pixel drift
+      // using _rawPanBy - moves the map pane directly without calling
+      // setView/_resetView, so zoom level and moveend are never touched.
+      // This prevents both center-drift AND zoom-jump on mobile.
       const map = mapRef.current;
       if (!map) return;
       const saved = savedViewRef.current;
-      const center = saved ? saved.center : map.getCenter();
+      const wantedCenter = saved ? saved.center : map.getCenter();
       map.invalidateSize({ animate: false, pan: false });
-      map.panTo(center, { animate: false, noMoveStart: true });
+      // Compute pixel drift at current zoom: where Leaflet thinks the center
+      // is now vs where we want it. Apply correction via raw pane move.
+      const zoom = map.getZoom();
+      const currentPixel = map.project(map.getCenter(), zoom);
+      const wantedPixel  = map.project(wantedCenter, zoom);
+      const drift = currentPixel.subtract(wantedPixel);
+      if (Math.abs(drift.x) > 0.5 || Math.abs(drift.y) > 0.5) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (map as any)._rawPanBy(drift);
+      }
     },
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
