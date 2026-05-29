@@ -241,6 +241,26 @@ export const towns: Town[] = [
   { id: 'rosh',    name_he: 'ראש הנקרה', name_en: 'Rosh HaNikra', lat: 33.0890, lon: 35.1100, pop_band: 'sm', pop_estimate: 200, side: 'IL' },
   { id: 'manara',  name_he: 'מנרה', name_en: 'Manara', lat: 33.2330, lon: 35.5440, pop_band: 'sm', pop_estimate: 250, side: 'IL' },
   { id: 'misgav',  name_he: 'משגב עם', name_en: 'Misgav Am', lat: 33.2440, lon: 35.5610, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
+  // ---- Additional Israeli communities along / near the Blue Line ----
+  { id: 'baram',    name_he: 'ברעם', name_en: 'Baram', lat: 33.1260, lon: 35.4380, pop_band: 'sm', pop_estimate: 950, side: 'IL' },
+  { id: 'sasa',     name_he: 'סאסא', name_en: 'Sasa', lat: 33.0350, lon: 35.4150, pop_band: 'sm', pop_estimate: 750, side: 'IL' },
+  { id: 'tzurit',   name_he: 'צורית', name_en: 'Tzurit', lat: 32.9640, lon: 35.2300, pop_band: 'sm', pop_estimate: 700, side: 'IL' },
+  { id: 'ya-ara',   name_he: 'יערא', name_en: "Ya'ara", lat: 33.0690, lon: 35.2520, pop_band: 'sm', pop_estimate: 650, side: 'IL' },
+  { id: 'liman',    name_he: 'לימן', name_en: 'Liman', lat: 33.0490, lon: 35.1330, pop_band: 'sm', pop_estimate: 480, side: 'IL' },
+  { id: 'adamit',   name_he: 'אדמית', name_en: 'Adamit', lat: 33.0620, lon: 35.2320, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
+  { id: 'yiron',    name_he: 'יראון', name_en: 'Yiron', lat: 33.0830, lon: 35.4000, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
+  { id: 'shetula-kibutz', name_he: 'שתולה (קיבוץ)', name_en: 'Kibbutz Shetula', lat: 33.0780, lon: 35.2550, pop_band: 'sm', pop_estimate: 380, side: 'IL' },
+  { id: 'kfar-vradim', name_he: 'כפר ורדים', name_en: 'Kfar Vradim', lat: 33.0210, lon: 35.2450, pop_band: 'sm', pop_estimate: 4500, side: 'IL' },
+  { id: 'maalot-tarshiha', name_he: 'מעלות-תרשיחא', name_en: 'Maalot-Tarshiha', lat: 33.0160, lon: 35.2720, pop_band: 'md', pop_estimate: 22000, side: 'IL' },
+  { id: 'hurfeish',  name_he: 'חורפיש', name_en: 'Hurfeish', lat: 33.0430, lon: 35.3560, pop_band: 'sm', pop_estimate: 5500, side: 'IL' },
+  { id: 'beit-jann', name_he: "בית ג'ן", name_en: 'Beit Jann', lat: 32.9890, lon: 35.3650, pop_band: 'sm', pop_estimate: 6500, side: 'IL' },
+  { id: 'peqi-in',  name_he: 'פקיעין', name_en: "Peki'in", lat: 32.9780, lon: 35.3330, pop_band: 'sm', pop_estimate: 4800, side: 'IL' },
+  { id: 'fassouta',  name_he: 'פסוטה', name_en: 'Fassouta', lat: 33.0670, lon: 35.3920, pop_band: 'sm', pop_estimate: 3500, side: 'IL' },
+  { id: 'bir-am-kibbutz', name_he: 'כפר ברעם', name_en: 'Kibbutz Baram', lat: 33.1170, lon: 35.4280, pop_band: 'sm', pop_estimate: 500, side: 'IL' },
+  { id: 'margaliot', name_he: 'מרגליות', name_en: 'Margaliot', lat: 33.2180, lon: 35.5760, pop_band: 'sm', pop_estimate: 350, side: 'IL' },
+  { id: 'goren',     name_he: 'גורן', name_en: 'Goren', lat: 33.0380, lon: 35.2940, pop_band: 'sm', pop_estimate: 600, side: 'IL' },
+  { id: 'kabri',     name_he: 'כברי', name_en: 'Kibbutz Kabri', lat: 33.0110, lon: 35.1490, pop_band: 'sm', pop_estimate: 800, side: 'IL' },
+  { id: 'evron',     name_he: 'אבירם', name_en: 'Evron', lat: 33.0120, lon: 35.1290, pop_band: 'sm', pop_estimate: 1100, side: 'IL' },
 ];
 
 // ---------------------------------------------------------------------------

@@ -78,7 +78,9 @@ body {
     "footer";
 }
 .app.panels-collapsed .panel {
-  display: none;
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 .header {
   grid-area: header;
@@ -148,6 +150,29 @@ body {
 }
 .panel.left { grid-area: left; border-inline-end: 1px solid var(--border); border-inline-start: none; }
 .panel.right { grid-area: right; }
+
+/* ---- Drag handle (mobile only) ---- */
+.panel-drag-handle {
+  display: none; /* hidden on desktop */
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  cursor: ns-resize;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+}
+.panel-drag-pill {
+  display: block;
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-2);
+  pointer-events: none;
+}
 .panel-scroll { overflow-y: auto; padding: 14px; min-width: 0; max-width: 100%; }
 .panel-scroll::-webkit-scrollbar { width: 8px; }
 .panel-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
@@ -1423,19 +1448,23 @@ body {
 @media (max-width: 760px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto 56vh minmax(0, 1fr) 34px;
+    grid-template-rows: auto 1fr var(--panel-height-pct, 40vh) 34px;
     grid-template-areas:
       "header"
       "map"
       "left"
       "footer";
+    min-height: 0;
   }
   .app.panels-collapsed {
-    grid-template-rows: auto minmax(0, 1fr) 34px;
+    grid-template-rows: auto minmax(0, 1fr) 34px !important;
     grid-template-areas:
       "header"
       "map"
-      "footer";
+      "footer" !important;
+  }
+  .panel-drag-handle {
+    display: flex;
   }
   .header { align-items: stretch; gap: 8px; padding: 8px 10px; flex-direction: column; }
   .brand { align-items: flex-start; gap: 8px; }
@@ -1490,7 +1519,7 @@ body {
 }
 
 @media (max-width: 420px) {
-  .app { grid-template-rows: auto 60vh minmax(0, 1fr) 34px; }
+  .app { grid-template-rows: auto 1fr var(--panel-height-pct, 40vh) 34px; }
   .app.panels-collapsed { grid-template-rows: auto minmax(0, 1fr) 34px; }
   .btn { padding: 6px 9px; font-size: 11px; }
   .theme-btn { padding: 5px 7px; }
