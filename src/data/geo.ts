@@ -135,11 +135,11 @@ export const towns: Town[] = [
   { id: 'marjay',  name_he: 'מרג׳עיון', name_en: 'Marjayoun', lat: 33.3619, lon: 35.5897, pop_band: 'md', pop_estimate: 9000, sect: 'christian', side: 'LB' },
   { id: 'ghajar-lb', name_he: "ע'ג'ר", name_en: 'Ghajar (LB)', lat: 33.2728, lon: 35.6231, pop_band: 'sm', pop_estimate: 2500, sect: 'mixed', side: 'LB' },
   { id: 'burj-el-muluk', name_he: 'בורג׳ אל־מלוכ', name_en: 'Burj el-Muluk', lat: 33.3280, lon: 35.5980, pop_band: 'sm', pop_estimate: 2500, sect: 'christian', side: 'LB' },
-  { id: 'kawkaba', name_he: 'כוכבא', name_en: 'Kawkaba', lat: 33.3230, lon: 35.6470, pop_band: 'sm', pop_estimate: 1800, sect: 'christian', side: 'LB' },
+  { id: 'kawkaba', name_he: 'כאוכבא', name_en: 'Kawkaba', lat: 33.3956, lon: 35.6383, pop_band: 'sm', pop_estimate: 1800, sect: 'christian', side: 'LB' },  // פויקיפדיה: 33°23′44″N 35°38′18″E; צפונית לאל-מארי
   { id: 'kfar-hamam', name_he: 'כפר חמאם', name_en: 'Kfar Hamam', lat: 33.3100, lon: 35.6610, pop_band: 'sm', pop_estimate: 1800, sect: 'sunni', side: 'LB' },
   { id: 'hebbariyeh', name_he: 'הבארייה', name_en: 'Hebbariyeh', lat: 33.3230, lon: 35.7000, pop_band: 'sm', pop_estimate: 2000, sect: 'sunni', side: 'LB' },
   { id: 'ain-arab', name_he: 'עין ערב', name_en: 'Ain Arab', lat: 33.2920, lon: 35.6850, pop_band: 'sm', pop_estimate: 1500, sect: 'mixed', side: 'LB' },
-  { id: 'mari', name_he: 'מארי', name_en: 'Mari', lat: 33.2920, lon: 35.6200, pop_band: 'sm', pop_estimate: 1200, sect: 'mixed', side: 'LB' },
+  { id: 'mari', name_he: 'אל-מארי', name_en: 'Al-Mari', lat: 33.3205, lon: 35.6417, pop_band: 'sm', pop_estimate: 1200, sect: 'shia', side: 'LB' },  // mapcarta/OSM: 33.32051, 35.64174; מזרחית לאל-חיאם, דרומית לכאוכבא
   { id: 'tyre',    name_he: 'צור', name_en: 'Tyre / Sour', lat: 33.2700, lon: 35.2030, pop_band: 'xl', pop_estimate: 120000, sect: 'shia', side: 'LB' },
   { id: 'burj-el-shemali', name_he: 'בורג׳ א־שמאלי', name_en: 'Burj el-Shemali', lat: 33.2860, lon: 35.2370, pop_band: 'md', pop_estimate: 10000, sect: 'shia', side: 'LB' },
   { id: 'rashidiyeh', name_he: 'ראשידייה', name_en: 'Rashidiyeh', lat: 33.2360, lon: 35.2220, pop_band: 'md', pop_estimate: 7000, sect: 'mixed', side: 'LB' },

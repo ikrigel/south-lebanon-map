@@ -749,6 +749,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       'khiam',
       'kfark',
       'mais',
+      'kawkaba',
+      'mari',
       'hasbaya',
       'shebaa',
       'metula',

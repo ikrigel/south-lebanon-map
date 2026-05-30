@@ -207,6 +207,31 @@ describe('geo.ts — key settlement spot-checks', () => {
     expect(Math.abs(t.lat - 33.273)).toBeLessThan(0.01);
     expect(Math.abs(t.lon - 35.354)).toBeLessThan(0.01);
   });
+
+  it('kawkaba exists with correct name and coordinates (Wikipedia: 33.3956N, 35.6383E)', () => {
+    const t = byId['kawkaba'];
+    expect(t, 'kawkaba missing').toBeDefined();
+    expect(t.name_he).toBe('כאוכבא');
+    expect(t.sect).toBe('christian');
+    // Wikipedia: 33°23′44″N 35°38′18″E = 33.3956, 35.6383
+    expect(Math.abs(t.lat - 33.3956)).toBeLessThan(0.01);
+    expect(Math.abs(t.lon - 35.6383)).toBeLessThan(0.01);
+    // Must be north of al-Mari (33.3205N)
+    const mari = byId['mari'];
+    expect(t.lat).toBeGreaterThan(mari.lat);
+  });
+
+  it('al-mari exists with correct coordinates (OSM: 33.3205N, 35.6417E) and is east of khiam', () => {
+    const t = byId['mari'];
+    expect(t, 'mari missing').toBeDefined();
+    expect(t.name_he).toBe('אל-מארי');
+    // OSM/mapcarta: 33.32051, 35.64174
+    expect(Math.abs(t.lat - 33.3205)).toBeLessThan(0.01);
+    expect(Math.abs(t.lon - 35.6417)).toBeLessThan(0.01);
+    // Must be east of khiam (35.6111E)
+    const khiam = byId['khiam'];
+    expect(t.lon).toBeGreaterThan(khiam.lon);
+  });
 });
 
 // ---------------------------------------------------------------------------
