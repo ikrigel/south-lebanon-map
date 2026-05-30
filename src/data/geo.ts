@@ -112,7 +112,7 @@ export const towns: Town[] = [
   { id: 'kafra', name_he: 'כפרא', name_en: 'Kafra', lat: 33.1758, lon: 35.3514, pop_band: 'sm', pop_estimate: 2200, sect: 'shia', side: 'LB' },
   { id: 'yaroun',  name_he: 'יארון', name_en: 'Yaroun', lat: 33.0806, lon: 35.4225, pop_band: 'sm', pop_estimate: 2000, sect: 'mixed', side: 'LB' },
   { id: 'maroun',  name_he: 'מארון א־ראס', name_en: 'Maroun al-Ras', lat: 33.1075, lon: 35.4447, pop_band: 'sm', pop_estimate: 1200, sect: 'shia', side: 'LB' },
-  { id: 'aitaroun',name_he: 'עיתרון', name_en: 'Aitaroun', lat: 33.1135, lon: 35.4360, pop_band: 'md', pop_estimate: 6000, sect: 'shia', side: 'LB' },
+  { id: 'aitaroun',name_he: 'עיתרון', name_en: 'Aitaroun', lat: 33.1164, lon: 35.4683, pop_band: 'md', pop_estimate: 6000, sect: 'shia', side: 'LB' },  // Wikipedia: 33°06′59″N 35°28″6″E
   { id: 'bintj',   name_he: 'בינת ג׳בייל', name_en: 'Bint Jbeil', lat: 33.1230, lon: 35.4290, pop_band: 'md', pop_estimate: 9000, sect: 'shia', side: 'LB' },
   { id: 'tibnin',  name_he: 'תיבנין', name_en: 'Tibnin', lat: 33.1933, lon: 35.4108, pop_band: 'md', pop_estimate: 7500, sect: 'shia', side: 'LB' },
   { id: 'sultaniyeh', name_he: 'סולטאנייה', name_en: 'Sultaniyeh', lat: 33.2050, lon: 35.4053, pop_band: 'sm', pop_estimate: 2200, sect: 'shia', side: 'LB' },

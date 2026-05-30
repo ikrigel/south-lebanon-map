@@ -208,6 +208,14 @@ describe('geo.ts — key settlement spot-checks', () => {
     expect(Math.abs(t.lon - 35.354)).toBeLessThan(0.01);
   });
 
+  it('aitaroun exists with correct coordinates (Wikipedia: 33.1164N, 35.4683E)', () => {
+    const t = byId['aitaroun'];
+    expect(t, 'aitaroun missing').toBeDefined();
+    // Wikipedia: 33°06′59″N 35°28″6″E = 33.1164, 35.4683
+    expect(Math.abs(t.lat - 33.1164)).toBeLessThan(0.01);
+    expect(Math.abs(t.lon - 35.4683)).toBeLessThan(0.01);
+  });
+
   it('kawkaba exists with correct name and coordinates (Wikipedia: 33.3956N, 35.6383E)', () => {
     const t = byId['kawkaba'];
     expect(t, 'kawkaba missing').toBeDefined();
