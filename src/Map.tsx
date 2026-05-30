@@ -799,6 +799,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     props.visible.ridgeLabels,
     props.visible.waterLabels,
     props.visible.unifil,
+    props.visible.sectColors,  // צביעת עדה משפיעה על תגיות בעברית
   ]);
 
   // ---- render incidents ----

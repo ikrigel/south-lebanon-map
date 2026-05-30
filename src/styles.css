@@ -856,7 +856,9 @@ body {
   color: white; font-weight: 700; font-family: 'JetBrains Mono', monospace;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
 }
+/* label icon wrapper — must not intercept clicks on map layers beneath */
 .map-label-icon {
+  pointer-events: none !important;
   direction: rtl;
   text-align: center;
   background: color-mix(in srgb, var(--bg-1) 88%, transparent);
