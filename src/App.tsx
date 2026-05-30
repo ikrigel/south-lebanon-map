@@ -150,6 +150,7 @@ const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   settlementLabels: true,
   ridgeLabels: true,
   waterLabels: true,
+  sectColors: true,
 };
 
 const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
@@ -471,6 +472,7 @@ const loadLocalLayerVisibility = (): LayerVis => {
       settlementLabels: typeof candidate.settlementLabels === 'boolean' ? candidate.settlementLabels : DEFAULT_LAYER_VISIBILITY.settlementLabels,
       ridgeLabels: typeof candidate.ridgeLabels === 'boolean' ? candidate.ridgeLabels : DEFAULT_LAYER_VISIBILITY.ridgeLabels,
       waterLabels: typeof candidate.waterLabels === 'boolean' ? candidate.waterLabels : DEFAULT_LAYER_VISIBILITY.waterLabels,
+      sectColors: typeof candidate.sectColors === 'boolean' ? candidate.sectColors : DEFAULT_LAYER_VISIBILITY.sectColors,
     };
   } catch {
     return DEFAULT_LAYER_VISIBILITY;
@@ -2454,22 +2456,39 @@ export default function App() {
             <p className="legend-note">
               שכבת חזבאללה היא איכותית בלבד — מבוססת דיווחי תקשורת ומחקר ציבוריים, אינה מציינת מתקנים מבצעיים או יעדים תקיפים.
             </p>
-            <div className="layer-group-title">מפתח — השתייכות דתית (ישובים לבנוניים)</div>
-            <div className="sect-legend">
-              {([
-                { sect: 'shia',      label: 'שיעים',    color: '#2a8a6e' },
-                { sect: 'sunni',     label: 'סונים',    color: '#c97d2a' },
-                { sect: 'christian', label: 'נוצרים',   color: '#b03030' },
-                { sect: 'druze',     label: 'דרוזים',   color: '#7b3fa0' },
-                { sect: 'mixed',     label: 'מעורב',    color: '#6b7280' },
-              ] as const).map(s => (
-                <div key={s.sect} className="sect-legend-row">
-                  <span className="sect-legend-dot" style={{ background: s.color }} />
-                  <span>{s.label}</span>
-                </div>
-              ))}
+            <div
+              className="toggle-row"
+              data-active={visible.sectColors}
+              onClick={visibleKey('sectColors')}
+              role="switch"
+              aria-checked={visible.sectColors}
+              data-testid="toggle-layer-sectColors"
+            >
+              <div className="toggle-label">
+                <span className="toggle-swatch" style={{ background: 'linear-gradient(90deg,#2a8a6e,#b03030,#7b3fa0,#c97d2a)' }} />
+                צביעת ישובים לפי השתייכות דתית
+              </div>
+              <span className="toggle-switch" />
             </div>
-            <p className="legend-note">צבע הגבול והנקודה על תווית הישוב מציינים את ההשתייכות הדתית הדומיננטית.</p>
+            {visible.sectColors && (
+              <>
+                <div className="sect-legend">
+                  {([
+                    { sect: 'shia',      label: 'שיעים',    color: '#2a8a6e' },
+                    { sect: 'sunni',     label: 'סונים',    color: '#c97d2a' },
+                    { sect: 'christian', label: 'נוצרים',   color: '#b03030' },
+                    { sect: 'druze',     label: 'דרוזים',   color: '#7b3fa0' },
+                    { sect: 'mixed',     label: 'מעורב',    color: '#6b7280' },
+                  ] as const).map(s => (
+                    <div key={s.sect} className="sect-legend-row">
+                      <span className="sect-legend-dot" style={{ background: s.color }} />
+                      <span>{s.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="legend-note">צבע הגבול והנקודה על תווית הישוב מציינים את ההשתייכות הדתית הדומיננטית.</p>
+              </>
+            )}
           </div>
 
           <div className="panel-section" id="nav-section">

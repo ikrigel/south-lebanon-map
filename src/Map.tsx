@@ -26,6 +26,7 @@ export type LayerVis = {
   settlementLabels: boolean;
   ridgeLabels: boolean;
   waterLabels: boolean;
+  sectColors: boolean;
 };
 
 export type MapProps = {
@@ -301,9 +302,11 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     // ---- Population ----
     const popGroup = L.layerGroup();
+    const useSectColors = props.visible.sectColors;
+    const SECT_LABELS: Record<string, string> = { shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים', christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי' };
     towns.filter(t => t.side === 'LB').forEach(t => {
-      const sectColor = t.sect ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
-      const sectLabel = t.sect ? ({ shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים', christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי' } as Record<string,string>)[t.sect] ?? '' : '';
+      const sectColor = (useSectColors && t.sect) ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
+      const sectLabel = t.sect ? (SECT_LABELS[t.sect] ?? '') : '';
       L.circleMarker([t.lat, t.lon], {
         radius: POP_RADIUS[t.pop_band],
         color: sectColor,
@@ -312,7 +315,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         fillOpacity: 0.22,
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong>${sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
         )
         .addTo(popGroup);
     });
@@ -344,11 +347,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         fillColor: '#b56466',
         fillOpacity: z.intensity === 'reported' ? 0.16 : 0.09,
         dashArray: '4 4',
-      })
-        .bindPopup(
-          `<strong>${z.name_he}</strong><br/>${z.note_he}<br/><em style="color:#d49a3a">המחשה איכותית בלבד — לא נתוני מטרות.</em>`
-        )
-        .addTo(hezGroup);
+        interactive: false,   // לא חוסם קליקים על ישובים מתחת
+      }).addTo(hezGroup);
     });
     layersRef.current.hez = hezGroup;
 
@@ -659,12 +659,43 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (vis && !map.hasLayer(group)) group.addTo(map);
       if (!vis && map.hasLayer(group)) map.removeLayer(group);
     };
+    // סדר שכבות: hez קודם (interactive:false), אחרכך pop מעליו כדי שהקליקים יעבדו
+    setVis(L_.hez, props.visible.hez);
     setVis(L_.pop, props.visible.pop);
     setVis(L_.unifil, props.visible.unifil);
-    setVis(L_.hez, props.visible.hez);
     setVis(L_.blueLine, props.visible.blueLine);
     setVis(L_.litani, props.visible.litani);
   }, [props.visible]);
+
+  // ---- Rebuild pop layer when sectColors toggle changes ----
+  useEffect(() => {
+    const map = mapRef.current;
+    const L_ = layersRef.current;
+    if (!map || !L_.pop) return;
+    const wasVisible = map.hasLayer(L_.pop);
+    if (wasVisible) map.removeLayer(L_.pop);
+    const popGroup = L.layerGroup();
+    const useSectColors = props.visible.sectColors;
+    const SECT_LABELS_: Record<string, string> = { shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים', christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי' };
+    towns.filter(t => t.side === 'LB').forEach(t => {
+      const sectColor = (useSectColors && t.sect) ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
+      const sectLabel = t.sect ? (SECT_LABELS_[t.sect] ?? '') : '';
+      L.circleMarker([t.lat, t.lon], {
+        radius: POP_RADIUS[t.pop_band],
+        color: sectColor,
+        weight: 1.5,
+        fillColor: sectColor,
+        fillOpacity: 0.22,
+      })
+        .bindPopup(
+          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
+        )
+        .addTo(popGroup);
+    });
+    L_.pop = popGroup;
+    if (wasVisible && props.visible.pop) popGroup.addTo(map);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.visible.sectColors]);
 
   // ---- Hebrew map labels with controlled density ----
   useEffect(() => {
@@ -717,8 +748,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const townsToLabel = props.largeLabels || props.allLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
       townsToLabel.forEach(t => {
         const icon = L.divIcon({
-          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${t.sect ? ` sect-${t.sect}` : ''}`,
-          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined, t.sect),
+          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${(props.visible.sectColors && t.sect) ? ` sect-${t.sect}` : ''}`,
+          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined, props.visible.sectColors ? t.sect : undefined),
           iconSize: undefined,
           iconAnchor: [28, 10],
         });
