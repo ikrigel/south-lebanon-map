@@ -885,12 +885,13 @@ body {
 .il-label { border-color: color-mix(in srgb, #88a3b8 65%, var(--border)); }
 .lb-label { border-color: color-mix(in srgb, var(--civ) 65%, var(--border)); }
 
-/* Sect border colors on labels */
-.sect-shia     { border-color: #2a8a6e; }
-.sect-sunni    { border-color: #c97d2a; }
-.sect-druze    { border-color: #7b3fa0; }
-.sect-christian{ border-color: #b03030; }
-.sect-mixed    { border-color: #6b7280; }
+/* Sect border colors on labels — !important ensures override over .lb-label and
+   .map-label-icon border shorthand on all browsers including mobile Safari */
+.sect-shia     { border-color: #2a8a6e !important; }
+.sect-sunni    { border-color: #c97d2a !important; }
+.sect-druze    { border-color: #7b3fa0 !important; }
+.sect-christian{ border-color: #b03030 !important; }
+.sect-mixed    { border-color: #6b7280 !important; }
 
 /* Sect dot inside label */
 .sect-dot {

@@ -252,6 +252,46 @@ function loadLayerVis(): LayerVis {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 6b. When sectColors is active, all LB towns have sect data for label coloring
+// ---------------------------------------------------------------------------
+describe('geo.ts — sect coverage for label coloring', () => {
+  const lbTowns = towns.filter(t => t.side === 'LB');
+
+  it('every LB town has a sect so label coloring works when toggle is on', () => {
+    const missing = lbTowns.filter(t => !t.sect);
+    expect(missing.map(t => `${t.id} (${t.name_he})`)).toEqual([]);
+  });
+
+  it('at least 100 LB towns have sect data (coverage sanity)', () => {
+    const withSect = lbTowns.filter(t => !!t.sect);
+    expect(withSect.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it('each sect color key has a canonical color hex', () => {
+    const SECT_COLORS: Record<string, string> = {
+      shia: '#2a8a6e', sunni: '#c97d2a', druze: '#7b3fa0',
+      christian: '#b03030', mixed: '#6b7280', jewish: '#1a5fa8',
+    };
+    const VALID_SECTS_LOCAL = ['shia', 'sunni', 'druze', 'christian', 'mixed', 'jewish'];
+    VALID_SECTS_LOCAL.forEach(s => {
+      expect(SECT_COLORS[s], `missing color for sect: ${s}`).toMatch(/^#[0-9a-f]{6}$/);
+    });
+  });
+
+  it('bintj (Bint Jbeil) has sect shia — verifying click target gets coloring', () => {
+    const t = towns.find(x => x.id === 'bintj');
+    expect(t).toBeDefined();
+    expect(t!.sect).toBe('shia');
+  });
+
+  it('maroun (Maroun al-Ras) has sect shia — was previously unclickable', () => {
+    const t = towns.find(x => x.id === 'maroun');
+    expect(t).toBeDefined();
+    expect(t!.sect).toBe('shia');
+  });
+});
+
 describe('LayerVis — sectColors persistence', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());

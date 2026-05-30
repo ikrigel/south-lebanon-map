@@ -208,6 +208,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     });
     mapRef.current = map;
 
+    // ---- Custom pane: popPane sits above marker-pane (600) so circleMarkers
+    //      receive touch events BEFORE Hebrew label divIcons (which are pointer-events:none
+    //      but on mobile Leaflet's pane-level touch handling still intercepts below-pane
+    //      SVG elements). z-index 650 = between marker-pane(600) and tooltip-pane(650).
+    map.createPane('popPane');
+    map.getPane('popPane')!.style.zIndex = '650';
+    // Do NOT set pointerEvents:none on the pane — SVG circles need to receive
+    // touch events. Leaflet handles pointer-events on individual SVG elements.
+
     // ---- Pan compensation for map rotation ----
     // Leaflet computes drag offsets in raw screen-pixel space and does not know
     // that the #map container is CSS-rotated. We listen on 'predrag' (fires
@@ -313,6 +322,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         weight: 1.5,
         fillColor: sectColor,
         fillOpacity: 0.22,
+        pane: 'popPane',  // above label pane (600) → mobile touch hits circles first
       })
         .bindPopup(
           `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
@@ -686,6 +696,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         weight: 1.5,
         fillColor: sectColor,
         fillOpacity: 0.22,
+        pane: 'popPane',  // keep circles above label pane after rebuild
       })
         .bindPopup(
           `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
@@ -745,7 +756,11 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       'shlomi',
     ]);
     if (props.visible.settlementLabels) {
-      const townsToLabel = props.largeLabels || props.allLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
+      // When sect-coloring is active, show ALL LB settlements so every settlement
+      // gets a colored border + dot. IL settlements stay compact-only (no sect data).
+      const townsToLabel = props.largeLabels || props.allLabels
+        ? towns
+        : towns.filter(t => compactTownIds.has(t.id) || (props.visible.sectColors && t.side === 'LB'));
       townsToLabel.forEach(t => {
         const icon = L.divIcon({
           className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${(props.visible.sectColors && t.sect) ? ` sect-${t.sect}` : ''}`,
