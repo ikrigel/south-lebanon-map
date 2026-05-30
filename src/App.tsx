@@ -2454,6 +2454,22 @@ export default function App() {
             <p className="legend-note">
               שכבת חזבאללה היא איכותית בלבד — מבוססת דיווחי תקשורת ומחקר ציבוריים, אינה מציינת מתקנים מבצעיים או יעדים תקיפים.
             </p>
+            <div className="layer-group-title">מפתח — השתייכות דתית (ישובים לבנוניים)</div>
+            <div className="sect-legend">
+              {([
+                { sect: 'shia',      label: 'שיעים',    color: '#2a8a6e' },
+                { sect: 'sunni',     label: 'סונים',    color: '#c97d2a' },
+                { sect: 'christian', label: 'נוצרים',   color: '#b03030' },
+                { sect: 'druze',     label: 'דרוזים',   color: '#7b3fa0' },
+                { sect: 'mixed',     label: 'מעורב',    color: '#6b7280' },
+              ] as const).map(s => (
+                <div key={s.sect} className="sect-legend-row">
+                  <span className="sect-legend-dot" style={{ background: s.color }} />
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="legend-note">צבע הגבול והנקודה על תווית הישוב מציינים את ההשתייכות הדתית הדומיננטית.</p>
           </div>
 
           <div className="panel-section" id="nav-section">

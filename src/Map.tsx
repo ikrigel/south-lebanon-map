@@ -94,8 +94,21 @@ const TILESETS = {
 };
 const NAVIGATION_FOLLOW_MIN_ZOOM = 17;
 
-const labelHtml = (he: string, en?: string) =>
-  `<span class="label-he">${he}</span>${en ? `<span class="label-en">${en}</span>` : ''}`;
+const SECT_COLORS: Record<string, string> = {
+  shia:     '#2a8a6e',  // ירוק כהה
+  sunni:    '#c97d2a',  // כתום
+  druze:    '#7b3fa0',  // סגול
+  christian:'#b03030',  // אדום
+  mixed:    '#6b7280',  // אפור
+  jewish:   '#1a5fa8',  // כחול
+};
+
+const labelHtml = (he: string, en?: string, sect?: string) => {
+  const dot = sect && SECT_COLORS[sect]
+    ? `<span class="sect-dot" style="background:${SECT_COLORS[sect]}"></span>`
+    : '';
+  return `${dot}<span class="label-he">${he}</span>${en ? `<span class="label-en">${en}</span>` : ''}`;
+};
 
 const poiSizePx = (size: string) => size === 'lg' ? 42 : size === 'sm' ? 24 : 32;
 const poiShapeClass = (shape: string) =>
@@ -289,15 +302,17 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     // ---- Population ----
     const popGroup = L.layerGroup();
     towns.filter(t => t.side === 'LB').forEach(t => {
+      const sectColor = t.sect ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
+      const sectLabel = t.sect ? ({ shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים', christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי' } as Record<string,string>)[t.sect] ?? '' : '';
       L.circleMarker([t.lat, t.lon], {
         radius: POP_RADIUS[t.pop_band],
-        color: '#d0b58a',
-        weight: 1.2,
-        fillColor: '#d0b58a',
-        fillOpacity: 0.18,
+        color: sectColor,
+        weight: 1.5,
+        fillColor: sectColor,
+        fillOpacity: 0.22,
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong><br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          `<strong>${t.name_he}</strong>${sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
         )
         .addTo(popGroup);
     });
@@ -702,8 +717,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const townsToLabel = props.largeLabels || props.allLabels ? towns : towns.filter(t => compactTownIds.has(t.id));
       townsToLabel.forEach(t => {
         const icon = L.divIcon({
-          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}`,
-          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined),
+          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${t.sect ? ` sect-${t.sect}` : ''}`,
+          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined, t.sect),
           iconSize: undefined,
           iconAnchor: [28, 10],
         });
