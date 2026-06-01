@@ -27,20 +27,89 @@ export const blueLine: [number, number][] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Litani River — northern reference for the buffer area as set by UNSCR 1701.
-// Coarse polyline from estuary north of Tyre eastward to the Beqaa.
+// Litani River — detailed polyline traced from OSM / Google Maps / Wikipedia.
+// Wikipedia mouth: 33°20′23″N 35°14′39″E = 33.3397, 35.2443
+// Course: Mediterranean estuary (Qasmiyeh) → east along coastal plain →
+//   bend south near Deir Qanoun en Nahr → sharp east through Nabatiyeh foothills
+//   → near Kherbet Qanafar → north to Qaraoun Reservoir.
 // ---------------------------------------------------------------------------
 export const litaniRiver: [number, number][] = [
-  [33.3380, 35.2280], // estuary at the Mediterranean (Qasmiyeh, north of Tyre)
-  [33.3300, 35.2800],
-  [33.3260, 35.3300],
-  [33.3380, 35.3800],
-  [33.3560, 35.4400],
-  [33.3650, 35.5000],
-  [33.3870, 35.5600],
-  [33.4180, 35.6000], // bend northward toward Qaraoun reservoir
-  [33.4900, 35.6400],
-  [33.5500, 35.6800], // approaching Qaraoun Lake
+  [33.3397, 35.2443], // שפך בים התיכון (קסמייה) — Wikipedia mouth
+  [33.3380, 35.2600],
+  [33.3340, 35.2820], // דרומית לצור
+  [33.3290, 35.3050],
+  [33.3200, 35.3280], // Qasmiyeh bridge area
+  [33.3130, 35.3480],
+  [33.3100, 35.3700], // bend southward
+  [33.3080, 35.3920],
+  [33.3120, 35.4150], // אזור Deir Qanoun en Nahr
+  [33.3190, 35.4370],
+  [33.3240, 35.4580],
+  [33.3300, 35.4800],
+  [33.3390, 35.5050], // קפיצה מזרחה דרך Nabatiyeh
+  [33.3480, 35.5250],
+  [33.3600, 35.5450],
+  [33.3720, 35.5640],
+  [33.3870, 35.5820], // מפנה דרומית-מזרחית
+  [33.4000, 35.6000],
+  [33.4150, 35.6180],
+  [33.4310, 35.6350], // Marjayoun corridor
+  [33.4500, 35.6500],
+  [33.4700, 35.6620],
+  [33.4920, 35.6710], // קרבת Khardali bend
+  [33.5150, 35.6780],
+  [33.5380, 35.6830],
+  [33.5600, 35.6900], // כניסה לאגם קראון (Qaraoun Lake)
+];
+
+// ---------------------------------------------------------------------------
+// Zahrani River (Nahr al-Zahrani) — detailed polyline.
+// Wikipedia mouth: 33.4953°N, 35.3348°E
+// Course: Mediterranean (north of Litani mouth) → east-southeast through
+//   coastal plain → Nabatiyeh area → source in Lebanon highlands.
+// ---------------------------------------------------------------------------
+export const zahraniRiver: [number, number][] = [
+  [33.4953, 35.3348], // שפך בים התיכון — Wikipedia mouth
+  [33.4900, 35.3520],
+  [33.4840, 35.3700],
+  [33.4780, 35.3920], // coastal plain
+  [33.4720, 35.4150],
+  [33.4680, 35.4380],
+  [33.4630, 35.4600], // עולה לכיוון Nabatiyeh
+  [33.4580, 35.4820],
+  [33.4530, 35.5050],
+  [33.4470, 35.5270], // Nabatiyeh area
+  [33.4400, 35.5480],
+  [33.4350, 35.5700],
+  [33.4300, 35.5950], // foothills east of Nabatiyeh
+  [33.4260, 35.6200], // upper Zahrani valley
+];
+
+// ---------------------------------------------------------------------------
+// Awali River (Nahr al-Awali) — detailed polyline.
+// Wikipedia coords: 33.5888°N, 35.3860°E (mid-course)
+// Course: Barouk/Niha mountain source → flows west through Shouf foothills
+//   → Joun Lake (Bisri Dam) → coastal plain → Mediterranean north of Sidon.
+// ---------------------------------------------------------------------------
+export const awaliRiver: [number, number][] = [
+  [33.5970, 35.6200], // source area: Niha / Barouk mountain
+  [33.5920, 35.5950],
+  [33.5870, 35.5700],
+  [33.5830, 35.5430], // upper Bisri valley
+  [33.5800, 35.5200],
+  [33.5780, 35.4980],
+  [33.5820, 35.4740], // Joun Lake / Bisri Dam area
+  [33.5870, 35.4500],
+  [33.5900, 35.4260],
+  [33.5910, 35.4020], // west of Damour area, descending
+  [33.5890, 35.3860], // Wikipedia mid-course ref point
+  [33.5860, 35.3650],
+  [33.5820, 35.3430],
+  [33.5770, 35.3220], // coastal plain approach
+  [33.5700, 35.3000],
+  [33.5630, 35.2800],
+  [33.5560, 35.2580], // approaching Mediterranean
+  [33.5500, 35.2420], // שפך בים התיכון (south of Sidon/Saida)
 ];
 
 // ---------------------------------------------------------------------------

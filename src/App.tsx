@@ -145,6 +145,7 @@ const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   hez: true,
   blueLine: true,
   litani: true,
+  rivers: true,
   topo: false,
   cityLabels: true,
   settlementLabels: true,
@@ -467,6 +468,7 @@ const loadLocalLayerVisibility = (): LayerVis => {
       hez: typeof candidate.hez === 'boolean' ? candidate.hez : DEFAULT_LAYER_VISIBILITY.hez,
       blueLine: typeof candidate.blueLine === 'boolean' ? candidate.blueLine : DEFAULT_LAYER_VISIBILITY.blueLine,
       litani: typeof candidate.litani === 'boolean' ? candidate.litani : DEFAULT_LAYER_VISIBILITY.litani,
+      rivers: typeof candidate.rivers === 'boolean' ? candidate.rivers : DEFAULT_LAYER_VISIBILITY.rivers,
       topo: typeof candidate.topo === 'boolean' ? candidate.topo : DEFAULT_LAYER_VISIBILITY.topo,
       cityLabels: typeof candidate.cityLabels === 'boolean' ? candidate.cityLabels : DEFAULT_LAYER_VISIBILITY.cityLabels,
       settlementLabels: typeof candidate.settlementLabels === 'boolean' ? candidate.settlementLabels : DEFAULT_LAYER_VISIBILITY.settlementLabels,
@@ -2412,6 +2414,7 @@ export default function App() {
               { key: 'hez' as const, label: 'אזורי השפעת חזבאללה (איכותי)', color: '#b56466' },
               { key: 'blueLine' as const, label: 'הקו הכחול (מקורב)', color: '#5a8fbf' },
               { key: 'litani' as const, label: 'נהר הליטני וגבול אזור החיץ', color: '#4e7fb0' },
+              { key: 'rivers' as const, label: 'נהרות — זהרני, אוואלי', color: '#4a90c4' },
               { key: 'topo' as const, label: 'טופוגרפיה — ניתוח תבליט וקרקע', color: '#88c37a' },
             ].map(l => (
               <div

@@ -1,7 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import L from 'leaflet';
 import {
-  blueLine, litaniRiver, litaniBufferZone, towns, unifilPoints, influenceZones, terrainFeatures,
+  blueLine, litaniRiver, litaniBufferZone, zahraniRiver, awaliRiver,
+  towns, unifilPoints, influenceZones, terrainFeatures,
   Incident, Town,
 } from './data/geo';
 import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm } from './util';
@@ -21,6 +22,7 @@ export type LayerVis = {
   hez: boolean;
   blueLine: boolean;
   litani: boolean;
+  rivers: boolean;  // Zahrani + Awali detailed river lines
   topo: boolean;
   cityLabels: boolean;
   settlementLabels: boolean;
@@ -182,6 +184,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     hez?: L.LayerGroup;
     blueLine?: L.LayerGroup;
     litani?: L.LayerGroup;
+    rivers?: L.LayerGroup;
     incidents?: L.LayerGroup;
     selectedHL?: L.LayerGroup;
     measure?: L.LayerGroup;
@@ -308,6 +311,39 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       )
       .addTo(litaniGroup);
     layersRef.current.litani = litaniGroup;
+
+    // ---- Rivers (Zahrani + Awali detailed polylines) ----
+    const RIVER_COLOR = '#4a90c4'; // blue, slightly lighter than litani
+    const riversGroup = L.layerGroup();
+
+    L.polyline(zahraniRiver, {
+      color: RIVER_COLOR,
+      weight: 2.5,
+      opacity: 0.85,
+      dashArray: undefined,
+    })
+      .bindPopup(
+        '<strong>נהר הזהרני</strong><br/>' +
+        'נהר בדרום לבנון, שפכו בים התיכון צפונית לשפך הליטני.<br/>' +
+        'עובר דרך אזור נבטייה ומקורו ברמות לבנון.<br/>' +
+        '<a href="https://en.wikipedia.org/wiki/Zahrani_River" target="_blank">ויקיפדיה — נהר הזהרני</a>'
+      )
+      .addTo(riversGroup);
+
+    L.polyline(awaliRiver, {
+      color: RIVER_COLOR,
+      weight: 2.5,
+      opacity: 0.85,
+    })
+      .bindPopup(
+        '<strong>נהר האוואלי</strong><br/>' +
+        'מקורו בהרי הברוק/ניחא בלבנון, זורם מערבה דרך עמק Bisri ואגם ג\'ון.<br/>' +
+        'שפכו בים התיכון דרומית לצידון.<br/>' +
+        '<a href="https://en.wikipedia.org/wiki/Awali_River" target="_blank">ויקיפדיה — נהר האוואלי</a>'
+      )
+      .addTo(riversGroup);
+
+    layersRef.current.rivers = riversGroup;
 
     // ---- Population ----
     const popGroup = L.layerGroup();
@@ -675,6 +711,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     setVis(L_.unifil, props.visible.unifil);
     setVis(L_.blueLine, props.visible.blueLine);
     setVis(L_.litani, props.visible.litani);
+    setVis(L_.rivers, props.visible.rivers);
   }, [props.visible]);
 
   // ---- Rebuild pop layer when sectColors toggle changes ----
