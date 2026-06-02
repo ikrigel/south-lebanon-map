@@ -706,7 +706,41 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const target = event.target as HTMLElement | null;
       if (target?.closest('.leaflet-control, .leaflet-popup')) return;
       if (!props.pointPickMode && target?.closest('.leaflet-marker-icon, .leaflet-tooltip')) return;
-      const latLng = map.mouseEventToLatLng(event);
+
+      // ---- rotation-aware click → LatLng conversion ----------------------
+      // Leaflet's mouseEventToLatLng → getMousePosition uses getBoundingClientRect()
+      // to compute scale. When the container has CSS rotate()+scale(), the bounding
+      // rect width ≠ offsetWidth (rotated box is larger), producing a wrong scale
+      // factor → wrong coords. Fix: un-rotate the click point around the container
+      // center ourselves, then convert via containerPointToLatLng.
+      const latLng = (() => {
+        const rect = container.getBoundingClientRect();
+        // Click position relative to container center (in screen / rotated space)
+        const cx = rect.left + rect.width  / 2;
+        const cy = rect.top  + rect.height / 2;
+        const dx = event.clientX - cx;
+        const dy = event.clientY - cy;
+        // Un-rotate by -θ (the total CSS rotation angle stored in userRotationRef)
+        const deg = userRotationRef.current;
+        const rad = (deg * Math.PI) / 180;
+        const cos = Math.cos(-rad);
+        const sin = Math.sin(-rad);
+        const ux = dx * cos - dy * sin;
+        const uy = dx * sin + dy * cos;
+        // Un-scale: the container is CSS-scaled (scale(1.22) or scale(1.3) when rotated)
+        // Use the ratio of the un-rotated visual size to the logical offsetWidth.
+        // When not rotated, scale = 1 (no difference). Use offsetWidth as the
+        // logical pixel size of the map that Leaflet knows about.
+        const logicalW = container.offsetWidth;
+        const logicalH = container.offsetHeight;
+        // containerPoint expected by Leaflet: offset from top-left of the container
+        // in logical (un-scaled, un-rotated) pixels
+        const containerPt = L.point(
+          logicalW / 2 + ux * (logicalW / rect.width),
+          logicalH / 2 + uy * (logicalH / rect.height),
+        );
+        return map.containerPointToLatLng(containerPt);
+      })();
       // In normal (non-mode) navigation: open a coord popup with a nav button.
       if (!props.pointPickMode && props.onNavigateToPoint) {
         const coordLabel = `${latLng.lat.toFixed(5)}°N, ${latLng.lng.toFixed(5)}°E`;
@@ -1054,7 +1088,12 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
           ? `route-line route-line-${o.lineStyle}`
           : `route-line-inactive route-line-inactive-${o.lineStyle}`;
         const el = (pl as any)._path as SVGPathElement | undefined;
-        if (el) el.className.baseVal = lineClass;
+        if (el) {
+          el.className.baseVal = lineClass;
+          // setStyle re-writes stroke-width as SVG attr — remove so CSS wins
+          el.removeAttribute('stroke-dasharray');
+          el.removeAttribute('stroke-width');
+        }
         if (isActive) pl.bringToFront();
       });
       return; // ← animation is NOT reset
@@ -1087,6 +1126,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         opacity: isActive ? 0.95 : 0.40,
         className: lineClass,
       }).addTo(group);
+      // Leaflet writes stroke-dasharray and stroke-width as SVG *attributes*
+      // via setAttribute(). CSS animation of stroke-dashoffset requires the
+      // dasharray to be a CSS *property* (not an attr). Remove the SVG attrs
+      // so the CSS class becomes the sole source of truth for these values.
+      const svgPath = (pl as any)._path as SVGPathElement | undefined;
+      if (svgPath) {
+        svgPath.removeAttribute('stroke-dasharray');
+        svgPath.removeAttribute('stroke-width');
+      }
       routePolylineRefs.current.set(o.id, pl);
       allRenderedPoints = [...allRenderedPoints, ...o.path];
 
