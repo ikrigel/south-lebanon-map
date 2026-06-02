@@ -860,6 +860,11 @@ export default function App() {
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => loadLocalSavedRoutes());
   const [activeSavedRoute, setActiveSavedRoute] = useState<SavedRoute | null>(() => initialNavSessionRef.current?.activeSavedRoute ?? null);
   const [liveLocation, setLiveLocation] = useState<{ lat: number; lon: number; accuracy?: number; heading?: number | null } | null>(null);
+  // navPosition is a throttled version of liveLocation — updated only when the
+  // device moves ≥ 15 m. Used for turn-instruction recalc and voice guidance,
+  // so those expensive O(n) path scans don't run on every GPS wobble.
+  const [navPosition, setNavPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const navPositionRef = useRef<{ lat: number; lon: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error' | 'unsupported'>('idle');
   const [watchId, setWatchId] = useState<number | null>(null);
   const [compassMode, setCompassMode] = useState(false);
@@ -1428,81 +1433,108 @@ export default function App() {
     };
   }, [navStart, navEnd]);
 
-  // ── Build routeOptions for multi-route selector ───────────────────────
-  const aerialKm = navStart && navEnd
-    ? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon])
-    : 0;
-  const aerialPath: [number, number][] | undefined = navStart && navEnd
-    ? [[navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]]
-    : undefined;
+  // ── Build routeOptions for multi-route selector (memoised — stable ref) ──
+  // NOTE: deps intentionally exclude liveLocation so GPS updates do NOT
+  //       rebuild the route objects → eliminates the 1-second render flicker.
+  const routeOptions: RouteOption[] = useMemo(() => {
+    if (!navStart || !navEnd || navStart.id === navEnd.id) return [];
+    const aerialKm = haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]);
+    const aerialPath: [number, number][] = [[navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]];
+    return [
+      {
+        id: 'drive',
+        labelHe: 'כביש סלול',
+        km: roadRoute?.km ?? aerialKm,
+        durationMin: roadRoute?.durationMin,
+        path: roadRoute?.path,
+        instructions: roadRoute?.instructions,
+        passabilityHe: 'כלי רכב בלבד',
+        airspaceHe: 'ללא אישור מיוחד',
+        color: '#4a90c4',
+        lineStyle: 'solid' as const,
+        status: routeStatus as RouteOption['status'],
+      },
+      {
+        id: 'foot',
+        labelHe: 'שביל הליכה / שטח',
+        km: footRoute?.km ?? aerialKm,
+        durationMin: footRoute?.durationMin,
+        path: footRoute?.path,
+        instructions: footRoute?.instructions,
+        passabilityHe: 'כוחות קרקעיים בלבד',
+        airspaceHe: 'גישה ברגל בלבד',
+        color: '#6dc463',
+        lineStyle: 'dashed' as const,
+        status: footRouteStatus as RouteOption['status'],
+      },
+      {
+        id: 'aerial',
+        labelHe: 'מסלול אווירי',
+        km: aerialKm,
+        durationMin: undefined,
+        path: aerialPath,
+        instructions: undefined,
+        passabilityHe: 'כלי טיס בלבד',
+        airspaceHe: 'אזור אווירי מוגבל — נדרש אישור',
+        color: '#e8c44a',
+        lineStyle: 'dotted' as const,
+        status: 'ready' as const,
+      },
+    ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    navStart?.id, navEnd?.id,
+    roadRoute, footRoute,
+    routeStatus, footRouteStatus,
+  ]);
 
-  const routeOptions: RouteOption[] = navStart && navEnd && navStart.id !== navEnd.id
-    ? [
-        {
-          id: 'drive',
-          labelHe: 'כביש סלול',
-          km: roadRoute?.km ?? aerialKm,
-          durationMin: roadRoute?.durationMin,
-          path: roadRoute?.path,
-          instructions: roadRoute?.instructions,
-          passabilityHe: 'כלי רכב בלבד',
-          airspaceHe: 'ללא אישור מיוחד',
-          color: '#4a90c4',
-          lineStyle: 'solid',
-          status: routeStatus as RouteOption['status'],
-        },
-        {
-          id: 'foot',
-          labelHe: 'שביל הליכה / שטח',
-          km: footRoute?.km ?? aerialKm,
-          durationMin: footRoute?.durationMin,
-          path: footRoute?.path,
-          instructions: footRoute?.instructions,
-          passabilityHe: 'כוחות קרקעיים בלבד',
-          airspaceHe: 'גישה ברגל בלבד',
-          color: '#6dc463',
-          lineStyle: 'dashed',
-          status: footRouteStatus as RouteOption['status'],
-        },
-        {
-          id: 'aerial',
-          labelHe: 'מסלול אווירי',
-          km: aerialKm,
-          durationMin: undefined,
-          path: aerialPath,
-          instructions: undefined,
-          passabilityHe: 'כלי טיס בלבד',
-          airspaceHe: 'אזור אווירי מוגבל — נדרש אישור',
-          color: '#e8c44a',
-          lineStyle: 'dotted',
-          status: 'ready',
-        },
-      ]
-    : [];
+  // The active route option — stable ref, not rebuilt on GPS tick
+  const activeRouteOption = useMemo(
+    () => routeOptions.find(r => r.id === activeRouteId) ?? routeOptions[0] ?? null,
+    [routeOptions, activeRouteId],
+  );
 
-  // The active route option drives navigationRoute and map rendering
-  const activeRouteOption = routeOptions.find(r => r.id === activeRouteId) ?? routeOptions[0] ?? null;
+  // calculatedRoute — stable ref, rebuilt only when endpoints or active route change
+  const calculatedRoute = useMemo(() => {
+    if (!navStart || !navEnd || navStart.id === navEnd.id) return null;
+    const fallbackKm = haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]);
+    return {
+      start: { lat: navStart.lat, lon: navStart.lon, label: navStart.label },
+      end: { lat: navEnd.lat, lon: navEnd.lon, label: navEnd.label },
+      km: activeRouteOption?.km ?? fallbackKm,
+      durationMin: activeRouteOption?.durationMin,
+      path: activeRouteOption?.path,
+      instructions: activeRouteOption?.instructions,
+    };
+  }, [navStart, navEnd, activeRouteOption]);
 
-  const calculatedRoute = navStart && navEnd && navStart.id !== navEnd.id
-    ? {
-        start: { lat: navStart.lat, lon: navStart.lon, label: navStart.label },
-        end: { lat: navEnd.lat, lon: navEnd.lon, label: navEnd.label },
-        km: activeRouteOption?.km ?? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
-        durationMin: activeRouteOption?.durationMin,
-        path: activeRouteOption?.path,
-        instructions: activeRouteOption?.instructions,
-      }
-    : null;
-  const navigationRoute = activeSavedRoute
-    ? {
+  // navigationRoute — stable ref
+  const navigationRoute = useMemo(() => {
+    if (activeSavedRoute) {
+      return {
         start: activeSavedRoute.start,
         end: activeSavedRoute.end,
         km: activeSavedRoute.km,
         durationMin: activeSavedRoute.durationMin,
         path: activeSavedRoute.path,
         instructions: activeSavedRoute.instructions,
-      }
-    : calculatedRoute;
+      };
+    }
+    return calculatedRoute;
+  }, [activeSavedRoute, calculatedRoute]);
+
+  // Memoised overlay list — only changes when a route data or active selection changes,
+  // NOT on every GPS update. Passed as a stable prop to MapView.
+  const routeOverlaysMemo = useMemo(() => routeOptions.map(opt => ({
+    id: opt.id,
+    path: opt.path ?? [],
+    color: opt.color,
+    lineStyle: opt.lineStyle,
+    labelHe: opt.labelHe,
+    km: opt.km,
+    durationMin: opt.durationMin,
+    isActive: opt.id === activeRouteId,
+  })), [routeOptions, activeRouteId]);
 
   const mapBearing = useMemo(() => {
     if (typeof liveLocation?.heading === 'number' && isFinite(liveLocation.heading)) {
@@ -1532,8 +1564,9 @@ export default function App() {
         ];
     if (path.length < 2) return null;
 
-    const current: [number, number] = liveLocation
-      ? [liveLocation.lat, liveLocation.lon]
+    // Use throttled navPosition (updates every 15 m) not raw liveLocation
+    const current: [number, number] = navPosition
+      ? [navPosition.lat, navPosition.lon]
       : path[0];
     const remainingToEndKm = haversineKm(current, [navigationRoute.end.lat, navigationRoute.end.lon]);
     const confidence: TurnInstruction['confidence'] = navigationRoute.path && navigationRoute.path.length >= 3 ? 'route' : 'estimated';
@@ -1558,7 +1591,7 @@ export default function App() {
           nearestIndex = index;
         }
       });
-      const currentDistanceM = liveLocation ? cumulativeMeters[nearestIndex] ?? 0 : 0;
+      const currentDistanceM = navPosition ? cumulativeMeters[nearestIndex] ?? 0 : 0;
       const aheadInstructions = routeInstructions
         .filter(instruction => instruction.distanceM >= currentDistanceM + 15)
         .sort((a, b) => a.distanceM - b.distanceM);
@@ -1604,7 +1637,7 @@ export default function App() {
     const action = turnActionFromDelta(delta);
     const distanceM = Math.max(0, haversineKm(current, nextPoint) * 1000);
     return composeTurnInstruction(action, distanceM, nextBearing, confidence);
-  }, [navigationRoute, liveLocation, mapBearing]);
+  }, [navigationRoute, navPosition, mapBearing]);
 
   const speakGuidance = useCallback((message: string, interrupt = true) => {
     if (voiceGuidance === 'off') return;
@@ -1708,8 +1741,8 @@ export default function App() {
   }, [voiceGuidance, voiceLanguage, navigationRoute, routeStatus, currentTurnInstruction, speakGuidance]);
 
   useEffect(() => {
-    if (voiceGuidance === 'off' || !navigationRoute || !liveLocation) return;
-    const remainingKm = haversineKm([liveLocation.lat, liveLocation.lon], [navigationRoute.end.lat, navigationRoute.end.lon]);
+    if (voiceGuidance === 'off' || !navigationRoute || !navPosition) return;
+    const remainingKm = haversineKm([navPosition.lat, navPosition.lon], [navigationRoute.end.lat, navigationRoute.end.lon]);
     const bucket = voiceGuidance === 'basic'
       ? Math.max(0, Math.floor(remainingKm))
       : Math.max(0, Math.floor(remainingKm * 2) / 2);
@@ -1733,12 +1766,12 @@ export default function App() {
     const message = voiceLanguage === 'he'
       ? voiceGuidance === 'basic'
         ? `נותרו כ${fmtKm(remainingKm)} עד היעד.`
-        : `עדכון ניווט. נותרו כ${fmtKm(remainingKm)} עד ${navigationRoute.end.label}.${headingText}${turnText} דיוק מיקום משוער ${Math.round(liveLocation.accuracy ?? 0)} מטר.`
+        : `עדכון ניווט. נותרו כ${fmtKm(remainingKm)} עד ${navigationRoute.end.label}.${headingText}${turnText} דיוק מיקום משוער ${Math.round(liveLocation?.accuracy ?? 0)} מטר.`
       : voiceGuidance === 'basic'
         ? `About ${fmtKm(remainingKm)} remaining to the destination.`
-        : `Navigation update. About ${fmtKm(remainingKm)} remaining to ${navigationRoute.end.label}.${headingText}${turnText} Estimated location accuracy is ${Math.round(liveLocation.accuracy ?? 0)} meters.`;
+        : `Navigation update. About ${fmtKm(remainingKm)} remaining to ${navigationRoute.end.label}.${headingText}${turnText} Estimated location accuracy is ${Math.round(liveLocation?.accuracy ?? 0)} meters.`;
     speakGuidance(message, false);
-  }, [voiceGuidance, voiceLanguage, navigationRoute, liveLocation, mapBearing, currentTurnInstruction, speakGuidance]);
+  }, [voiceGuidance, voiceLanguage, navigationRoute, navPosition, mapBearing, currentTurnInstruction, speakGuidance]);
 
   useEffect(() => {
     if (voiceGuidance === 'off' || !navigationRoute || !currentTurnInstruction) return;
@@ -1897,6 +1930,21 @@ export default function App() {
     showToast('מבקש הרשאת מיקום מהמכשיר…');
     beginLiveLocationWatch();
   };
+
+  // ── navPosition throttle: only update when device moves >= 15 m ──────────────
+  // Prevents O(n) path scan (currentTurnInstruction useMemo) from running on
+  // every sub-metre GPS wobble, which was the root cause of the animation flicker.
+  useEffect(() => {
+    if (!liveLocation) return;
+    const prev = navPositionRef.current;
+    if (prev) {
+      const movedKm = haversineKm([prev.lat, prev.lon], [liveLocation.lat, liveLocation.lon]);
+      if (movedKm * 1000 < 15) return; // haven't moved 15 m yet — skip expensive recalc
+    }
+    const next = { lat: liveLocation.lat, lon: liveLocation.lon };
+    navPositionRef.current = next;
+    setNavPosition(next);
+  }, [liveLocation]);
 
   // ---- Navigate from current position ----
   // If GPS is already active, sets live-location as start and the given point as end.
@@ -3766,16 +3814,7 @@ export default function App() {
           focusTarget={focusTarget}
           ref={mapViewRef}
           navigationRoute={navigationRoute}
-          routeOverlays={routeOptions.map(opt => ({
-            id: opt.id,
-            path: opt.path ?? [],
-            color: opt.color,
-            lineStyle: opt.lineStyle,
-            labelHe: opt.labelHe,
-            km: opt.km,
-            durationMin: opt.durationMin,
-            isActive: opt.id === activeRouteId,
-          }))}
+          routeOverlays={routeOverlaysMemo}
           routeDisplayMode={routeDisplayMode}
           liveLocation={liveLocation}
           liveCenterRequestId={liveCenterRequestId}

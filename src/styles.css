@@ -1994,3 +1994,18 @@ body {
   color: #f47e7e;
 }
 
+/* ── Render isolation — prevent route-card repaints from cascading ── */
+.route-option-card {
+  will-change: border-color, background;
+  contain: layout style;
+}
+
+.route-options-list {
+  contain: layout;
+}
+
+.nav-panel-body,
+.sidebar-nav-section {
+  contain: layout;
+}
+
