@@ -1041,12 +1041,16 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
         o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
         undefined;
+      // Add lineStyle-specific class so CSS @keyframes targets the right animation
+      const activeClass = isActive
+        ? `route-line${o.lineStyle !== 'solid' ? ` route-line-${o.lineStyle}` : ''}`
+        : 'route-line-inactive';
       const pl = L.polyline(o.path, {
         color: o.color,
         weight: isActive ? 6 : 2.5,
         opacity: isActive ? 0.95 : 0.40,
         dashArray: dash,
-        className: isActive ? 'route-line' : 'route-line-inactive',
+        className: activeClass,
       }).addTo(group);
       routePolylineRefs.current.set(o.id, pl);
       allRenderedPoints = [...allRenderedPoints, ...o.path];
@@ -1120,12 +1124,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
         o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
         undefined;
+      const activeClass = isActive
+        ? `route-line${o.lineStyle !== 'solid' ? ` route-line-${o.lineStyle}` : ''}`
+        : 'route-line-inactive';
       pl.setStyle({
         weight:    isActive ? 6 : 2.5,
         opacity:   visible ? (isActive ? 0.95 : 0.40) : 0,
         dashArray: dash ?? '',
-        className: isActive ? 'route-line' : 'route-line-inactive',
       });
+      // Leaflet ignores className in setStyle — update the SVG element directly
+      const el = (pl as any)._path as SVGPathElement | undefined;
+      if (el) {
+        el.className.baseVal = activeClass;
+      }
       if (isActive) pl.bringToFront();
     });
   }, [props.routeOverlays]);
