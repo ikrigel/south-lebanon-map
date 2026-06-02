@@ -435,11 +435,81 @@ body {
   background: rgba(110, 209, 194, 0.22) !important;
 }
 
+/* navigate-here button group: 2 small buttons side by side */
+.navigate-btn-group { display: flex; flex-direction: column; gap: 4px; }
+.navigate-here-primary {
+  background: rgba(74, 144, 196, 0.18) !important;
+  border-color: rgba(74, 144, 196, 0.45) !important;
+  color: #7ec8f5 !important;
+}
+.navigate-here-primary:hover { background: rgba(74, 144, 196, 0.3) !important; }
+.navigate-here-external {
+  background: rgba(110, 209, 194, 0.12) !important;
+  border-color: rgba(110, 209, 194, 0.3) !important;
+  color: var(--accent-hi) !important;
+}
+.navigate-here-external:hover { background: rgba(110, 209, 194, 0.22) !important; }
+
 /* ------- Road routing ------- */
 .route-form { display: grid; gap: 10px; min-width: 0; max-width: 100%; }
 .route-form label { display: grid; gap: 6px; color: var(--text-muted); font-size: 12px; }
 .route-picker-grid { display: grid; gap: 10px; min-width: 0; }
 .route-picker { display: grid; gap: 6px; min-width: 0; }
+/* Start row: text input + 'ממיקומי' button side by side */
+.route-start-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.route-start-row .search { flex: 1; min-width: 0; }
+.use-my-location-btn {
+  white-space: nowrap;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+  background: rgba(90, 143, 191, 0.15) !important;
+  border-color: rgba(90, 143, 191, 0.4) !important;
+  color: #8ec6f0 !important;
+  flex-shrink: 0;
+}
+.use-my-location-btn:hover {
+  background: rgba(90, 143, 191, 0.28) !important;
+}
+.use-my-location-btn.active {
+  background: rgba(90, 143, 191, 0.35) !important;
+  border-color: rgba(90, 143, 191, 0.7) !important;
+  color: #b8ddff !important;
+}
+/* 'נווט עכשיו' prominent launch button */
+.launch-nav-box {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(74, 144, 196, 0.09);
+  border: 1px solid rgba(74, 144, 196, 0.3);
+}
+.launch-nav-btn {
+  width: 100%;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 10px 16px !important;
+  background: rgba(74, 144, 196, 0.22) !important;
+  border-color: rgba(74, 144, 196, 0.6) !important;
+  color: #a8d8ff !important;
+  letter-spacing: 0.02em;
+}
+.launch-nav-btn:hover {
+  background: rgba(74, 144, 196, 0.38) !important;
+  color: #c8e8ff !important;
+}
+.launch-nav-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
 .route-pick-results {
   display: grid;
   gap: 5px;

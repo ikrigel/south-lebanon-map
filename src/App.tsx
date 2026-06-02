@@ -374,6 +374,62 @@ const isMobileLikeDevice = () => {
   return /Android|iPhone|iPad|iPod|SamsungBrowser|Mobile/i.test(ua) || window.matchMedia('(max-width: 768px)').matches;
 };
 
+// Opens external navigation app: tries Waze deep-link first (Android/iOS),
+// falls back to Apple Maps on iOS, then Google Maps web.
+// fromLat/Lon: start coords (null = let app use current GPS)
+// toLat/Lon: destination coords
+const openExternalNav = (toLat: number, toLon: number, toLabel: string,
+                          fromLat?: number | null, fromLon?: number | null) => {
+  const ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const destLL = `${toLat.toFixed(6)},${toLon.toFixed(6)}`;
+  const startLL = (fromLat != null && fromLon != null)
+    ? `${fromLat.toFixed(6)},${fromLon.toFixed(6)}`
+    : null;
+
+  // Waze deep-link (Android and iOS) — navigate to destination
+  const wazeUrl = `waze://?ll=${destLL}&navigate=yes&zoom=17`;
+  // Google Maps intent (Android)
+  const gmAndroid = startLL
+    ? `https://www.google.com/maps/dir/${startLL}/${destLL}/`
+    : `https://www.google.com/maps/dir/Current+Location/${destLL}/`;
+  // Apple Maps (iOS)
+  const appleMaps = startLL
+    ? `maps://maps.apple.com/?saddr=${startLL}&daddr=${destLL}&dirflg=d`
+    : `maps://maps.apple.com/?daddr=${destLL}&dirflg=d`;
+  // Google Maps web fallback
+  const gmWeb = startLL
+    ? `https://www.google.com/maps/dir/${startLL}/${destLL}/@${destLL},13z`
+    : `https://www.google.com/maps/dir/Current+Location/${destLL}/@${destLL},13z`;
+
+  if (isIOS) {
+    // Try Waze first via iframe (non-blocking), then Apple Maps
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = wazeUrl;
+    document.body.appendChild(iframe);
+    setTimeout(() => { document.body.removeChild(iframe); }, 1500);
+    // Fallback: open Apple Maps after 500ms if Waze didn't open
+    setTimeout(() => { window.location.href = appleMaps; }, 500);
+    return;
+  }
+  if (isAndroid) {
+    // Try Waze intent URI first, then Google Maps
+    const intent = `intent://ul?ll=${destLL}&navigate=yes#Intent;scheme=waze;package=com.waze;end`;
+    try {
+      window.location.href = intent;
+    } catch {
+      window.open(gmAndroid, '_blank');
+    }
+    // Fallback to Google Maps after a delay if Waze is not installed
+    setTimeout(() => { window.open(gmAndroid, '_blank'); }, 1800);
+    return;
+  }
+  // Desktop: open Google Maps in new tab
+  window.open(gmWeb, '_blank');
+};
+
 const pickSpeechVoice = (language: VoiceLanguage) => {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
   const voices = window.speechSynthesis.getVoices?.() ?? [];
@@ -832,6 +888,7 @@ export default function App() {
   const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>(() => loadLocalSavedMultiRoutes());
   const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
   const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
+  const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(null);
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
@@ -1217,8 +1274,22 @@ export default function App() {
       lat: navCustomEnd.lat,
       lon: navCustomEnd.lon,
     }] : [];
-    return [...customEnd, ...customPoiPoints, ...townPoints, ...terrainNavPoints, ...unifilNavPoints, ...incidentPoints];
-  }, [customPois, navCustomEnd]);
+    const customStart: NavPoint[] = navCustomStart ? [{
+      id: 'custom-nav-start',
+      label: navCustomStart.label,
+      group: 'ניווט מהיר',
+      lat: navCustomStart.lat,
+      lon: navCustomStart.lon,
+    }] : [];
+    const liveNavPoint: NavPoint[] = liveLocation ? [{
+      id: 'live-location',
+      label: 'מיקום נוכחי (GPS)',
+      group: 'ניווט מהיר',
+      lat: liveLocation.lat,
+      lon: liveLocation.lon,
+    }] : [];
+    return [...liveNavPoint, ...customStart, ...customEnd, ...customPoiPoints, ...townPoints, ...terrainNavPoints, ...unifilNavPoints, ...incidentPoints];
+  }, [customPois, navCustomEnd, navCustomStart, liveLocation]);
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
   const navEnd = navPoints.find(p => p.id === navEndId) ?? null;
@@ -1644,7 +1715,7 @@ export default function App() {
     showToast(`המסלול “${route.name}” נטען למפה`);
   };
 
-  const beginLiveLocationWatch = () => {
+  const beginLiveLocationWatch = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setLocationStatus('unsupported');
       showToast('הדפדפן אינו תומך במיקום חי');
@@ -1673,7 +1744,7 @@ export default function App() {
     setWatchId(id);
     setLocationStatus('watching');
     return id;
-  };
+  }, [liveToastShownRef, showToast]);
 
   const toggleLiveLocation = () => {
     if (watchId !== null) {
@@ -1691,6 +1762,32 @@ export default function App() {
     showToast('מבקש הרשאת מיקום מהמכשיר…');
     beginLiveLocationWatch();
   };
+
+  // ---- Navigate from current position ----
+  // If GPS is already active, sets live-location as start and the given point as end.
+  // If GPS is not active, starts GPS watch first, then sets up the route.
+  const navigateFromCurrentPosition = useCallback((toLat: number, toLon: number, toLabel: string) => {
+    setNavCustomEnd({ lat: toLat, lon: toLon, label: toLabel });
+    setNavEndId('custom-nav-end');
+    setNavEndQuery(toLabel);
+    if (liveLocation) {
+      // GPS already active — set live position as start immediately
+      setNavStartId('live-location');
+      setNavStartQuery('מיקום נוכחי (GPS)');
+      showToast(`מנווט ממיקומך אל ${toLabel}`);
+    } else {
+      // Start GPS watch; once we get a fix the live-location nav point will appear
+      setNavStartId('live-location'); // will resolve once GPS fires
+      setNavStartQuery('מיקום נוכחי (GPS)');
+      showToast(`מפעיל GPS — ינווט אל ${toLabel}`);
+      if (watchId === null) {
+        setLiveFollowDetached(false);
+        liveToastShownRef.current = true; // suppress duplicate toast
+        beginLiveLocationWatch();
+      }
+    }
+    document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveLocation, watchId, showToast, beginLiveLocationWatch]);
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
   //
@@ -2382,20 +2479,25 @@ export default function App() {
                       <span>{result.title}</span>
                       <small>{result.subtitle}</small>
                     </button>
-                    <button
-                      className="btn navigate-here-btn"
-                      onClick={() => {
-                        setNavCustomEnd({ lat: result.lat, lon: result.lon, label: result.title });
-                        setNavEndId('custom-nav-end');
-                        setNavEndQuery(result.title);
-                        showToast(`יעד ניווט: ${result.title}`);
-                        document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      title="הגדר כיעד ניווט"
-                      data-testid={`button-navigate-to-${result.id}`}
-                    >
-                      נווט לכאן
-                    </button>
+                    <div className="navigate-btn-group">
+                      <button
+                        className="btn navigate-here-btn navigate-here-primary"
+                        onClick={() => navigateFromCurrentPosition(result.lat, result.lon, result.title)}
+                        title="הגע מיישור ממיקום הנוכחי"
+                        data-testid={`button-navigate-from-here-${result.id}`}
+                      >
+                        ▶ נווט מיכאן
+                      </button>
+                      <button
+                        className="btn navigate-here-btn navigate-here-external"
+                        onClick={() => openExternalNav(result.lat, result.lon, result.title,
+                          liveLocation?.lat, liveLocation?.lon)}
+                        title="פתח Waze / Google Maps"
+                        data-testid={`button-open-external-nav-${result.id}`}
+                      >
+                        פתח Waze/Maps
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2501,13 +2603,36 @@ export default function App() {
                 <div className="route-picker">
                   <label>
                     <span>חפש נקודת מוצא</span>
-                    <input
-                      className="search"
-                      value={navStartQuery}
-                      onChange={e => setNavStartQuery(e.target.value)}
-                      placeholder={navStart ? navStart.label : 'לדוגמה: נאקורה, מטולה, צור…'}
-                      data-testid="input-route-start-search"
-                    />
+                    <div className="route-start-row">
+                      <input
+                        className="search"
+                        value={navStartQuery}
+                        onChange={e => setNavStartQuery(e.target.value)}
+                        placeholder={navStart ? navStart.label : 'לדוגמה: נאקורה, מטולה, צור…'}
+                        data-testid="input-route-start-search"
+                      />
+                      <button
+                        className={`btn use-my-location-btn${locationStatus === 'watching' && liveLocation ? ' active' : ''}`}
+                        onClick={() => {
+                          setNavStartId('live-location');
+                          setNavStartQuery('מיקום נוכחי (GPS)');
+                          if (liveLocation) {
+                            showToast('נקודת מוצא: מיקום נוכחי');
+                          } else {
+                            showToast('מפעיל GPS — מיקום יוגדר כנקודת מוצא');
+                            if (watchId === null) {
+                              setLiveFollowDetached(false);
+                              liveToastShownRef.current = true;
+                              beginLiveLocationWatch();
+                            }
+                          }
+                        }}
+                        title="השתמש במיקום הנוכחי כנקודת מוצא"
+                        data-testid="button-use-my-location"
+                      >
+                        📍 ממיקומי
+                      </button>
+                    </div>
                   </label>
                   <div className="route-pick-results" data-testid="route-start-results">
                     {startMatches.map(p => (
@@ -2627,6 +2752,8 @@ export default function App() {
                     setNavEndId('');
                     setNavStartQuery('');
                     setNavEndQuery('');
+                    setNavCustomStart(null);
+                    setNavCustomEnd(null);
                     setRoadRoute(null);
                     setAlternativeRoute(null);
                     setActiveRouteIndex(0);
@@ -2660,6 +2787,30 @@ export default function App() {
                   <span>בחר שתי נקודות שונות כדי להציג מסלול כבישים ומרחק משוער.</span>
                 )}
               </div>
+              {/* ---- נווט עכשיו — כפתור השקת אפליקציית ניווט חיצונית ---- */}
+              {navEnd && (
+                <div className="launch-nav-box" data-testid="launch-nav-box">
+                  <button
+                    className="btn launch-nav-btn"
+                    onClick={() => openExternalNav(
+                      navEnd.lat, navEnd.lon, navEnd.label,
+                      navStart?.lat ?? liveLocation?.lat,
+                      navStart?.lon ?? liveLocation?.lon,
+                    )}
+                    data-testid="button-launch-external-nav"
+                  >
+                    ▶ נווט עכשיו — פתח Waze / Google Maps
+                  </button>
+                  <p className="legend-note launch-nav-note">
+                    {liveLocation
+                      ? `מנווט ממיקומך (${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}) אל ${navEnd.label}`
+                      : navStart
+                        ? `מנווט מ${navStart.label} אל ${navEnd.label}`
+                        : `ינווט מהמיקום הנוכחי לפי אפליקציית הניווט אל ${navEnd.label}`
+                    }
+                  </p>
+                </div>
+              )}
               {alternativeRoute && roadRoute && (
                 <div className="route-actions" data-testid="route-alternatives-switcher">
                   <button
