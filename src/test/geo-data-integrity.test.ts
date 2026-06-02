@@ -439,3 +439,125 @@ describe('NAV_SCALES zoom table', () => {
     expect(NAV_SCALES.find(s => s.label === DEFAULT_NAV_SCALE_LABEL)).toBeDefined();
   });
 });
+
+// ── Multi-route types & display mode ─────────────────────────────────────
+describe('RouteOption definitions', () => {
+  type RouteOptionId = 'drive' | 'foot' | 'aerial';
+  type LineStyle = 'solid' | 'dashed' | 'dotted';
+
+  const ROUTE_DEFS: {
+    id: RouteOptionId;
+    labelHe: string;
+    passabilityHe: string;
+    airspaceHe: string;
+    color: string;
+    lineStyle: LineStyle;
+  }[] = [
+    {
+      id: 'drive',
+      labelHe: 'כביש סלול',
+      passabilityHe: 'כלי רכב בלבד',
+      airspaceHe: 'ללא אישור מיוחד',
+      color: '#4a90c4',
+      lineStyle: 'solid',
+    },
+    {
+      id: 'foot',
+      labelHe: 'שביל הליכה / שטח',
+      passabilityHe: 'כוחות קרקעיים בלבד',
+      airspaceHe: 'גישה ברגל בלבד',
+      color: '#6dc463',
+      lineStyle: 'dashed',
+    },
+    {
+      id: 'aerial',
+      labelHe: 'מסלול אווירי',
+      passabilityHe: 'כלי טיס בלבד',
+      airspaceHe: 'אזור אווירי מוגבל — נדרש אישור',
+      color: '#e8c44a',
+      lineStyle: 'dotted',
+    },
+  ];
+
+  it('has exactly 3 route types: drive, foot, aerial', () => {
+    const ids = ROUTE_DEFS.map(r => r.id);
+    expect(ids).toEqual(['drive', 'foot', 'aerial']);
+  });
+
+  it('all route IDs are unique', () => {
+    const ids = ROUTE_DEFS.map(r => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('each route type has a valid hex color', () => {
+    for (const r of ROUTE_DEFS) {
+      expect(r.color).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it('all colors are distinct', () => {
+    const colors = ROUTE_DEFS.map(r => r.color.toLowerCase());
+    expect(new Set(colors).size).toBe(colors.length);
+  });
+
+  it('each route type has a distinct lineStyle', () => {
+    const styles = ROUTE_DEFS.map(r => r.lineStyle);
+    expect(new Set(styles).size).toBe(styles.length);
+    expect(styles).toContain('solid');
+    expect(styles).toContain('dashed');
+    expect(styles).toContain('dotted');
+  });
+
+  it('aerial route has a passability label mentioning aircraft (כלי טיס)', () => {
+    const aerial = ROUTE_DEFS.find(r => r.id === 'aerial')!;
+    expect(aerial.passabilityHe).toContain('כלי טיס');
+  });
+
+  it('aerial route has an airspace restriction label', () => {
+    const aerial = ROUTE_DEFS.find(r => r.id === 'aerial')!;
+    expect(aerial.airspaceHe).toContain('אזור אווירי');
+  });
+
+  it('foot route has a passability label mentioning ground forces (קרקעיים)', () => {
+    const foot = ROUTE_DEFS.find(r => r.id === 'foot')!;
+    expect(foot.passabilityHe).toContain('קרקעיים');
+  });
+});
+
+describe('RouteDisplayMode', () => {
+  type RouteDisplayMode = 'road' | 'aerial' | 'both';
+  const VALID_MODES: RouteDisplayMode[] = ['road', 'aerial', 'both'];
+
+  it('has exactly 3 valid display modes', () => {
+    expect(VALID_MODES).toHaveLength(3);
+  });
+
+  it('default mode is road', () => {
+    const DEFAULT_MODE: RouteDisplayMode = 'road';
+    expect(VALID_MODES).toContain(DEFAULT_MODE);
+    expect(DEFAULT_MODE).toBe('road');
+  });
+
+  it('road mode shows road overlays (drive + foot)', () => {
+    const mode: RouteDisplayMode = 'road';
+    const visibleIds = mode === 'road' ? ['drive', 'foot'] : mode === 'aerial' ? ['aerial'] : ['drive', 'foot', 'aerial'];
+    expect(visibleIds).toContain('drive');
+    expect(visibleIds).toContain('foot');
+    expect(visibleIds).not.toContain('aerial');
+  });
+
+  it('aerial mode shows only aerial overlay', () => {
+    const mode: RouteDisplayMode = 'aerial';
+    const visibleIds = mode === 'road' ? ['drive', 'foot'] : mode === 'aerial' ? ['aerial'] : ['drive', 'foot', 'aerial'];
+    expect(visibleIds).toEqual(['aerial']);
+  });
+
+  it('both mode shows all three overlays', () => {
+    const mode: RouteDisplayMode = 'both';
+    const visibleIds = mode === 'road' ? ['drive', 'foot'] : mode === 'aerial' ? ['aerial'] : ['drive', 'foot', 'aerial'];
+    expect(visibleIds).toHaveLength(3);
+    expect(visibleIds).toContain('drive');
+    expect(visibleIds).toContain('foot');
+    expect(visibleIds).toContain('aerial');
+  });
+});

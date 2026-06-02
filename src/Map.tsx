@@ -54,12 +54,17 @@ export type MapProps = {
     durationMin?: number;
     path?: [number, number][];
   } | null;
-  alternativeRoute: {
+  routeOverlays: {
+    id: string;
+    path: [number, number][];
+    color: string;
+    lineStyle: 'solid' | 'dashed' | 'dotted';
+    labelHe: string;
     km: number;
     durationMin?: number;
-    path: [number, number][];
-  } | null;
-  activeRouteIndex: 0 | 1;
+    isActive: boolean;
+  }[];
+  routeDisplayMode: 'road' | 'aerial' | 'both';
   liveLocation: { lat: number; lon: number; accuracy?: number; heading?: number | null } | null;
   liveCenterRequestId: number;
   onLiveFollowDetachedChange: (detached: boolean) => void;
@@ -994,57 +999,84 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }).addTo(group);
   }, [props.distanceLine]);
 
-  // ---- point-to-point navigation route (straight-line educational estimate) ----
+  // ---- multi-route overlays (drive / foot / aerial) ----
   useEffect(() => {
     const group = layersRef.current.route;
     const map = mapRef.current;
     if (!group || !map) return;
     group.clearLayers();
     if (!props.navigationRoute) return;
-    const { start, end, km, durationMin, path } = props.navigationRoute;
+
+    const { start, end } = props.navigationRoute;
     const a: [number, number] = [start.lat, start.lon];
     const b: [number, number] = [end.lat, end.lon];
-    const isRealPath = path && path.length > 1;
-    const primaryLine: [number, number][] = isRealPath ? path! : [a, b];
 
-    // ---- Draw alternative route first (below primary) ----
-    const alt = props.alternativeRoute;
-    if (alt && alt.path.length > 1) {
-      const altActive = props.activeRouteIndex === 1;
-      L.polyline(alt.path, {
-        color: altActive ? '#6ed1c2' : '#4a7a70',
-        weight: altActive ? 4 : 3,
-        opacity: altActive ? 0.92 : 0.5,
-        className: altActive ? 'route-line' : 'route-line-alt',
-        dashArray: altActive ? undefined : '6 5',
-      }).addTo(group);
-      if (!altActive) {
-        const altMid = alt.path[Math.floor(alt.path.length / 2)];
-        L.marker(altMid, {
-          icon: L.divIcon({
-            className: 'route-distance-label route-alt-label',
-            html: `מסלול חלופי: ${alt.km < 10 ? alt.km.toFixed(2) : alt.km.toFixed(1)} ק״מ${alt.durationMin ? ` · ${Math.round(alt.durationMin)} דק׳` : ''}`,
-            iconSize: undefined,
-          }),
-          interactive: false,
+    const overlays = props.routeOverlays ?? [];
+    const mode = props.routeDisplayMode ?? 'road';
+
+    // Decide which overlays to render based on display mode
+    // 'road'   → only drive + foot (no aerial straight line)
+    // 'aerial' → only aerial
+    // 'both'   → all three
+    const visibleIds: Set<string> = new Set(
+      mode === 'road'   ? ['drive', 'foot'] :
+      mode === 'aerial' ? ['aerial'] :
+      ['drive', 'foot', 'aerial']
+    );
+
+    let allRenderedPoints: [number, number][] = [];
+
+    // Draw inactive routes first (below active)
+    overlays
+      .filter(o => visibleIds.has(o.id) && !o.isActive && o.path.length >= 2)
+      .forEach(o => {
+        const dash =
+          o.lineStyle === 'dashed' ? '8 6' :
+          o.lineStyle === 'dotted' ? '2 6' :
+          undefined;
+        L.polyline(o.path, {
+          color: o.color,
+          weight: 2.5,
+          opacity: 0.45,
+          dashArray: dash,
+          className: 'route-line-inactive',
         }).addTo(group);
-      }
+        allRenderedPoints = [...allRenderedPoints, ...o.path];
+      });
+
+    // Draw active route on top
+    const active = overlays.find(o => visibleIds.has(o.id) && o.isActive);
+    if (active && active.path.length >= 2) {
+      const dash =
+        active.lineStyle === 'dashed' ? '12 8' :
+        active.lineStyle === 'dotted' ? '3 7' :
+        undefined;
+      L.polyline(active.path, {
+        color: active.color,
+        weight: 5,
+        opacity: 0.92,
+        dashArray: dash,
+        className: 'route-line',
+      }).addTo(group);
+      allRenderedPoints = [...allRenderedPoints, ...active.path];
+
+      // Distance label at midpoint of active route
+      const midIdx = Math.floor(active.path.length / 2);
+      const mid = active.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
+      L.marker(mid, {
+        icon: L.divIcon({
+          className: 'route-distance-label',
+          html: `${active.labelHe}: ${active.km < 10 ? active.km.toFixed(2) : active.km.toFixed(1)} ק״מ${active.durationMin ? ` · ${Math.round(active.durationMin)} דק׳` : ''}`,
+          iconSize: undefined,
+        }),
+        interactive: false,
+      }).addTo(group);
     }
 
-    // ---- Draw primary route ----
-    const primaryActive = props.activeRouteIndex === 0;
-    L.polyline(primaryLine, {
-      color: primaryActive ? '#6ed1c2' : '#4a7a70',
-      weight: primaryActive ? 4 : 3,
-      opacity: primaryActive ? 0.92 : 0.5,
-      // Always set dashArray so CSS animation class takes effect
-      dashArray: isRealPath ? '14 10' : '10 6',
-      className: primaryActive ? 'route-line' : 'route-line-inactive',
-    }).addTo(group);
-
+    // Start / end markers (always shown)
     [
-      { point: a, label: `מוצא: ${start.label}` },
-      { point: b, label: `יעד: ${end.label}` },
+      { point: a, label: `מוצא: ${escapeHtml(start.label)}` },
+      { point: b, label: `יעד: ${escapeHtml(end.label)}` },
     ].forEach(({ point, label }, index) => {
       L.circleMarker(point, {
         radius: 7,
@@ -1053,7 +1085,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         fillColor: '#0b0d10',
         fillOpacity: 1,
       })
-        .bindTooltip(`${index === 0 ? 'א' : 'ב'} · ${escapeHtml(label)}`, {
+        .bindTooltip(`${index === 0 ? 'א' : 'ב'} · ${label}`, {
           permanent: true,
           direction: 'top',
           offset: [0, -10],
@@ -1061,25 +1093,11 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         })
         .addTo(group);
     });
-    const mid = primaryLine[Math.floor(primaryLine.length / 2)] ?? [(start.lat + end.lat) / 2, (start.lon + end.lon) / 2] as [number, number];
-    const activeRoute = primaryActive
-      ? { km, durationMin, isReal: isRealPath }
-      : alt ? { km: alt.km, durationMin: alt.durationMin, isReal: true } : { km, durationMin, isReal: isRealPath };
-    L.marker(mid, {
-      icon: L.divIcon({
-        className: 'route-distance-label',
-        html: `${activeRoute.isReal ? 'מסלול כבישים' : 'מרחק אווירי'}: ${activeRoute.km < 10 ? activeRoute.km.toFixed(2) : activeRoute.km.toFixed(1)} ק״מ${activeRoute.durationMin ? ` · ${Math.round(activeRoute.durationMin)} דק׳` : ''}`,
-        iconSize: undefined,
-      }),
-      interactive: false,
-    }).addTo(group);
-    const allLines = alt && alt.path.length > 1
-      ? [...primaryLine, ...alt.path]
-      : primaryLine;
-    if (!props.liveLocation) {
-      map.fitBounds(allLines, { padding: [60, 60], maxZoom: 13, animate: true });
+
+    if (!props.liveLocation && allRenderedPoints.length >= 2) {
+      map.fitBounds(allRenderedPoints, { padding: [60, 60], maxZoom: 13, animate: true });
     }
-  }, [props.navigationRoute, props.alternativeRoute, props.activeRouteIndex, Boolean(props.liveLocation)]);
+  }, [props.navigationRoute, props.routeOverlays, props.routeDisplayMode, Boolean(props.liveLocation)]);
 
   // ---- live device location and automatic follow zoom ----
   useEffect(() => {

@@ -77,6 +77,23 @@ type RoadRoute = {
   path: [number, number][];
   instructions?: TurnInstruction[];
 };
+// How the distance HUD and line are displayed during navigation
+type RouteDisplayMode = 'road' | 'aerial' | 'both';
+
+// A computed route option shown in the route-type selector
+type RouteOption = {
+  id: 'drive' | 'foot' | 'aerial';
+  labelHe: string;           // e.g. 'כביש סלול'
+  km: number;
+  durationMin?: number;
+  path?: [number, number][];
+  instructions?: TurnInstruction[];
+  passabilityHe: string;     // human-readable clearance label
+  airspaceHe: string;        // airspace/difficulty label
+  color: string;             // polyline colour on map
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+  status: 'ready' | 'loading' | 'error' | 'none';
+};
 type SavedRoute = {
   id: string;
   name: string;
@@ -912,6 +929,12 @@ export default function App() {
   const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
   const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(null);
   const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
+  // ── Multi-route display mode ──
+  const [routeDisplayMode, setRouteDisplayMode] = useState<RouteDisplayMode>('road');
+  const [footRoute, setFootRoute] = useState<RoadRoute | null>(null);
+  const [footRouteStatus, setFootRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  // aerialRoute is derived (no state needed — computed from navStart/navEnd)
+  const [activeRouteId, setActiveRouteId] = useState<'drive' | 'foot' | 'aerial'>('drive');
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
@@ -1331,29 +1354,33 @@ export default function App() {
     setAlternativeRoute(null);
     setActiveRouteIndex(0);
     setActiveSavedRoute(null);
+    setFootRoute(null);
+    setFootRouteStatus('idle');
     if (!navStart || !navEnd || navStart.id === navEnd.id) {
       setRouteStatus('idle');
       return;
     }
-    const controller = new AbortController();
-    const url = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
+    const driveCtrl = new AbortController();
+    const footCtrl  = new AbortController();
+
+    // ── Driving route (OSRM) ──
+    const driveUrl = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
     setRouteStatus('loading');
-    fetch(url, { signal: controller.signal })
+    fetch(driveUrl, { signal: driveCtrl.signal })
       .then(res => {
-        if (!res.ok) throw new Error(`OSRM ${res.status}`);
+        if (!res.ok) throw new Error(`OSRM drive ${res.status}`);
         return res.json();
       })
       .then(data => {
         const route = data?.routes?.[0];
         const coords = route?.geometry?.coordinates;
-        if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No route');
+        if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No drive route');
         setRoadRoute({
           km: route.distance / 1000,
           durationMin: route.duration / 60,
           path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
           instructions: parseOsrmInstructions(route),
         });
-        // Parse alternative route if exists
         const altRoute = data?.routes?.[1];
         const altCoords = altRoute?.geometry?.coordinates;
         if (altRoute && Array.isArray(altCoords) && altCoords.length >= 2) {
@@ -1369,17 +1396,101 @@ export default function App() {
         if (err.name === 'AbortError') return;
         setRouteStatus('error');
       });
-    return () => controller.abort();
+
+    // ── Foot / terrain route (OSRM walking profile) ──
+    const footUrl = `https://router.project-osrm.org/route/v1/foot/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&steps=true`;
+    setFootRouteStatus('loading');
+    fetch(footUrl, { signal: footCtrl.signal })
+      .then(res => {
+        if (!res.ok) throw new Error(`OSRM foot ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const route = data?.routes?.[0];
+        const coords = route?.geometry?.coordinates;
+        if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No foot route');
+        setFootRoute({
+          km: route.distance / 1000,
+          durationMin: route.duration / 60,
+          path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
+          instructions: parseOsrmInstructions(route),
+        });
+        setFootRouteStatus('ready');
+      })
+      .catch(err => {
+        if (err.name === 'AbortError') return;
+        setFootRouteStatus('error');
+      });
+
+    return () => {
+      driveCtrl.abort();
+      footCtrl.abort();
+    };
   }, [navStart, navEnd]);
+
+  // ── Build routeOptions for multi-route selector ───────────────────────
+  const aerialKm = navStart && navEnd
+    ? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon])
+    : 0;
+  const aerialPath: [number, number][] | undefined = navStart && navEnd
+    ? [[navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]]
+    : undefined;
+
+  const routeOptions: RouteOption[] = navStart && navEnd && navStart.id !== navEnd.id
+    ? [
+        {
+          id: 'drive',
+          labelHe: 'כביש סלול',
+          km: roadRoute?.km ?? aerialKm,
+          durationMin: roadRoute?.durationMin,
+          path: roadRoute?.path,
+          instructions: roadRoute?.instructions,
+          passabilityHe: 'כלי רכב בלבד',
+          airspaceHe: 'ללא אישור מיוחד',
+          color: '#4a90c4',
+          lineStyle: 'solid',
+          status: routeStatus as RouteOption['status'],
+        },
+        {
+          id: 'foot',
+          labelHe: 'שביל הליכה / שטח',
+          km: footRoute?.km ?? aerialKm,
+          durationMin: footRoute?.durationMin,
+          path: footRoute?.path,
+          instructions: footRoute?.instructions,
+          passabilityHe: 'כוחות קרקעיים בלבד',
+          airspaceHe: 'גישה ברגל בלבד',
+          color: '#6dc463',
+          lineStyle: 'dashed',
+          status: footRouteStatus as RouteOption['status'],
+        },
+        {
+          id: 'aerial',
+          labelHe: 'מסלול אווירי',
+          km: aerialKm,
+          durationMin: undefined,
+          path: aerialPath,
+          instructions: undefined,
+          passabilityHe: 'כלי טיס בלבד',
+          airspaceHe: 'אזור אווירי מוגבל — נדרש אישור',
+          color: '#e8c44a',
+          lineStyle: 'dotted',
+          status: 'ready',
+        },
+      ]
+    : [];
+
+  // The active route option drives navigationRoute and map rendering
+  const activeRouteOption = routeOptions.find(r => r.id === activeRouteId) ?? routeOptions[0] ?? null;
 
   const calculatedRoute = navStart && navEnd && navStart.id !== navEnd.id
     ? {
         start: { lat: navStart.lat, lon: navStart.lon, label: navStart.label },
         end: { lat: navEnd.lat, lon: navEnd.lon, label: navEnd.label },
-        km: roadRoute?.km ?? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
-        durationMin: roadRoute?.durationMin,
-        path: roadRoute?.path,
-        instructions: roadRoute?.instructions,
+        km: activeRouteOption?.km ?? haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
+        durationMin: activeRouteOption?.durationMin,
+        path: activeRouteOption?.path,
+        instructions: activeRouteOption?.instructions,
       }
     : null;
   const navigationRoute = activeSavedRoute
@@ -2801,6 +2912,9 @@ export default function App() {
                     setActiveRouteIndex(0);
                     setActiveSavedRoute(null);
                     setRouteStatus('idle');
+                    setFootRoute(null);
+                    setFootRouteStatus('idle');
+                    setActiveRouteId('drive');
                     showToast('בחירת המסלול אופסה');
                   }}
                   data-testid="button-route-clear"
@@ -2808,27 +2922,69 @@ export default function App() {
                   איפוס
                 </button>
               </div>
-              <div className="route-summary" data-testid="text-route-summary">
-                {routeStatus === 'loading' ? (
-                  <span>מחשב מסלול כבישים דרך OSRM/OpenStreetMap…</span>
-                ) : routeStatus === 'error' && navigationRoute ? (
-                  <>
-                    <strong>{fmtKm(navigationRoute.km)}</strong>
-                    <span>לא נמצא מסלול כבישים זמין בשירות הציבורי. מוצג מרחק אווירי משוער בלבד.</span>
-                  </>
-                ) : navigationRoute ? (
-                  <>
-                    <strong>{fmtKm(activeRouteIndex === 1 && alternativeRoute ? alternativeRoute.km : navigationRoute.km)}</strong>
-                    <span>
-                      {roadRoute
-                        ? `מסלול ${activeRouteIndex === 1 ? 'חלופי' : 'ראשי'} · זמן נסיעה תיאורטי: ${Math.round((activeRouteIndex === 1 && alternativeRoute ? alternativeRoute.durationMin : roadRoute.durationMin))} דק׳.`
-                        : 'מרחק אווירי זמני עד לקבלת מסלול כבישים.'}
-                    </span>
-                  </>
-                ) : (
-                  <span>בחר שתי נקודות שונות כדי להציג מסלול כבישים ומרחק משוער.</span>
-                )}
-              </div>
+              {/* ── Route display mode toggle ── */}
+              {(navStart && navEnd && navStart.id !== navEnd.id) && (
+                <div className="route-display-mode-row" data-testid="route-display-mode-row">
+                  <span className="nav-scale-label">תצוגה:</span>
+                  {(['road', 'aerial', 'both'] as RouteDisplayMode[]).map(mode => {
+                    const labels: Record<RouteDisplayMode, string> = {
+                      road: '🛣 כביש',
+                      aerial: '✈ אווירי',
+                      both: '⊕ שניהם',
+                    };
+                    return (
+                      <button
+                        key={mode}
+                        className={`btn nav-scale-btn${routeDisplayMode === mode ? ' active' : ''}`}
+                        onClick={() => setRouteDisplayMode(mode)}
+                        data-testid={`button-display-mode-${mode}`}
+                      >
+                        {labels[mode]}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {/* ── Route option cards ── */}
+              {routeOptions.length > 0 ? (
+                <div className="route-options-list" data-testid="route-options-list">
+                  {routeOptions.map(opt => (
+                    <div
+                      key={opt.id}
+                      className={`route-option-card${activeRouteId === opt.id ? ' active' : ''}`}
+                      style={{ '--route-color': opt.color } as React.CSSProperties}
+                      onClick={() => setActiveRouteId(opt.id)}
+                      data-testid={`route-option-card-${opt.id}`}
+                      role="button"
+                      aria-pressed={activeRouteId === opt.id}
+                    >
+                      <div className="route-option-header">
+                        <span className="route-option-name">{opt.labelHe}</span>
+                        {opt.status === 'loading' && (
+                          <span className="route-option-badge loading">מחשב…</span>
+                        )}
+                        {opt.status === 'error' && (
+                          <span className="route-option-badge error">שגיאה</span>
+                        )}
+                      </div>
+                      <div className="route-option-km">
+                        <strong>{fmtKm(opt.km)}</strong>
+                        {opt.durationMin != null && (
+                          <span> · {Math.round(opt.durationMin)} דק׳</span>
+                        )}
+                      </div>
+                      <div className="route-option-tags">
+                        <span className="route-option-tag passability">{opt.passabilityHe}</span>
+                        <span className="route-option-tag airspace">{opt.airspaceHe}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="route-summary" data-testid="text-route-summary">
+                  <span>בחר שתי נקודות שונות כדי להציג מסלולים אפשריים.</span>
+                </div>
+              )}
               {/* ---- נווט עכשיו — כפתור השקת אפליקציית ניווט חיצונית ---- */}
               {navEnd && (
                 <div className="launch-nav-box" data-testid="launch-nav-box">
@@ -2851,26 +3007,6 @@ export default function App() {
                         : `ינווט מהמיקום הנוכחי לפי אפליקציית הניווט אל ${navEnd.label}`
                     }
                   </p>
-                </div>
-              )}
-              {alternativeRoute && roadRoute && (
-                <div className="route-actions" data-testid="route-alternatives-switcher">
-                  <button
-                    className="btn"
-                    aria-pressed={activeRouteIndex === 0}
-                    onClick={() => setActiveRouteIndex(0)}
-                    data-testid="button-route-primary"
-                  >
-                    מסלול ראשי · {fmtKm(roadRoute.km)}
-                  </button>
-                  <button
-                    className="btn"
-                    aria-pressed={activeRouteIndex === 1}
-                    onClick={() => setActiveRouteIndex(1)}
-                    data-testid="button-route-alternative"
-                  >
-                    מסלול חלופי · {fmtKm(alternativeRoute.km)}
-                  </button>
                 </div>
               )}
               {locationStatus !== 'idle' && (
@@ -3630,8 +3766,17 @@ export default function App() {
           focusTarget={focusTarget}
           ref={mapViewRef}
           navigationRoute={navigationRoute}
-          alternativeRoute={alternativeRoute}
-          activeRouteIndex={activeRouteIndex}
+          routeOverlays={routeOptions.map(opt => ({
+            id: opt.id,
+            path: opt.path ?? [],
+            color: opt.color,
+            lineStyle: opt.lineStyle,
+            labelHe: opt.labelHe,
+            km: opt.km,
+            durationMin: opt.durationMin,
+            isActive: opt.id === activeRouteId,
+          }))}
+          routeDisplayMode={routeDisplayMode}
           liveLocation={liveLocation}
           liveCenterRequestId={liveCenterRequestId}
           onLiveFollowDetachedChange={handleLiveFollowDetachedChange}
