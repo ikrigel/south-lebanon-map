@@ -805,7 +805,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
           className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${(props.visible.sectColors && t.sect) ? ` sect-${t.sect}` : ''}`,
           html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined, props.visible.sectColors ? t.sect : undefined),
           iconSize: undefined,
-          iconAnchor: [28, 10],
+          iconAnchor: [0, 10],
         });
         L.marker([t.lat, t.lon], { icon, interactive: false }).addTo(group);
       });
@@ -820,7 +820,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
           className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} unifil-label`,
           html: labelHtml(u.name_he, props.largeLabels ? u.name_en : undefined),
           iconSize: undefined,
-          iconAnchor: [38, 12],
+          iconAnchor: [0, 12],
         });
         L.marker([u.lat, u.lon], { icon, interactive: false }).addTo(group);
       });
@@ -829,7 +829,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const isRidgeLike = (type: string) => type === 'ridge' || type === 'mountain' || type === 'valley';
     const isWaterLike = (type: string) => type === 'river' || type === 'wadi' || type === 'water';
     const compactRidgeIds = new Set(['jabal-amel', 'bint-jbeil-ridge', 'nabatieh-plateau', 'silvester-ridge']);
-    const compactWaterIds = new Set(['litani', 'zahrani', 'hasbani']);
+    const compactWaterIds = new Set(['litani', 'awali', 'zahrani', 'hasbani']);
     const terrainToLabel = terrainFeatures.filter(f => {
       if (isRidgeLike(f.type) && !props.visible.ridgeLabels) return false;
       if (isWaterLike(f.type) && !props.visible.waterLabels) return false;
@@ -841,7 +841,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} terrain-label terrain-${f.type}`,
         html: labelHtml(f.name_he, props.largeLabels ? f.name_en : undefined),
         iconSize: undefined,
-        iconAnchor: [36, 12],
+        iconAnchor: [0, 12],
       });
       L.marker([f.lat, f.lon], { icon, interactive: false }).addTo(group);
     });

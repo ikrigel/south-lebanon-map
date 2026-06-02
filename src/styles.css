@@ -871,6 +871,10 @@ body {
   font-size: 10px;
   line-height: 1.1;
   white-space: nowrap;
+  /* Center label horizontally over the marker point regardless of text width.
+     iconAnchor=[0,10] places top-left at the point; translateX(-50%) shifts
+     the label left by half its own width — works for any label length. */
+  transform: translateX(-50%);
 }
 .map-label-icon .label-he { display: block; font-weight: 800; }
 .map-label-icon .label-en { display: none; color: var(--text-muted); font-size: 9px; margin-top: 1px; direction: ltr; }

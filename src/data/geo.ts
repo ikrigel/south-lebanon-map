@@ -221,7 +221,6 @@ export const awaliRiver: [number, number][] = [
   [33.58142, 35.40561],
   [33.58542, 35.40152],
   [33.58897, 35.38648],
-  [33.6481, 35.3792],
 ];
 // ---------------------------------------------------------------------------
 // Approximate 5 km buffer strip south of the Litani (illustrative polygon).
@@ -491,8 +490,8 @@ export type TerrainFeature = {
 };
 
 export const terrainFeatures: TerrainFeature[] = [
-  { id: 'litani', name_he: 'נהר הליטני', name_en: 'Litani River', type: 'river', lat: 33.3600, lon: 35.4600, note_he: 'תוואי נהר מקורב' },
-  { id: 'awali', name_he: 'נהר האוואלי', name_en: 'Awali River', type: 'river', lat: 33.5000, lon: 35.3900, note_he: 'נהר מצפון למרחב המפה' },
+  { id: 'litani', name_he: 'נהר הליטני', name_en: 'Litani River', type: 'river', lat: 33.318, lon: 35.420, note_he: 'תוואי נהר מקורב' },
+  { id: 'awali', name_he: 'נהר האוואלי', name_en: 'Awali River', type: 'river', lat: 33.615, lon: 35.540, note_he: 'נהר מצפון למרחב המפה' },
   { id: 'hasbani', name_he: 'נחל/נהר החצבאני', name_en: 'Hasbani River', type: 'river', lat: 33.2500, lon: 35.6200 },
   { id: 'wazzani', name_he: 'נחל ואזאני', name_en: 'Wazzani Stream', type: 'river', lat: 33.2350, lon: 35.6100 },
   { id: 'qasmiyeh', name_he: 'שפך קאסמייה', name_en: 'Qasmiyeh / Litani Estuary', type: 'water', lat: 33.3380, lon: 35.2280 },
