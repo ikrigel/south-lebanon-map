@@ -510,6 +510,36 @@ body {
   text-align: center;
   line-height: 1.4;
 }
+/* ---- Popup nav button (inside Leaflet popups) ---- */
+.popup-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 144, 196, 0.55);
+  background: rgba(74, 144, 196, 0.18);
+  color: #9ed4ff;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.popup-nav-btn:hover {
+  background: rgba(74, 144, 196, 0.32);
+  color: #c4e8ff;
+}
+/* Coordinate popup (bare tap) — slightly compact */
+.coord-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+.coord-popup .leaflet-popup-content {
+  margin: 10px 12px !important;
+}
+
 /* ---- Nav scale selector ---- */
 .nav-scale-row {
   display: flex;

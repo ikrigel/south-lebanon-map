@@ -87,6 +87,8 @@ export type MapProps = {
   }[];
   multiRouteDraft: { lat: number; lon: number; order: number }[];
   activeMultiRoute: { points: { lat: number; lon: number; order: number }[]; name: string } | null;
+  /** Called when the user taps a "navigate here" button inside a map popup. */
+  onNavigateToPoint?: (lat: number, lon: number, label: string) => void;
   /** Zoom level to use when following live location during navigation.
    *  Corresponds to map-scale levels: 18≈1:20, 17≈1:50, 16≈1:100, 15≈1:200,
    *  13≈1:500, 12≈1:1000, 11≈1:2000 (all at Lebanon latitude ~33.5°). */
@@ -128,6 +130,10 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#f6c453';
   return `<span class="poi-pin ${poiShapeClass(shape)}${draft ? ' poi-pin-draft' : ''}" style="width:${px}px;height:${px}px;background:${safeColor};transform:${rotation};"><span style="${symbolRotation}">${poiSymbol(shape, draft)}</span></span>`;
 };
+
+/** Builds an HTML nav-button that the delegated listener picks up via data-nav-* attrs. */
+const navBtn = (lat: number, lon: number, label: string) =>
+  `<button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${label.replace(/"/g, '&quot;')}">▶ נווט לכאן</button>`;
 
 const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -291,7 +297,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         fillOpacity: 0.85,
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong> (ישראל)<br/>נקודת ייחוס לגבול.`
+          `<strong>${t.name_he}</strong> (ישראל)<br/>נקודת ייחוס לגבול.<br/>${navBtn(t.lat, t.lon, t.name_he)}`
         )
         .addTo(blueLineGroup);
     });
@@ -365,7 +371,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         pane: 'popPane',  // above label pane (600) → mobile touch hits circles first
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span><br/>${navBtn(t.lat, t.lon, t.name_he)}`
         )
         .addTo(popGroup);
     });
@@ -382,7 +388,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       });
       L.marker([u.lat, u.lon], { icon })
         .bindPopup(
-          `<strong>${u.name_he}</strong><br/>${u.note_he}<br/><a href="https://unifil.unmissions.org/" target="_blank">מקור: יוניפי״ל (אתר רשמי)</a>`
+          `<strong>${u.name_he}</strong><br/>${u.note_he}<br/><a href="https://unifil.unmissions.org/" target="_blank">מקור: יוניפי״ל (אתר רשמי)</a><br/>${navBtn(u.lat, u.lon, u.name_he)}`
         )
         .addTo(unifilGroup);
     });
@@ -693,11 +699,47 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (target?.closest('.leaflet-control, .leaflet-popup')) return;
       if (!props.pointPickMode && target?.closest('.leaflet-marker-icon, .leaflet-tooltip')) return;
       const latLng = map.mouseEventToLatLng(event);
+      // In normal (non-mode) navigation: open a coord popup with a nav button.
+      if (!props.pointPickMode && props.onNavigateToPoint) {
+        const coordLabel = `${latLng.lat.toFixed(5)}°N, ${latLng.lng.toFixed(5)}°E`;
+        const popHtml =
+          `<div style="min-width:180px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b97a8;margin-bottom:6px">
+              ${coordLabel}
+            </div>
+            ${navBtn(latLng.lat, latLng.lng, coordLabel)}
+          </div>`;
+        L.popup({ offset: [0, -4], closeButton: true, className: 'coord-popup' })
+          .setLatLng([latLng.lat, latLng.lng])
+          .setContent(popHtml)
+          .openOn(map);
+      }
       props.onMapClick(latLng.lat, latLng.lng);
     };
     container.addEventListener('click', handleClick);
     return () => container.removeEventListener('click', handleClick);
-  }, [props.onMapClick, props.pointPickMode]);
+  }, [props.onMapClick, props.pointPickMode, props.onNavigateToPoint]);
+
+  // ---- delegated "navigate here" click from popup buttons ----
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !props.onNavigateToPoint) return;
+    const handleNavClick = (event: MouseEvent) => {
+      const btn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-nav-lat]');
+      if (!btn) return;
+      event.stopPropagation();
+      const lat = parseFloat(btn.dataset.navLat ?? '');
+      const lon = parseFloat(btn.dataset.navLon ?? '');
+      const label = btn.dataset.navLabel ?? `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      if (!isNaN(lat) && !isNaN(lon)) {
+        props.onNavigateToPoint!(lat, lon, label);
+        // close the popup
+        mapRef.current?.closePopup();
+      }
+    };
+    container.addEventListener('click', handleNavClick, { capture: true });
+    return () => container.removeEventListener('click', handleNavClick, { capture: true } as EventListenerOptions);
+  }, [props.onNavigateToPoint]);
 
   // ---- toggle layer visibility ----
   useEffect(() => {
@@ -1185,7 +1227,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       });
       marker
         .bindPopup(
-          `<div style="min-width:220px"><strong>${escapeHtml(poi.name)}</strong><br/><div style="font-size:11px;line-height:1.45;margin:6px 0;color:#8b97a8">${escapeHtml(poi.description || 'נקודת עניין שהמשתמש הוסיף')}</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b97a8">${poi.lat.toFixed(5)}, ${poi.lon.toFixed(5)}</div></div>`
+          `<div style="min-width:220px"><strong>${escapeHtml(poi.name)}</strong><br/><div style="font-size:11px;line-height:1.45;margin:6px 0;color:#8b97a8">${escapeHtml(poi.description || 'נקודת עניין שהמשתמש הוסיף')}</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b97a8">${poi.lat.toFixed(5)}, ${poi.lon.toFixed(5)}</div>${navBtn(poi.lat, poi.lon, poi.name)}</div>`
         )
         .addTo(group);
     });

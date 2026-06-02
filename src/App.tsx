@@ -3652,6 +3652,7 @@ export default function App() {
           multiRouteDraft={multiRouteDraftPoints}
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
           navFollowZoom={navFollowZoom}
+          onNavigateToPoint={navigateFromCurrentPosition}
         />
       </div>
 
