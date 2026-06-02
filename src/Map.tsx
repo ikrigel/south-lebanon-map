@@ -1037,20 +1037,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     sortedOverlays.forEach(o => {
       if (o.path.length < 2) return;
       const isActive = o.isActive;
-      const dash =
-        o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
-        o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
-        undefined;
-      // Add lineStyle-specific class so CSS @keyframes targets the right animation
-      const activeClass = isActive
-        ? `route-line${o.lineStyle !== 'solid' ? ` route-line-${o.lineStyle}` : ''}`
-        : 'route-line-inactive';
+      // CSS class encodes both lineStyle and active state.
+      // stroke-dasharray is set ONLY in CSS (not as Leaflet dashArray option)
+      // because CSS animation of stroke-dashoffset requires CSS stroke-dasharray,
+      // not the SVG attribute that Leaflet normally writes via setAttribute.
+      const lineClass = isActive
+        ? `route-line route-line-${o.lineStyle}`
+        : `route-line-inactive route-line-inactive-${o.lineStyle}`;
       const pl = L.polyline(o.path, {
         color: o.color,
         weight: isActive ? 6 : 2.5,
         opacity: isActive ? 0.95 : 0.40,
-        dashArray: dash,
-        className: activeClass,
+        // NO dashArray here — handled entirely by CSS class
+        className: lineClass,
       }).addTo(group);
       routePolylineRefs.current.set(o.id, pl);
       allRenderedPoints = [...allRenderedPoints, ...o.path];
@@ -1120,23 +1119,17 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (!pl) return;
       const visible = visibleIds.has(o.id);
       const isActive = o.isActive && visible;
-      const dash =
-        o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
-        o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
-        undefined;
-      const activeClass = isActive
-        ? `route-line${o.lineStyle !== 'solid' ? ` route-line-${o.lineStyle}` : ''}`
-        : 'route-line-inactive';
+      // Update style without dashArray — that stays in CSS
       pl.setStyle({
-        weight:    isActive ? 6 : 2.5,
-        opacity:   visible ? (isActive ? 0.95 : 0.40) : 0,
-        dashArray: dash ?? '',
+        weight:  isActive ? 6 : 2.5,
+        opacity: visible ? (isActive ? 0.95 : 0.40) : 0,
       });
-      // Leaflet ignores className in setStyle — update the SVG element directly
+      // Update CSS class directly on SVG path (Leaflet ignores className in setStyle)
+      const lineClass = isActive
+        ? `route-line route-line-${o.lineStyle}`
+        : `route-line-inactive route-line-inactive-${o.lineStyle}`;
       const el = (pl as any)._path as SVGPathElement | undefined;
-      if (el) {
-        el.className.baseVal = activeClass;
-      }
+      if (el) el.className.baseVal = lineClass;
       if (isActive) pl.bringToFront();
     });
   }, [props.routeOverlays]);
