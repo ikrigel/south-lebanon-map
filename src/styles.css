@@ -1113,9 +1113,13 @@ body {
   white-space: nowrap;
 }
 .route-line {
-  /* dashArray is always set by JS; CSS animates the offset */
+  /* weight=6 set by JS; CSS enforces thickness and smoothing */
+  stroke-width: 6px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-dashoffset: 0;
   animation: routeFlow 1.6s linear infinite;
+  will-change: stroke-dashoffset;
 }
 .route-line-alt {
   /* alternative route — dimmed, no animation */

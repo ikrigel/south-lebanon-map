@@ -1454,21 +1454,31 @@ export default function App() {
   const startMatches = routePointMatches(navStartQuery);
   const endMatches = routePointMatches(navEndQuery);
   useEffect(() => {
+    // ── Snapshot coords from navPoints at effect start ──────────────────────
+    // IMPORTANT: deps are [navStartId, navEndId], NOT [navStart, navEnd].
+    // navStart/navEnd are derived from navPoints which depends on liveLocation,
+    // so every GPS tick creates new object refs even when IDs are unchanged.
+    // Using IDs as deps means this effect only fires when the user actually
+    // changes the start/end selection, not on every GPS position update.
+    const start = navPoints.find(p => p.id === navStartId) ?? null;
+    const end   = navPoints.find(p => p.id === navEndId)   ?? null;
+
     setRoadRoute(null);
     setAlternativeRoute(null);
     setActiveRouteIndex(0);
     setActiveSavedRoute(null);
     setFootRoute(null);
     setFootRouteStatus('idle');
-    if (!navStart || !navEnd || navStart.id === navEnd.id) {
+    if (!start || !end || start.id === end.id) {
       setRouteStatus('idle');
       return;
     }
+
     const driveCtrl = new AbortController();
     const footCtrl  = new AbortController();
 
-    // ── Driving route (OSRM) ──
-    const driveUrl = `https://router.project-osrm.org/route/v1/driving/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
+    // ── Driving route (OSRM) ──────────────────────────────────────────────
+    const driveUrl = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
     setRouteStatus('loading');
     fetch(driveUrl, { signal: driveCtrl.signal })
       .then(res => {
@@ -1501,21 +1511,38 @@ export default function App() {
         setRouteStatus('error');
       });
 
-    // ── Foot / terrain route (Valhalla pedestrian — prefer trails) ──
-    // Uses Valhalla's public OSM.de instance which supports foot-hiking with
-    // use_trails preference, giving proper off-road / cross-country paths
-    // instead of OSRM which only knows OSM road network.
+    // ── Foot / terrain route ──────────────────────────────────────────────
+    // Primary: Valhalla pedestrian with use_trails preference.
+    // Fallback: OSRM foot profile if Valhalla is unavailable / returns error.
+    const fetchFootOsrmFallback = (s: AbortSignal) => {
+      const url = `https://router.project-osrm.org/route/v1/foot/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson&steps=true`;
+      return fetch(url, { signal: s })
+        .then(res => { if (!res.ok) throw new Error(`OSRM foot ${res.status}`); return res.json(); })
+        .then(data => {
+          const route = data?.routes?.[0];
+          const coords = route?.geometry?.coordinates;
+          if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No OSRM foot route');
+          setFootRoute({
+            km: route.distance / 1000,
+            durationMin: route.duration / 60,
+            path: coords.map(([lon, lat]: [number, number]) => [lat, lon] as [number, number]),
+            instructions: parseOsrmInstructions(route),
+          });
+          setFootRouteStatus('ready');
+        });
+    };
+
     const footBody = JSON.stringify({
       locations: [
-        { lon: navStart.lon, lat: navStart.lat },
-        { lon: navEnd.lon,   lat: navEnd.lat   },
+        { lon: start.lon, lat: start.lat },
+        { lon: end.lon,   lat: end.lat   },
       ],
       costing: 'pedestrian',
       costing_options: {
         pedestrian: {
-          use_trails: 0.8,         // strongly prefer trails over roads
-          walking_speed: 4.0,      // km/h — useful for realistic time estimate
-          use_roads: 0.3,          // allow roads but prefer paths
+          use_trails: 0.8,
+          walking_speed: 4.0,
+          use_roads: 0.3,
         },
       },
       directions_options: { units: 'km' },
@@ -1527,20 +1554,16 @@ export default function App() {
       body: footBody,
       signal: footCtrl.signal,
     })
-      .then(res => {
-        if (!res.ok) throw new Error(`Valhalla foot ${res.status}`);
-        return res.json();
-      })
+      .then(res => { if (!res.ok) throw new Error(`Valhalla ${res.status}`); return res.json(); })
       .then(data => {
         const trip = data?.trip;
-        const leg  = trip?.legs?.[0];
-        const shapeStr: string = leg?.shape ?? '';
-        if (!shapeStr) throw new Error('No foot shape');
+        const shapeStr: string = trip?.legs?.[0]?.shape ?? '';
+        if (!shapeStr) throw new Error('No Valhalla shape');
         const path = decodePolyline6(shapeStr);
-        if (path.length < 2) throw new Error('Foot path too short');
+        if (path.length < 2) throw new Error('Valhalla path too short');
         const summary = trip?.summary ?? {};
         setFootRoute({
-          km: typeof summary.length === 'number' ? summary.length : haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
+          km: typeof summary.length === 'number' ? summary.length : haversineKm([start.lat, start.lon], [end.lat, end.lon]),
           durationMin: typeof summary.time === 'number' ? summary.time / 60 : undefined,
           path,
           instructions: parseValhallaInstructions(trip),
@@ -1549,15 +1572,19 @@ export default function App() {
       })
       .catch(err => {
         if (err.name === 'AbortError') return;
-        // Graceful fallback: keep footRouteStatus='error' so card shows badge
-        setFootRouteStatus('error');
+        // Valhalla failed — try OSRM foot as fallback
+        fetchFootOsrmFallback(footCtrl.signal).catch(err2 => {
+          if (err2.name === 'AbortError') return;
+          setFootRouteStatus('error');
+        });
       });
 
     return () => {
       driveCtrl.abort();
       footCtrl.abort();
     };
-  }, [navStart, navEnd]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navStartId, navEndId]);
 
   // ── Build routeOptions for multi-route selector (memoised — stable ref) ──
   // NOTE: deps intentionally exclude liveLocation so GPS updates do NOT

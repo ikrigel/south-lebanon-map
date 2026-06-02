@@ -212,6 +212,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     focus?: L.LayerGroup;
     multiRoute?: L.LayerGroup;
   }>({});
+  // Holds refs to route polylines keyed by overlay id — updated by Effect B
+  // to change active/inactive styling without clearLayers (no animation reset).
+  const routePolylineRefs = useRef<Map<string, L.Polyline>>(new Map());
 
   // ---- initialize map once ----
   useEffect(() => {
@@ -999,25 +1002,24 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }).addTo(group);
   }, [props.distanceLine]);
 
-  // ---- multi-route overlays (drive / foot / aerial) ----
+  // ---- multi-route overlays — Effect A: PATH DRAW -------------------------
+  // Redraws all route polylines from scratch ONLY when actual path data changes.
+  // isActive styling is handled by Effect B — no clearLayers on card selection.
   useEffect(() => {
     const group = layersRef.current.route;
     const map = mapRef.current;
     if (!group || !map) return;
     group.clearLayers();
+    routePolylineRefs.current.clear();
+
     if (!props.navigationRoute) return;
 
     const { start, end } = props.navigationRoute;
     const a: [number, number] = [start.lat, start.lon];
     const b: [number, number] = [end.lat, end.lon];
-
     const overlays = props.routeOverlays ?? [];
     const mode = props.routeDisplayMode ?? 'road';
 
-    // Decide which overlays to render based on display mode
-    // 'road'   → only drive + foot (no aerial straight line)
-    // 'aerial' → only aerial
-    // 'both'   → all three
     const visibleIds: Set<string> = new Set(
       mode === 'road'   ? ['drive', 'foot'] :
       mode === 'aerial' ? ['aerial'] :
@@ -1026,54 +1028,43 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     let allRenderedPoints: [number, number][] = [];
 
-    // Draw inactive routes first (below active)
-    overlays
-      .filter(o => visibleIds.has(o.id) && !o.isActive && o.path.length >= 2)
-      .forEach(o => {
-        const dash =
-          o.lineStyle === 'dashed' ? '8 6' :
-          o.lineStyle === 'dotted' ? '2 6' :
-          undefined;
-        L.polyline(o.path, {
-          color: o.color,
-          weight: 2.5,
-          opacity: 0.45,
-          dashArray: dash,
-          className: 'route-line-inactive',
-        }).addTo(group);
-        allRenderedPoints = [...allRenderedPoints, ...o.path];
-      });
+    // Draw inactive overlays first (z-order), then active on top
+    const sortedOverlays = [
+      ...overlays.filter(o => visibleIds.has(o.id) && !o.isActive),
+      ...overlays.filter(o => visibleIds.has(o.id) &&  o.isActive),
+    ];
 
-    // Draw active route on top
-    const active = overlays.find(o => visibleIds.has(o.id) && o.isActive);
-    if (active && active.path.length >= 2) {
+    sortedOverlays.forEach(o => {
+      if (o.path.length < 2) return;
+      const isActive = o.isActive;
       const dash =
-        active.lineStyle === 'dashed' ? '12 8' :
-        active.lineStyle === 'dotted' ? '3 7' :
+        o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
+        o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
         undefined;
-      L.polyline(active.path, {
-        color: active.color,
-        weight: 5,
-        opacity: 0.92,
+      const pl = L.polyline(o.path, {
+        color: o.color,
+        weight: isActive ? 6 : 2.5,
+        opacity: isActive ? 0.95 : 0.40,
         dashArray: dash,
-        className: 'route-line',
+        className: isActive ? 'route-line' : 'route-line-inactive',
       }).addTo(group);
-      allRenderedPoints = [...allRenderedPoints, ...active.path];
+      routePolylineRefs.current.set(o.id, pl);
+      allRenderedPoints = [...allRenderedPoints, ...o.path];
 
-      // Distance label at midpoint of active route
-      const midIdx = Math.floor(active.path.length / 2);
-      const mid = active.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
-      L.marker(mid, {
-        icon: L.divIcon({
-          className: 'route-distance-label',
-          html: `${active.labelHe}: ${active.km < 10 ? active.km.toFixed(2) : active.km.toFixed(1)} ק״מ${active.durationMin ? ` · ${Math.round(active.durationMin)} דק׳` : ''}`,
-          iconSize: undefined,
-        }),
-        interactive: false,
-      }).addTo(group);
-    }
+      if (isActive) {
+        const midIdx = Math.floor(o.path.length / 2);
+        const mid = o.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
+        L.marker(mid, {
+          icon: L.divIcon({
+            className: 'route-distance-label',
+            html: `${o.labelHe}: ${o.km < 10 ? o.km.toFixed(2) : o.km.toFixed(1)} ק״מ${o.durationMin ? ` · ${Math.round(o.durationMin)} דק׳` : ''}`,
+            iconSize: undefined,
+          }),
+          interactive: false,
+        }).addTo(group);
+      }
+    });
 
-    // Start / end markers (always shown)
     [
       { point: a, label: `מוצא: ${escapeHtml(start.label)}` },
       { point: b, label: `יעד: ${escapeHtml(end.label)}` },
@@ -1097,7 +1088,47 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (!props.liveLocation && allRenderedPoints.length >= 2) {
       map.fitBounds(allRenderedPoints, { padding: [60, 60], maxZoom: 13, animate: true });
     }
-  }, [props.navigationRoute, props.routeOverlays, props.routeDisplayMode, Boolean(props.liveLocation)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // Stable fingerprint: only re-draw when path data actually changes
+    (props.routeOverlays ?? []).map(o => `${o.id}:${o.path.length}`).join(','),
+    props.navigationRoute?.start.lat,
+    props.navigationRoute?.start.lon,
+    props.navigationRoute?.end.lat,
+    props.navigationRoute?.end.lon,
+    props.routeDisplayMode,
+    Boolean(props.liveLocation),
+  ]);
+
+  // ---- multi-route overlays — Effect B: ACTIVE STYLE UPDATE ---------------
+  // Switches weight/opacity on existing polylines when user selects a route card.
+  // No clearLayers — animation continues uninterrupted.
+  useEffect(() => {
+    const overlays = props.routeOverlays ?? [];
+    const mode = props.routeDisplayMode ?? 'road';
+    const visibleIds: Set<string> = new Set(
+      mode === 'road'   ? ['drive', 'foot'] :
+      mode === 'aerial' ? ['aerial'] :
+      ['drive', 'foot', 'aerial']
+    );
+    overlays.forEach(o => {
+      const pl = routePolylineRefs.current.get(o.id);
+      if (!pl) return;
+      const visible = visibleIds.has(o.id);
+      const isActive = o.isActive && visible;
+      const dash =
+        o.lineStyle === 'dashed' ? (isActive ? '14 8' : '8 6') :
+        o.lineStyle === 'dotted' ? (isActive ? '4 7'  : '2 6') :
+        undefined;
+      pl.setStyle({
+        weight:    isActive ? 6 : 2.5,
+        opacity:   visible ? (isActive ? 0.95 : 0.40) : 0,
+        dashArray: dash ?? '',
+        className: isActive ? 'route-line' : 'route-line-inactive',
+      });
+      if (isActive) pl.bringToFront();
+    });
+  }, [props.routeOverlays]);
 
   // ---- live device location and automatic follow zoom ----
   useEffect(() => {
