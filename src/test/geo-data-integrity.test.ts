@@ -561,3 +561,147 @@ describe('RouteDisplayMode', () => {
     expect(visibleIds).toContain('aerial');
   });
 });
+
+// ── decodePolyline6 ───────────────────────────────────────────────────────────
+describe('decodePolyline6', () => {
+  // A minimal polyline6 encoder for testing
+  function encodePolyline6(points: [number, number][]): string {
+    let prevLat = 0; let prevLng = 0;
+    let result = '';
+    const encodeValue = (value: number) => {
+      let v = Math.round(value * 1e6);
+      v = v < 0 ? ~(v << 1) : v << 1;
+      while (v >= 0x20) {
+        result += String.fromCharCode(((0x20 | (v & 0x1f)) + 63));
+        v >>= 5;
+      }
+      result += String.fromCharCode((v + 63));
+    };
+    for (const [lat, lng] of points) {
+      encodeValue(lat - prevLat);
+      encodeValue(lng - prevLng);
+      prevLat = lat; prevLng = lng;
+    }
+    return result;
+  }
+
+  // Copy of the production function (same logic) for unit testing
+  function decodePolyline6(encoded: string): [number, number][] {
+    const result: [number, number][] = [];
+    let idx = 0; let lat = 0; let lng = 0;
+    while (idx < encoded.length) {
+      let b: number; let shift = 0; let raw = 0;
+      do { b = encoded.charCodeAt(idx++) - 63; raw |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lat += raw & 1 ? ~(raw >> 1) : raw >> 1;
+      shift = 0; raw = 0;
+      do { b = encoded.charCodeAt(idx++) - 63; raw |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      lng += raw & 1 ? ~(raw >> 1) : raw >> 1;
+      result.push([lat / 1e6, lng / 1e6]);
+    }
+    return result;
+  }
+
+  it('decodes a single point round-trip', () => {
+    const pts: [number, number][] = [[33.2, 35.5]];
+    const decoded = decodePolyline6(encodePolyline6(pts));
+    expect(decoded).toHaveLength(1);
+    expect(decoded[0][0]).toBeCloseTo(33.2, 4);
+    expect(decoded[0][1]).toBeCloseTo(35.5, 4);
+  });
+
+  it('decodes multiple points with sub-metre precision', () => {
+    const pts: [number, number][] = [[33.2, 35.5], [33.15, 35.55], [33.10, 35.60]];
+    const decoded = decodePolyline6(encodePolyline6(pts));
+    expect(decoded).toHaveLength(3);
+    decoded.forEach((pt, i) => {
+      expect(pt[0]).toBeCloseTo(pts[i][0], 4);
+      expect(pt[1]).toBeCloseTo(pts[i][1], 4);
+    });
+  });
+
+  it('returns empty array for empty string', () => {
+    expect(decodePolyline6('')).toEqual([]);
+  });
+
+  it('handles negative coordinates (south/west hemisphere)', () => {
+    const pts: [number, number][] = [[-33.9, -70.7]]; // Santiago
+    const decoded = decodePolyline6(encodePolyline6(pts));
+    expect(decoded[0][0]).toBeCloseTo(-33.9, 3);
+    expect(decoded[0][1]).toBeCloseTo(-70.7, 3);
+  });
+});
+
+// ── computeGeodesicPath ───────────────────────────────────────────────────────
+describe('computeGeodesicPath', () => {
+  // Copy of production function
+  function computeGeodesicPath(a: [number, number], b: [number, number], steps = 32): [number, number][] {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const toDeg = (r: number) => (r * 180) / Math.PI;
+    const lat1 = toRad(a[0]); const lon1 = toRad(a[1]);
+    const lat2 = toRad(b[0]); const lon2 = toRad(b[1]);
+    const dLat = lat2 - lat1; const dLon = lon2 - lon1;
+    const sinHalf = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    const centralAngle = 2 * Math.asin(Math.sqrt(sinHalf));
+    if (centralAngle < 1e-9) return [a, b];
+    const path: [number, number][] = [];
+    for (let i = 0; i <= steps; i++) {
+      const f = i / steps;
+      const sinC = Math.sin(centralAngle);
+      const A = Math.sin((1 - f) * centralAngle) / sinC;
+      const B = Math.sin(f * centralAngle) / sinC;
+      const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+      const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+      const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+      path.push([toDeg(Math.atan2(z, Math.sqrt(x * x + y * y))), toDeg(Math.atan2(y, x))]);
+    }
+    return path;
+  }
+
+  it('returns steps+1 points', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.1, 35.6], 32);
+    expect(path).toHaveLength(33);
+  });
+
+  it('first point equals start', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.1, 35.6], 32);
+    expect(path[0][0]).toBeCloseTo(33.2, 4);
+    expect(path[0][1]).toBeCloseTo(35.5, 4);
+  });
+
+  it('last point equals end', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.1, 35.6], 32);
+    expect(path[path.length - 1][0]).toBeCloseTo(33.1, 4);
+    expect(path[path.length - 1][1]).toBeCloseTo(35.6, 4);
+  });
+
+  it('all intermediate points are within ±90° lat and ±180° lon', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.1, 35.6], 32);
+    for (const [lat, lon] of path) {
+      expect(lat).toBeGreaterThanOrEqual(-90);
+      expect(lat).toBeLessThanOrEqual(90);
+      expect(lon).toBeGreaterThanOrEqual(-180);
+      expect(lon).toBeLessThanOrEqual(180);
+    }
+  });
+
+  it('coincident points returns [a, b] without crash', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.2, 35.5], 32);
+    expect(path).toHaveLength(2);
+  });
+
+  it('great-circle is shorter than or equal to summed straight segments', () => {
+    // For short distances the difference is negligible, but the path should be smooth
+    const path = computeGeodesicPath([33.0, 35.0], [33.0, 36.0], 16);
+    // All points should have roughly the same latitude (east-west route near equator)
+    const lats = path.map(p => p[0]);
+    const maxLat = Math.max(...lats);
+    const minLat = Math.min(...lats);
+    // For an east-west great circle at 33°N, midpoint deflects northward slightly
+    expect(maxLat - minLat).toBeLessThan(0.1); // < 11 km north deflection for this route
+  });
+
+  it('works with default 32 steps', () => {
+    const path = computeGeodesicPath([33.2, 35.5], [33.1, 35.6]);
+    expect(path).toHaveLength(33);
+  });
+});

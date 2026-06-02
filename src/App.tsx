@@ -385,6 +385,105 @@ const normalizeRouteInstructions = (instructions: unknown): TurnInstruction[] | 
   return valid.length ? valid : undefined;
 };
 
+// ── decodePolyline6 ─────────────────────────────────────────────────────────
+// Valhalla returns routes encoded as polyline with precision=6.
+// Standard polyline5 (Google / OSRM) uses precision=5; this variant divides
+// by 1e6 instead of 1e5, giving ~0.1 m resolution.
+const decodePolyline6 = (encoded: string): [number, number][] => {
+  const result: [number, number][] = [];
+  let idx = 0;
+  let lat = 0;
+  let lng = 0;
+  while (idx < encoded.length) {
+    let b: number;
+    let shift = 0;
+    let raw = 0;
+    do {
+      b = encoded.charCodeAt(idx++) - 63;
+      raw |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lat += raw & 1 ? ~(raw >> 1) : raw >> 1;
+    shift = 0;
+    raw = 0;
+    do {
+      b = encoded.charCodeAt(idx++) - 63;
+      raw |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lng += raw & 1 ? ~(raw >> 1) : raw >> 1;
+    result.push([lat / 1e6, lng / 1e6]);
+  }
+  return result;
+};
+
+// ── computeGeodesicPath ──────────────────────────────────────────────────────
+// Interpolates N+1 intermediate waypoints along the great-circle (shortest
+// path on a sphere) between two lat/lon points. Used for the aerial/flight
+// route so it follows the actual shortest path on the globe, not a screen
+// straight line (which would deviate at longer distances).
+const computeGeodesicPath = (
+  a: [number, number],  // [lat, lon]
+  b: [number, number],
+  steps = 32,
+): [number, number][] => {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const lat1 = toRad(a[0]); const lon1 = toRad(a[1]);
+  const lat2 = toRad(b[0]); const lon2 = toRad(b[1]);
+  // Central angle via haversine
+  const dLat = lat2 - lat1; const dLon = lon2 - lon1;
+  const sinHalf = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  const centralAngle = 2 * Math.asin(Math.sqrt(sinHalf));
+  if (centralAngle < 1e-9) return [a, b]; // coincident points
+  const path: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps;
+    const sinC = Math.sin(centralAngle);
+    const A = Math.sin((1 - f) * centralAngle) / sinC;
+    const B = Math.sin(f * centralAngle) / sinC;
+    const x = A * Math.cos(lat1) * Math.cos(lon1) + B * Math.cos(lat2) * Math.cos(lon2);
+    const y = A * Math.cos(lat1) * Math.sin(lon1) + B * Math.cos(lat2) * Math.sin(lon2);
+    const z = A * Math.sin(lat1) + B * Math.sin(lat2);
+    path.push([toDeg(Math.atan2(z, Math.sqrt(x * x + y * y))), toDeg(Math.atan2(y, x))]);
+  }
+  return path;
+};
+
+// ── parseValhallaInstructions ────────────────────────────────────────────────
+// Converts a Valhalla route-response into the same TurnInstruction[] shape
+// used by OSRM, so the HUD + voice guidance work without changes.
+const parseValhallaInstructions = (trip: any): TurnInstruction[] => {
+  const maneuvers: any[] = trip?.legs?.flatMap((leg: any) => Array.isArray(leg?.maneuvers) ? leg.maneuvers : []) ?? [];
+  const instructions: TurnInstruction[] = [];
+  let distanceFromStartM = 0;
+  maneuvers.forEach((m: any, index: number) => {
+    // Valhalla type numbers: 4=arrive, 0-3=depart variants, 10+=turns
+    const typeNum: number = typeof m?.type === 'number' ? m.type : -1;
+    const isArrive = typeNum === 4;
+    const isDepart = typeNum <= 1;
+    const modifier = String(m?.verbal_post_transition_instruction ?? '').toLowerCase();
+    let action: TurnAction = 'straight';
+    if (isArrive) action = 'arrive';
+    else if (modifier.includes('right')) action = 'right';
+    else if (modifier.includes('left')) action = 'left';
+    else if (modifier.includes('u-turn') || modifier.includes('uturn')) action = 'uturn';
+    const bearing = typeof m?.begin_heading === 'number' ? m.begin_heading : 0;
+    const beginShapeIdx = typeof m?.begin_shape_index === 'number' ? m.begin_shape_index : 0;
+    const lat = typeof m?.lat === 'number' ? m.lat : undefined;
+    const lon = typeof m?.lon === 'number' ? m.lon : undefined;
+    const roadName = safeText(m?.street_names?.[0] ?? m?.name ?? '');
+    const shouldKeep = isArrive || (!isDepart && (action !== 'straight' || distanceFromStartM > 80 || index === maneuvers.length - 1));
+    if (shouldKeep) {
+      instructions.push(composeTurnInstruction(action, distanceFromStartM, bearing, 'route', roadName, lat, lon));
+    }
+    if (typeof m?.length === 'number' && isFinite(m.length)) {
+      distanceFromStartM += m.length * 1000; // Valhalla returns km
+    }
+  });
+  return instructions.slice(0, 200);
+};
+
 // Navigation scale levels: each entry is { label, zoom }
 // Zoom values computed for Lebanon latitude ~33.5°, 96 DPI screen:
 //   meters_per_pixel = 156543.03 * cos(33.5°) / 2^z
@@ -1402,28 +1501,55 @@ export default function App() {
         setRouteStatus('error');
       });
 
-    // ── Foot / terrain route (OSRM walking profile) ──
-    const footUrl = `https://router.project-osrm.org/route/v1/foot/${navStart.lon},${navStart.lat};${navEnd.lon},${navEnd.lat}?overview=full&geometries=geojson&steps=true`;
+    // ── Foot / terrain route (Valhalla pedestrian — prefer trails) ──
+    // Uses Valhalla's public OSM.de instance which supports foot-hiking with
+    // use_trails preference, giving proper off-road / cross-country paths
+    // instead of OSRM which only knows OSM road network.
+    const footBody = JSON.stringify({
+      locations: [
+        { lon: navStart.lon, lat: navStart.lat },
+        { lon: navEnd.lon,   lat: navEnd.lat   },
+      ],
+      costing: 'pedestrian',
+      costing_options: {
+        pedestrian: {
+          use_trails: 0.8,         // strongly prefer trails over roads
+          walking_speed: 4.0,      // km/h — useful for realistic time estimate
+          use_roads: 0.3,          // allow roads but prefer paths
+        },
+      },
+      directions_options: { units: 'km' },
+    });
     setFootRouteStatus('loading');
-    fetch(footUrl, { signal: footCtrl.signal })
+    fetch('https://valhalla1.openstreetmap.de/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: footBody,
+      signal: footCtrl.signal,
+    })
       .then(res => {
-        if (!res.ok) throw new Error(`OSRM foot ${res.status}`);
+        if (!res.ok) throw new Error(`Valhalla foot ${res.status}`);
         return res.json();
       })
       .then(data => {
-        const route = data?.routes?.[0];
-        const coords = route?.geometry?.coordinates;
-        if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No foot route');
+        const trip = data?.trip;
+        const leg  = trip?.legs?.[0];
+        const shapeStr: string = leg?.shape ?? '';
+        if (!shapeStr) throw new Error('No foot shape');
+        const path = decodePolyline6(shapeStr);
+        if (path.length < 2) throw new Error('Foot path too short');
+        const summary = trip?.summary ?? {};
         setFootRoute({
-          km: route.distance / 1000,
-          durationMin: route.duration / 60,
-          path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
-          instructions: parseOsrmInstructions(route),
+          km: typeof summary.length === 'number' ? summary.length : haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]),
+          durationMin: typeof summary.time === 'number' ? summary.time / 60 : undefined,
+          path,
+          instructions: parseValhallaInstructions(trip),
         });
         setFootRouteStatus('ready');
       })
       .catch(err => {
         if (err.name === 'AbortError') return;
+        // Graceful fallback: keep footRouteStatus='error' so card shows badge
         setFootRouteStatus('error');
       });
 
@@ -1439,11 +1565,18 @@ export default function App() {
   const routeOptions: RouteOption[] = useMemo(() => {
     if (!navStart || !navEnd || navStart.id === navEnd.id) return [];
     const aerialKm = haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]);
-    const aerialPath: [number, number][] = [[navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]];
+    // Great-circle path: the geometrically shortest route between two points
+    // on the globe. Interpolated to 32 intermediate points so it renders as a
+    // smooth arc on the Mercator map (not a straight screen line).
+    const aerialPath = computeGeodesicPath(
+      [navStart.lat, navStart.lon],
+      [navEnd.lat,   navEnd.lon],
+      32,
+    );
     return [
       {
         id: 'drive',
-        labelHe: 'כביש סלול',
+        labelHe: 'מסלול כביש',
         km: roadRoute?.km ?? aerialKm,
         durationMin: roadRoute?.durationMin,
         path: roadRoute?.path,
@@ -1456,20 +1589,20 @@ export default function App() {
       },
       {
         id: 'foot',
-        labelHe: 'שביל הליכה / שטח',
+        labelHe: 'שביל שטח (הליכה)',
         km: footRoute?.km ?? aerialKm,
         durationMin: footRoute?.durationMin,
         path: footRoute?.path,
         instructions: footRoute?.instructions,
         passabilityHe: 'כוחות קרקעיים בלבד',
-        airspaceHe: 'גישה ברגל בלבד',
+        airspaceHe: 'שביל / דרך עפר',
         color: '#6dc463',
         lineStyle: 'dashed' as const,
         status: footRouteStatus as RouteOption['status'],
       },
       {
         id: 'aerial',
-        labelHe: 'מסלול אווירי',
+        labelHe: 'קו טיסה ישיר',
         km: aerialKm,
         durationMin: undefined,
         path: aerialPath,
