@@ -1002,17 +1002,23 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }).addTo(group);
   }, [props.distanceLine]);
 
-  // ---- multi-route overlays — Effect A: PATH DRAW -------------------------
-  // Redraws all route polylines from scratch ONLY when actual path data changes.
-  // isActive styling is handled by Effect B — no clearLayers on card selection.
+  // ---- multi-route overlays -----------------------------------------------
+  // Single effect: redraws all polylines when overlays change.
+  // Animation-restart avoidance: when ONLY isActive changes (user tapped a
+  // card), we update style via setStyle + _path.className without clearLayers.
+  // We detect "only isActive changed" by comparing a path-fingerprint ref.
+  const routePathFingerprintRef = useRef('');
   useEffect(() => {
     const group = layersRef.current.route;
     const map = mapRef.current;
     if (!group || !map) return;
-    group.clearLayers();
-    routePolylineRefs.current.clear();
 
-    if (!props.navigationRoute) return;
+    if (!props.navigationRoute) {
+      group.clearLayers();
+      routePolylineRefs.current.clear();
+      routePathFingerprintRef.current = '';
+      return;
+    }
 
     const { start, end } = props.navigationRoute;
     const a: [number, number] = [start.lat, start.lon];
@@ -1026,9 +1032,42 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       ['drive', 'foot', 'aerial']
     );
 
+    // Fingerprint: id + path length for each visible overlay with a real path
+    const newFingerprint = overlays
+      .map(o => `${o.id}:${o.path.length}`)
+      .join(',') + `|${mode}|${start.lat},${start.lon}|${end.lat},${end.lon}`;
+
+    const pathsUnchanged = newFingerprint === routePathFingerprintRef.current;
+
+    if (pathsUnchanged && routePolylineRefs.current.size > 0) {
+      // Only isActive or opacity changed — update in-place, no clearLayers
+      overlays.forEach(o => {
+        const pl = routePolylineRefs.current.get(o.id);
+        if (!pl) return;
+        const visible = visibleIds.has(o.id);
+        const isActive = o.isActive && visible;
+        pl.setStyle({
+          weight:  isActive ? 6 : 2.5,
+          opacity: visible ? (isActive ? 0.95 : 0.40) : 0,
+        });
+        const lineClass = isActive
+          ? `route-line route-line-${o.lineStyle}`
+          : `route-line-inactive route-line-inactive-${o.lineStyle}`;
+        const el = (pl as any)._path as SVGPathElement | undefined;
+        if (el) el.className.baseVal = lineClass;
+        if (isActive) pl.bringToFront();
+      });
+      return; // ← animation is NOT reset
+    }
+
+    // Paths changed (new route data) — full redraw
+    routePathFingerprintRef.current = newFingerprint;
+    group.clearLayers();
+    routePolylineRefs.current.clear();
+
     let allRenderedPoints: [number, number][] = [];
 
-    // Draw inactive overlays first (z-order), then active on top
+    // Draw inactive first (z-order), active on top
     const sortedOverlays = [
       ...overlays.filter(o => visibleIds.has(o.id) && !o.isActive),
       ...overlays.filter(o => visibleIds.has(o.id) &&  o.isActive),
@@ -1037,18 +1076,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     sortedOverlays.forEach(o => {
       if (o.path.length < 2) return;
       const isActive = o.isActive;
-      // CSS class encodes both lineStyle and active state.
-      // stroke-dasharray is set ONLY in CSS (not as Leaflet dashArray option)
-      // because CSS animation of stroke-dashoffset requires CSS stroke-dasharray,
-      // not the SVG attribute that Leaflet normally writes via setAttribute.
+      // stroke-dasharray lives in CSS class only (not as Leaflet dashArray attr)
+      // so CSS animation of stroke-dashoffset actually works.
       const lineClass = isActive
         ? `route-line route-line-${o.lineStyle}`
         : `route-line-inactive route-line-inactive-${o.lineStyle}`;
       const pl = L.polyline(o.path, {
-        color: o.color,
-        weight: isActive ? 6 : 2.5,
+        color:   o.color,
+        weight:  isActive ? 6 : 2.5,
         opacity: isActive ? 0.95 : 0.40,
-        // NO dashArray here — handled entirely by CSS class
         className: lineClass,
       }).addTo(group);
       routePolylineRefs.current.set(o.id, pl);
@@ -1091,48 +1127,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (!props.liveLocation && allRenderedPoints.length >= 2) {
       map.fitBounds(allRenderedPoints, { padding: [60, 60], maxZoom: 13, animate: true });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    // Stable fingerprint: only re-draw when path data actually changes
-    (props.routeOverlays ?? []).map(o => `${o.id}:${o.path.length}`).join(','),
-    props.navigationRoute?.start.lat,
-    props.navigationRoute?.start.lon,
-    props.navigationRoute?.end.lat,
-    props.navigationRoute?.end.lon,
-    props.routeDisplayMode,
-    Boolean(props.liveLocation),
-  ]);
-
-  // ---- multi-route overlays — Effect B: ACTIVE STYLE UPDATE ---------------
-  // Switches weight/opacity on existing polylines when user selects a route card.
-  // No clearLayers — animation continues uninterrupted.
-  useEffect(() => {
-    const overlays = props.routeOverlays ?? [];
-    const mode = props.routeDisplayMode ?? 'road';
-    const visibleIds: Set<string> = new Set(
-      mode === 'road'   ? ['drive', 'foot'] :
-      mode === 'aerial' ? ['aerial'] :
-      ['drive', 'foot', 'aerial']
-    );
-    overlays.forEach(o => {
-      const pl = routePolylineRefs.current.get(o.id);
-      if (!pl) return;
-      const visible = visibleIds.has(o.id);
-      const isActive = o.isActive && visible;
-      // Update style without dashArray — that stays in CSS
-      pl.setStyle({
-        weight:  isActive ? 6 : 2.5,
-        opacity: visible ? (isActive ? 0.95 : 0.40) : 0,
-      });
-      // Update CSS class directly on SVG path (Leaflet ignores className in setStyle)
-      const lineClass = isActive
-        ? `route-line route-line-${o.lineStyle}`
-        : `route-line-inactive route-line-inactive-${o.lineStyle}`;
-      const el = (pl as any)._path as SVGPathElement | undefined;
-      if (el) el.className.baseVal = lineClass;
-      if (isActive) pl.bringToFront();
-    });
-  }, [props.routeOverlays]);
+  }, [props.navigationRoute, props.routeOverlays, props.routeDisplayMode, props.liveLocation]);
 
   // ---- live device location and automatic follow zoom ----
   useEffect(() => {
