@@ -87,6 +87,10 @@ export type MapProps = {
   }[];
   multiRouteDraft: { lat: number; lon: number; order: number }[];
   activeMultiRoute: { points: { lat: number; lon: number; order: number }[]; name: string } | null;
+  /** Zoom level to use when following live location during navigation.
+   *  Corresponds to map-scale levels: 18≈1:20, 17≈1:50, 16≈1:100, 15≈1:200,
+   *  13≈1:500, 12≈1:1000, 11≈1:2000 (all at Lebanon latitude ~33.5°). */
+  navFollowZoom?: number;
 };
 
 const POP_RADIUS: Record<Town['pop_band'], number> = { sm: 5, md: 8, lg: 12, xl: 16 };
@@ -1074,15 +1078,20 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const now = Date.now();
     const movedEnough = !previousFollow || Math.abs(previousFollow.lat - p[0]) > 0.00002 || Math.abs(previousFollow.lon - p[1]) > 0.00002;
     const timeEnough = !previousFollow || now - previousFollow.at > 1500;
-    const targetZoom = Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
-    if (!liveFollowDetachedRef.current && (movedEnough || timeEnough || map.getZoom() < NAVIGATION_FOLLOW_MIN_ZOOM)) {
+    // Use the user-selected nav scale zoom if provided; otherwise maintain current zoom
+    // but never fall below the minimum follow zoom.
+    const targetZoom = props.navFollowZoom != null
+      ? props.navFollowZoom
+      : Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
+    const needsZoomChange = props.navFollowZoom != null && Math.abs(map.getZoom() - targetZoom) > 0.3;
+    if (!liveFollowDetachedRef.current && (movedEnough || timeEnough || needsZoomChange || map.getZoom() < NAVIGATION_FOLLOW_MIN_ZOOM)) {
       map.flyTo(p, targetZoom, {
         animate: true,
         duration: 0.45,
       });
       lastLiveFollowRef.current = { lat: p[0], lon: p[1], at: now };
     }
-  }, [props.liveLocation, props.navigationRoute, props.mapBearing]);
+  }, [props.liveLocation, props.navigationRoute, props.mapBearing, props.navFollowZoom]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1090,7 +1099,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const p: [number, number] = [props.liveLocation.lat, props.liveLocation.lon];
     liveFollowDetachedRef.current = false;
     props.onLiveFollowDetachedChange(false);
-    const targetZoom = Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
+    const targetZoom = props.navFollowZoom != null
+      ? props.navFollowZoom
+      : Math.max(map.getZoom(), NAVIGATION_FOLLOW_MIN_ZOOM);
     map.flyTo(p, targetZoom, {
       animate: true,
       duration: 0.45,

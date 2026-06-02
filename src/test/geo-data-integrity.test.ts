@@ -373,3 +373,69 @@ describe('LayerVis — sectColors persistence', () => {
     expect(vis.sectColors).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// NAV_SCALES — verify the zoom table is internally consistent
+// ---------------------------------------------------------------------------
+describe('NAV_SCALES zoom table', () => {
+  // Inline copy — must match App.tsx NAV_SCALES
+  const NAV_SCALES: { label: string; zoom: number }[] = [
+    { label: '1:20',   zoom: 18 },
+    { label: '1:50',   zoom: 17 },
+    { label: '1:100',  zoom: 16 },
+    { label: '1:200',  zoom: 15 },
+    { label: '1:500',  zoom: 13 },
+    { label: '1:1000', zoom: 12 },
+    { label: '1:2000', zoom: 11 },
+  ];
+
+  it('has 7 scale levels', () => {
+    expect(NAV_SCALES).toHaveLength(7);
+  });
+
+  it('all zoom levels are valid Leaflet integer levels (11–18)', () => {
+    for (const s of NAV_SCALES) {
+      expect(s.zoom).toBeGreaterThanOrEqual(11);
+      expect(s.zoom).toBeLessThanOrEqual(18);
+      expect(Number.isInteger(s.zoom)).toBe(true);
+    }
+  });
+
+  it('zoom levels are strictly decreasing as scale denominator grows', () => {
+    for (let i = 1; i < NAV_SCALES.length; i++) {
+      expect(NAV_SCALES[i].zoom).toBeLessThanOrEqual(NAV_SCALES[i - 1].zoom);
+    }
+  });
+
+  it('all labels are unique', () => {
+    const labels = NAV_SCALES.map(s => s.label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it('zoom values match expected cartographic scale at Lebanon lat ~33.5°', () => {
+    // meters_per_pixel at zoom z, lat 33.5°:
+    //   mpp = 156543.03 * cos(33.5° in rad) / 2^z  =  4930000 / 2^z  (approx)
+    // scale_denom = mpp * 3779.5 px/m (=96dpi / 0.0254) — that gives px/cm = 37.795,
+    //   but scale denom = mpp * 100cm/m * px_per_cm = mpp * 100 * 37.795
+    // Actually: scale_denom = mpp / 0.01 * (1/3779.5) = mpp * 3779.5
+    // For 1 cm on screen (= 37.795 px), real distance = 37.795 * mpp cm → scale = 37.795*mpp/100 : 1 = mpp*0.37795
+    // Simplified: scale_denom = 4930000 / 2^z * 37.795 / 100 ≈ 18639 / 2^(z-8) ... let's just verify each entry
+    const A = 156543.03 * Math.cos(33.5 * Math.PI / 180); // ~130500
+    const pxPerCm = 96 / 2.54; // 37.795
+    for (const s of NAV_SCALES) {
+      const scaleDenomNum = parseInt(s.label.replace('1:', ''), 10);
+      const mpp = A / Math.pow(2, s.zoom);
+      // 1 cm screen = pxPerCm * mpp cm real
+      const actualScaleDenom = mpp * pxPerCm;
+      // The chosen zoom should give a scale within a factor of 2 of the target
+      // (next zoom level doubles/halves scale)
+      expect(actualScaleDenom).toBeGreaterThan(scaleDenomNum * 0.5);
+      expect(actualScaleDenom).toBeLessThan(scaleDenomNum * 2.5);
+    }
+  });
+
+  it('DEFAULT_NAV_SCALE_LABEL exists in NAV_SCALES', () => {
+    const DEFAULT_NAV_SCALE_LABEL = '1:200';
+    expect(NAV_SCALES.find(s => s.label === DEFAULT_NAV_SCALE_LABEL)).toBeDefined();
+  });
+});

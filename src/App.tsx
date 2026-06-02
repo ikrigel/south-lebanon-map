@@ -368,6 +368,28 @@ const normalizeRouteInstructions = (instructions: unknown): TurnInstruction[] | 
   return valid.length ? valid : undefined;
 };
 
+// Navigation scale levels: each entry is { label, zoom }
+// Zoom values computed for Lebanon latitude ~33.5°, 96 DPI screen:
+//   meters_per_pixel = 156543.03 * cos(33.5°) / 2^z
+//   scale_denom = meters_per_pixel * (96/2.54) * 100  (1 cm on screen = ? cm in reality)
+// 1:20   →2^z≈18.9  → zoom=18  (rooftop/trench detail)
+// 1:50   →2^z≈17.9  → zoom=17  (street/path detail)
+// 1:100  →2^z≈16.9  → zoom=16  (village detail)
+// 1:200  →2^z≈15.9  → zoom=15  (settlement cluster)
+// 1:500  →2^z≈13.3  → zoom=13  (sector overview)
+// 1:1000 →2^z≈12.3  → zoom=12  (district overview)
+// 1:2000 →2^z≈11.3  → zoom=11  (regional overview)
+const NAV_SCALES: { label: string; zoom: number }[] = [
+  { label: '1:20',   zoom: 18 },
+  { label: '1:50',   zoom: 17 },
+  { label: '1:100',  zoom: 16 },
+  { label: '1:200',  zoom: 15 },
+  { label: '1:500',  zoom: 13 },
+  { label: '1:1000', zoom: 12 },
+  { label: '1:2000', zoom: 11 },
+];
+const DEFAULT_NAV_SCALE_LABEL = '1:200'; // sensible default during navigation
+
 const isMobileLikeDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
@@ -889,6 +911,7 @@ export default function App() {
   const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
   const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
   const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(null);
+  const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
@@ -1293,6 +1316,7 @@ export default function App() {
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
   const navEnd = navPoints.find(p => p.id === navEndId) ?? null;
+  const navFollowZoom = NAV_SCALES.find(s => s.label === navScaleLabel)?.zoom ?? 15;
   const routePointMatches = (q: string) => {
     const term = clean(q);
     if (!term) return navPoints.slice(0, 8);
@@ -2745,6 +2769,24 @@ export default function App() {
                 >
                   {locationStatus === 'watching' ? 'כבה מיקום חי' : 'הצג מיקום מכשיר'}
                 </button>
+                {/* ---- Nav scale selector ---- */}
+                <div className="nav-scale-row" data-testid="nav-scale-selector">
+                  <span className="nav-scale-label">זום ניווט:</span>
+                  {NAV_SCALES.map(s => (
+                    <button
+                      key={s.label}
+                      className={`btn nav-scale-btn${navScaleLabel === s.label ? ' active' : ''}`}
+                      onClick={() => {
+                        setNavScaleLabel(s.label);
+                        showToast(`זום ניווט: ${s.label}`);
+                      }}
+                      title={`סולם ${s.label} — תקריב zoom ${s.zoom}`}
+                      data-testid={`button-nav-scale-${s.label.replace(':', '-')}`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
                 <button
                   className="btn ghost"
                   onClick={() => {
@@ -3609,6 +3651,7 @@ export default function App() {
           customPois={customPois}
           multiRouteDraft={multiRouteDraftPoints}
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
+          navFollowZoom={navFollowZoom}
         />
       </div>
 

@@ -510,6 +510,42 @@ body {
   text-align: center;
   line-height: 1.4;
 }
+/* ---- Nav scale selector ---- */
+.nav-scale-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 2px;
+}
+.nav-scale-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: 2px; /* RTL: visual gap before buttons */
+  flex-shrink: 0;
+}
+.nav-scale-btn {
+  font-size: 11px !important;
+  padding: 4px 7px !important;
+  border-radius: 5px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: var(--text-muted) !important;
+  min-width: 46px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-scale-btn:hover {
+  background: rgba(255,255,255,0.11) !important;
+  color: var(--text-primary) !important;
+}
+.nav-scale-btn.active {
+  background: rgba(74, 144, 196, 0.28) !important;
+  border-color: rgba(74, 144, 196, 0.65) !important;
+  color: #b8ddff !important;
+  font-weight: 600 !important;
+}
 .route-pick-results {
   display: grid;
   gap: 5px;
