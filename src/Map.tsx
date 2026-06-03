@@ -1132,7 +1132,14 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     });
 
     if (!props.liveLocation && allRenderedPoints.length >= 2) {
-      map.fitBounds(allRenderedPoints, { padding: [60, 60], maxZoom: 13, animate: true });
+      // Always include the user-chosen start+end in the bounds so the map
+      // pans to the correct area (OSRM may snap to a road far from the click).
+      const boundsPoints: [number, number][] = [
+        ...allRenderedPoints,
+        [start.lat, start.lon],
+        [end.lat,   end.lon],
+      ];
+      map.fitBounds(boundsPoints, { padding: [60, 60], maxZoom: 16, animate: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
