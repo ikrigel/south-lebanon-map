@@ -94,6 +94,8 @@ export type MapProps = {
   activeMultiRoute: { points: { lat: number; lon: number; order: number }[]; name: string } | null;
   /** Called when the user taps a "navigate here" button inside a map popup. */
   onNavigateToPoint?: (lat: number, lon: number, label: string) => void;
+  /** Called when the user taps "set as start" in a map popup. */
+  onSetNavStart?: (lat: number, lon: number, label: string) => void;
   /** Zoom level to use when following live location during navigation.
    *  Corresponds to map-scale levels: 18≈1:20, 17≈1:50, 16≈1:100, 15≈1:200,
    *  13≈1:500, 12≈1:1000, 11≈1:2000 (all at Lebanon latitude ~33.5°). */
@@ -138,7 +140,10 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
 
 /** Builds an HTML nav-button that the delegated listener picks up via data-nav-* attrs. */
 const navBtn = (lat: number, lon: number, label: string) =>
-  `<button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${label.replace(/"/g, '&quot;')}">▶ נווט לכאן</button>`;
+  `<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+     <button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${label.replace(/"/g, '&quot;')}" data-nav-role="end">▶ נווט לכאן (יעד)</button>
+     <button class="popup-nav-btn popup-nav-btn-start" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${label.replace(/"/g, '&quot;')}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>
+   </div>`;
 
 const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -764,8 +769,13 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const lat = parseFloat(btn.dataset.navLat ?? '');
       const lon = parseFloat(btn.dataset.navLon ?? '');
       const label = btn.dataset.navLabel ?? `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      const role = btn.dataset.navRole ?? 'end';
       if (!isNaN(lat) && !isNaN(lon)) {
-        props.onNavigateToPoint!(lat, lon, label);
+        if (role === 'start' && props.onSetNavStart) {
+          props.onSetNavStart(lat, lon, label);
+        } else {
+          props.onNavigateToPoint!(lat, lon, label);
+        }
         // close the popup
         mapRef.current?.closePopup();
       }

@@ -1654,19 +1654,27 @@ export default function App() {
     [routeOptions, activeRouteId],
   );
 
-  // calculatedRoute — stable ref, rebuilt only when endpoints or active route change
+  // calculatedRoute — stable ref, rebuilt only when endpoint IDs or active route change.
+  // IMPORTANT: deps are navStartId/navEndId (strings), NOT navStart/navEnd objects.
+  // navStart/navEnd are derived from navPoints which includes liveLocation, so their
+  // object references change on every GPS tick → would rebuild and re-trigger Effect A
+  // in Map.tsx on every GPS update → clearLayers every second = flickering route.
   const calculatedRoute = useMemo(() => {
-    if (!navStart || !navEnd || navStart.id === navEnd.id) return null;
-    const fallbackKm = haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]);
+    // Snapshot coords at compute time — avoids stale closure
+    const start = navPoints.find(p => p.id === navStartId) ?? null;
+    const end   = navPoints.find(p => p.id === navEndId)   ?? null;
+    if (!start || !end || start.id === end.id) return null;
+    const fallbackKm = haversineKm([start.lat, start.lon], [end.lat, end.lon]);
     return {
-      start: { lat: navStart.lat, lon: navStart.lon, label: navStart.label },
-      end: { lat: navEnd.lat, lon: navEnd.lon, label: navEnd.label },
+      start: { lat: start.lat, lon: start.lon, label: start.label },
+      end:   { lat: end.lat,   lon: end.lon,   label: end.label },
       km: activeRouteOption?.km ?? fallbackKm,
       durationMin: activeRouteOption?.durationMin,
       path: activeRouteOption?.path,
       instructions: activeRouteOption?.instructions,
     };
-  }, [navStart, navEnd, activeRouteOption]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navStartId, navEndId, navPoints, activeRouteOption]);
 
   // navigationRoute — stable ref
   const navigationRoute = useMemo(() => {
@@ -2119,18 +2127,23 @@ export default function App() {
       setNavStartQuery('מיקום נוכחי (GPS)');
       showToast(`מנווט ממיקומך אל ${toLabel}`);
     } else {
-      // Start GPS watch; once we get a fix the live-location nav point will appear
-      setNavStartId('live-location'); // will resolve once GPS fires
-      setNavStartQuery('מיקום נוכחי (GPS)');
-      showToast(`מפעיל GPS — ינווט אל ${toLabel}`);
-      if (watchId === null) {
-        setLiveFollowDetached(false);
-        liveToastShownRef.current = true; // suppress duplicate toast
-        beginLiveLocationWatch();
-      }
+      // No GPS yet — prompt the user to also set a start point.
+      // Clear any previous start so the route doesn’t silently use stale data.
+      setNavStartId('');
+      setNavStartQuery('');
+      showToast(`יעד נקבע: ${toLabel}. קבע גם נקודת מוצא או הפעל GPS`);
     }
     document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
-  }, [liveLocation, watchId, showToast, beginLiveLocationWatch]);
+  }, [liveLocation, showToast]);
+
+  // Sets a map-tapped point as navigation start (from popup "הגדר כנקודת מוצא" button)
+  const setMapPointAsNavStart = useCallback((lat: number, lon: number, label: string) => {
+    setNavCustomStart({ lat, lon, label });
+    setNavStartId('custom-nav-start');
+    setNavStartQuery(label);
+    showToast(`נקודת מוצא נקבעה: ${label}`);
+    document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+  }, [showToast]);
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----
   //
@@ -3997,6 +4010,7 @@ export default function App() {
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
           navFollowZoom={navFollowZoom}
           onNavigateToPoint={navigateFromCurrentPosition}
+          onSetNavStart={setMapPointAsNavStart}
         />
       </div>
 

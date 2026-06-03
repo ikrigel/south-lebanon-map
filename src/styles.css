@@ -531,6 +531,16 @@ body {
   background: rgba(74, 144, 196, 0.32);
   color: #c4e8ff;
 }
+/* "Set as start" variant — green tint */
+.popup-nav-btn.popup-nav-btn-start {
+  border-color: rgba(109, 196, 99, 0.55);
+  background: rgba(109, 196, 99, 0.15);
+  color: #a8e8a0;
+}
+.popup-nav-btn.popup-nav-btn-start:hover {
+  background: rgba(109, 196, 99, 0.28);
+  color: #c8f0c0;
+}
 /* Coordinate popup (bare tap) — slightly compact */
 .coord-popup .leaflet-popup-content-wrapper {
   padding: 0 !important;
