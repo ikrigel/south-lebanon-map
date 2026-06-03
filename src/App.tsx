@@ -125,10 +125,21 @@ type LocalNavSession = {
   navEndQuery?: string;
   routeName?: string;
   roadRoute?: RoadRoute | null;
+  footRoute?: RoadRoute | null;
   activeSavedRoute?: SavedRoute | null;
   liveActive?: boolean;
   voiceGuidance?: VoiceGuidanceMode;
   voiceLanguage?: VoiceLanguage;
+  // New: persist map-tapped custom points
+  navCustomStart?: { lat: number; lon: number; label: string } | null;
+  navCustomEnd?:   { lat: number; lon: number; label: string } | null;
+  // New: active route selection + display mode
+  activeRouteId?: 'drive' | 'foot' | 'aerial';
+  routeDisplayMode?: RouteDisplayMode;
+  // Timestamp of last save — used to detect "arrived" state on resume
+  savedAt?: number;
+  // Last known distance-to-destination (metres) so we can skip asking if already arrived
+  lastDistToDestM?: number;
 };
 type LocalRecordingSession = {
   recordingName?: string;
@@ -731,30 +742,59 @@ const normalizeRoutePath = (path: unknown): [number, number][] | undefined => {
   return points.length >= 2 ? points : undefined;
 };
 
+const normalizeCustomPoint = (
+  p: unknown,
+): { lat: number; lon: number; label: string } | null => {
+  if (!p || typeof p !== 'object') return null;
+  const pt = p as Record<string, unknown>;
+  const lat = typeof pt.lat === 'number' && isFinite(pt.lat) ? pt.lat : null;
+  const lon = typeof pt.lon === 'number' && isFinite(pt.lon) ? pt.lon : null;
+  if (lat === null || lon === null) return null;
+  return { lat, lon, label: safeText(pt.label as string) || `${lat.toFixed(5)}, ${lon.toFixed(5)}` };
+};
+
 const loadLocalNavSession = (): LocalNavSession => {
   try {
     const raw = safeStorageGet(NAV_SESSION_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as LocalNavSession;
-    const roadPath = normalizeRoutePath(parsed.roadRoute?.path);
-    const savedPath = normalizeRoutePath(parsed.activeSavedRoute?.path);
-    const roadInstructions = normalizeRouteInstructions(parsed.roadRoute?.instructions);
-    const savedInstructions = normalizeRouteInstructions(parsed.activeSavedRoute?.instructions);
+    const roadPath     = normalizeRoutePath(parsed.roadRoute?.path);
+    const footPath     = normalizeRoutePath(parsed.footRoute?.path);
+    const savedPath    = normalizeRoutePath(parsed.activeSavedRoute?.path);
+    const roadInstr    = normalizeRouteInstructions(parsed.roadRoute?.instructions);
+    const footInstr    = normalizeRouteInstructions(parsed.footRoute?.instructions);
+    const savedInstr   = normalizeRouteInstructions(parsed.activeSavedRoute?.instructions);
     return {
-      navStartId: safeText(parsed.navStartId),
-      navEndId: safeText(parsed.navEndId),
-      navStartQuery: safeText(parsed.navStartQuery),
-      navEndQuery: safeText(parsed.navEndQuery),
-      routeName: safeText(parsed.routeName),
-      liveActive: Boolean(parsed.liveActive),
-      voiceGuidance: parsed.voiceGuidance === 'basic' || parsed.voiceGuidance === 'detailed' ? parsed.voiceGuidance : 'off',
-      voiceLanguage: parsed.voiceLanguage === 'en' ? 'en' : 'he',
+      navStartId:      safeText(parsed.navStartId),
+      navEndId:        safeText(parsed.navEndId),
+      navStartQuery:   safeText(parsed.navStartQuery),
+      navEndQuery:     safeText(parsed.navEndQuery),
+      routeName:       safeText(parsed.routeName),
+      liveActive:      Boolean(parsed.liveActive),
+      voiceGuidance:   parsed.voiceGuidance === 'basic' || parsed.voiceGuidance === 'detailed' ? parsed.voiceGuidance : 'off',
+      voiceLanguage:   parsed.voiceLanguage === 'en' ? 'en' : 'he',
+      navCustomStart:  normalizeCustomPoint(parsed.navCustomStart),
+      navCustomEnd:    normalizeCustomPoint(parsed.navCustomEnd),
+      activeRouteId:   parsed.activeRouteId === 'drive' || parsed.activeRouteId === 'foot' || parsed.activeRouteId === 'aerial'
+                         ? parsed.activeRouteId : undefined,
+      routeDisplayMode: parsed.routeDisplayMode === 'road' || parsed.routeDisplayMode === 'aerial' || parsed.routeDisplayMode === 'both'
+                         ? parsed.routeDisplayMode : undefined,
+      savedAt:         typeof parsed.savedAt === 'number' ? parsed.savedAt : undefined,
+      lastDistToDestM: typeof parsed.lastDistToDestM === 'number' ? parsed.lastDistToDestM : undefined,
       roadRoute: parsed.roadRoute && typeof parsed.roadRoute.km === 'number'
         ? {
             km: parsed.roadRoute.km,
             durationMin: typeof parsed.roadRoute.durationMin === 'number' ? parsed.roadRoute.durationMin : 0,
             path: roadPath ?? [],
-            instructions: roadInstructions,
+            instructions: roadInstr,
+          }
+        : null,
+      footRoute: parsed.footRoute && typeof parsed.footRoute.km === 'number'
+        ? {
+            km: parsed.footRoute.km,
+            durationMin: typeof parsed.footRoute.durationMin === 'number' ? parsed.footRoute.durationMin : 0,
+            path: footPath ?? [],
+            instructions: footInstr,
           }
         : null,
       activeSavedRoute: parsed.activeSavedRoute && parsed.activeSavedRoute.start && parsed.activeSavedRoute.end
@@ -764,7 +804,7 @@ const loadLocalNavSession = (): LocalNavSession => {
             name: safeText(parsed.activeSavedRoute.name, 'מסלול משוחזר') || 'מסלול משוחזר',
             createdAt: safeText(parsed.activeSavedRoute.createdAt, new Date().toISOString()) || new Date().toISOString(),
             path: savedPath,
-            instructions: savedInstructions,
+            instructions: savedInstr,
           }
         : null,
     };
@@ -1014,6 +1054,29 @@ export default function App() {
   const [supportOpen, setSupportOpen] = useState(false);
   const [donationCopied, setDonationCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  // Resume-navigation dialog: shown once on load when a saved nav session exists
+  // and the user hasn’t arrived at the destination yet.
+  const [resumeNavDialog, setResumeNavDialog] = useState<{
+    endLabel: string;
+    startLabel: string;
+    km: number;
+  } | null>(() => {
+    const s = initialNavSessionRef.current;
+    if (!s) return null;
+    // Need both endpoints defined to show resume dialog
+    const hasRoute = !!(s.navEndId && s.navStartId &&
+      (s.roadRoute || s.activeSavedRoute || s.footRoute));
+    if (!hasRoute) return null;
+    // Skip if already arrived (last known distance ≤ 150m)
+    if (s.lastDistToDestM !== undefined && s.lastDistToDestM <= 150) return null;
+    // Skip if session is older than 48 h
+    if (s.savedAt !== undefined && Date.now() - s.savedAt > 48 * 3600 * 1000) return null;
+    // Determine labels from available data
+    const endLabel   = s.navEndQuery   || s.activeSavedRoute?.end?.label   || s.navCustomEnd?.label   || 'יעד שנשמר';
+    const startLabel = s.navStartQuery || s.activeSavedRoute?.start?.label || s.navCustomStart?.label || 'נקודת מוצא שנשמרה';
+    const km = s.roadRoute?.km ?? s.activeSavedRoute?.km ?? s.footRoute?.km ?? 0;
+    return { endLabel, startLabel, km };
+  });
   const [addPoiMode, setAddPoiMode] = useState(false);
   const [poiDraft, setPoiDraft] = useState<{ lat: number; lon: number } | null>(null);
   const [poiName, setPoiName] = useState('');
@@ -1030,15 +1093,27 @@ export default function App() {
   const [multiRoutePassability, setMultiRoutePassability] = useState<PassabilityLevel>('dirt');
   const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>(() => loadLocalSavedMultiRoutes());
   const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
-  const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(null);
-  const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(null);
+  const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(
+    () => initialNavSessionRef.current?.navCustomEnd ?? null,
+  );
+  const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(
+    () => initialNavSessionRef.current?.navCustomStart ?? null,
+  );
   const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
   // ── Multi-route display mode ──
-  const [routeDisplayMode, setRouteDisplayMode] = useState<RouteDisplayMode>('road');
-  const [footRoute, setFootRoute] = useState<RoadRoute | null>(null);
-  const [footRouteStatus, setFootRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [routeDisplayMode, setRouteDisplayMode] = useState<RouteDisplayMode>(
+    () => initialNavSessionRef.current?.routeDisplayMode ?? 'road',
+  );
+  const [footRoute, setFootRoute] = useState<RoadRoute | null>(
+    () => initialNavSessionRef.current?.footRoute ?? null,
+  );
+  const [footRouteStatus, setFootRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    () => (initialNavSessionRef.current?.footRoute ? 'ready' : 'idle'),
+  );
   // aerialRoute is derived (no state needed — computed from navStart/navEnd)
-  const [activeRouteId, setActiveRouteId] = useState<'drive' | 'foot' | 'aerial'>('drive');
+  const [activeRouteId, setActiveRouteId] = useState<'drive' | 'foot' | 'aerial'>(
+    () => initialNavSessionRef.current?.activeRouteId ?? 'drive',
+  );
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
@@ -1115,6 +1190,14 @@ export default function App() {
   }, [savedMultiRoutes]);
 
   useEffect(() => {
+    // Compute distance to destination for arrived-detection on next load
+    let lastDistToDestM: number | undefined;
+    if (navPosition && navigationRoute) {
+      lastDistToDestM = haversineKm(
+        [navPosition.lat, navPosition.lon],
+        [navigationRoute.end.lat, navigationRoute.end.lon],
+      ) * 1000;
+    }
     safeStorageSet(NAV_SESSION_KEY, {
       navStartId,
       navEndId,
@@ -1122,12 +1205,25 @@ export default function App() {
       navEndQuery,
       routeName,
       roadRoute,
+      footRoute,
       activeSavedRoute,
       liveActive: locationStatus === 'watching',
       voiceGuidance,
       voiceLanguage,
+      navCustomStart,
+      navCustomEnd,
+      activeRouteId,
+      routeDisplayMode,
+      savedAt: Date.now(),
+      lastDistToDestM,
     } satisfies LocalNavSession);
-  }, [navStartId, navEndId, navStartQuery, navEndQuery, routeName, roadRoute, activeSavedRoute, locationStatus, voiceGuidance, voiceLanguage]);
+  }, [
+    navStartId, navEndId, navStartQuery, navEndQuery, routeName,
+    roadRoute, footRoute, activeSavedRoute, locationStatus,
+    voiceGuidance, voiceLanguage,
+    navCustomStart, navCustomEnd, activeRouteId, routeDisplayMode,
+    navPosition, navigationRoute,
+  ]);
 
   useEffect(() => {
     recordedTrackRef.current = recordedTrack;
@@ -4125,6 +4221,54 @@ export default function App() {
       {toastMessage && (
         <div className="app-toast" role="status" aria-live="polite" data-testid="toast-message">
           {toastMessage}
+        </div>
+      )}
+
+      {/* ===== Resume-navigation dialog ===== */}
+      {resumeNavDialog && (
+        <div className="resume-nav-overlay" role="dialog" aria-modal="true" aria-label="המשך בניווט">
+          <div className="resume-nav-card">
+            <div className="resume-nav-icon">🗯️</div>
+            <h3 className="resume-nav-title">המשך בניווט?</h3>
+            <p className="resume-nav-body">
+              נמצא ניווט שמור אל{' '}
+              <strong>{resumeNavDialog.endLabel}</strong>
+              {resumeNavDialog.km > 0 && (
+                <span className="resume-nav-km"> · {resumeNavDialog.km.toFixed(1)} ק״מ</span>
+              )}
+            </p>
+            <p className="resume-nav-from">מ: {resumeNavDialog.startLabel}</p>
+            <div className="resume-nav-buttons">
+              <button
+                className="resume-nav-btn resume-nav-btn-yes"
+                onClick={() => {
+                  setResumeNavDialog(null);
+                  document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                ▶ המשך בניווט
+              </button>
+              <button
+                className="resume-nav-btn resume-nav-btn-no"
+                onClick={() => {
+                  setResumeNavDialog(null);
+                  // Clear nav state so the user starts fresh
+                  setNavStartId('');
+                  setNavEndId('');
+                  setNavStartQuery('');
+                  setNavEndQuery('');
+                  setNavCustomStart(null);
+                  setNavCustomEnd(null);
+                  setRoadRoute(null);
+                  setFootRoute(null);
+                  setActiveRouteId('drive');
+                  setRouteDisplayMode('road');
+                }}
+              >
+                ✕ בטל ניווט
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
