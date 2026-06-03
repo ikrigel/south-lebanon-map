@@ -180,6 +180,7 @@ const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   ridgeLabels: true,
   waterLabels: true,
   sectColors: true,
+  navLabels: true,
 };
 
 const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
@@ -680,6 +681,7 @@ const loadLocalLayerVisibility = (): LayerVis => {
       ridgeLabels: typeof candidate.ridgeLabels === 'boolean' ? candidate.ridgeLabels : DEFAULT_LAYER_VISIBILITY.ridgeLabels,
       waterLabels: typeof candidate.waterLabels === 'boolean' ? candidate.waterLabels : DEFAULT_LAYER_VISIBILITY.waterLabels,
       sectColors: typeof candidate.sectColors === 'boolean' ? candidate.sectColors : DEFAULT_LAYER_VISIBILITY.sectColors,
+      navLabels: typeof candidate.navLabels === 'boolean' ? candidate.navLabels : DEFAULT_LAYER_VISIBILITY.navLabels,
     };
   } catch {
     return DEFAULT_LAYER_VISIBILITY;
@@ -3112,6 +3114,30 @@ export default function App() {
                 </div>
                 <p className="legend-note">צבע הגבול והנקודה על תווית הישוב מציינים את ההשתייכות הדתית הדומיננטית.</p>
               </>
+            )}
+
+            {/* ---- navigation overlay labels toggle ---- */}
+            <div className="layer-group-title layer-group-title-labels" style={{ marginTop: 12 }}>תוויות ניווט</div>
+            <div
+              className="toggle-row"
+              data-active={visible.navLabels}
+              onClick={visibleKey('navLabels')}
+              role="switch"
+              aria-checked={visible.navLabels}
+              data-testid="toggle-layer-navLabels"
+            >
+              <div className="toggle-label">
+                <span className="toggle-swatch" style={{ background: 'linear-gradient(90deg,#6ed1c2,#d49a3a)' }} />
+                תוויות מסלול: יעד, מרחק, זמן צפוי והתקדמות
+              </div>
+              <span className="toggle-switch" />
+            </div>
+            {visible.navLabels && (
+              <p className="legend-note">
+                בזמן ניווט פעיל: תוצג תווית יעד (שם), מרחק כולל וזמן משוער על הנתיב,
+                אחוז השלמת המסלול (כשיש GPS), ומרחק נותר ליעד על החץ המסמן מיקומך.
+                כיבוי מנקה עבור מפה נקייה יותר.
+              </p>
             )}
           </div>
 

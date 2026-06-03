@@ -5,7 +5,7 @@ import {
   towns, unifilPoints, influenceZones, terrainFeatures,
   Incident, Town,
 } from './data/geo';
-import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm } from './util';
+import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm, haversineKm } from './util';
 
 /** Imperative handle exposed to parent via ref */
 export type MapHandle = {
@@ -29,6 +29,8 @@ export type LayerVis = {
   ridgeLabels: boolean;
   waterLabels: boolean;
   sectColors: boolean;
+  /** Show/hide navigation overlay labels (start, destination, distance, ETA) */
+  navLabels: boolean;
 };
 
 export type MapProps = {
@@ -1105,38 +1107,76 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       routePolylineRefs.current.set(o.id, pl);
       allRenderedPoints = [...allRenderedPoints, ...o.path];
 
-      if (isActive) {
+      if (isActive && o.path.length >= 2) {
         const midIdx = Math.floor(o.path.length / 2);
         const mid = o.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
-        L.marker(mid, {
-          icon: L.divIcon({
-            className: 'route-distance-label',
-            html: `${o.labelHe}: ${o.km < 10 ? o.km.toFixed(2) : o.km.toFixed(1)} ק״מ${o.durationMin ? ` · ${Math.round(o.durationMin)} דק׳` : ''}`,
-            iconSize: undefined,
-          }),
-          interactive: false,
-        }).addTo(group);
+        // Compute progress (0-100%) based on how far the live position is along the path.
+        const lp = props.liveLocation;
+        let progressPct = 0;
+        if (lp && o.path.length >= 2) {
+          // Find closest path point to live location.
+          let minDist = Infinity;
+          let closestIdx = 0;
+          o.path.forEach((pt, i) => {
+            const d = Math.abs(pt[0] - lp.lat) + Math.abs(pt[1] - lp.lon);
+            if (d < minDist) { minDist = d; closestIdx = i; }
+          });
+          progressPct = Math.round((closestIdx / (o.path.length - 1)) * 100);
+        }
+        const distStr = o.km < 10 ? o.km.toFixed(2) : o.km.toFixed(1);
+        const etaStr  = o.durationMin ? ` · ~${Math.round(o.durationMin)} דק\'` : '';
+        const progStr = lp && progressPct > 0 ? ` · ${progressPct}% הושלם` : '';
+        if (props.visible.navLabels) {
+          L.marker(mid, {
+            icon: L.divIcon({
+              className: 'route-distance-label',
+              html: `${distStr} ק״מ${etaStr}${progStr}`,
+              iconSize: undefined,
+            }),
+            interactive: false,
+          }).addTo(group);
+        }
       }
     });
 
+    // Start and destination pin labels — only when navLabels is on.
+    // • Start pin: shown only when not navigating live (GPS covers it).
+    // • Destination pin: always useful — shows name + total route distance.
+    const isNavigatingLive = !!props.liveLocation;
     [
-      { point: a, label: `מוצא: ${escapeHtml(start.label)}` },
-      { point: b, label: `יעד: ${escapeHtml(end.label)}` },
-    ].forEach(({ point, label }, index) => {
-      L.circleMarker(point, {
+      {
+        point: a,
+        color: '#6ed1c2',
+        show: !isNavigatingLive,  // hide start when GPS arrow is on the map
+        tooltip: escapeHtml(start.label),
+        permanent: true,
+        offset: [0, -10] as [number, number],
+      },
+      {
+        point: b,
+        color: '#d49a3a',
+        show: true,
+        tooltip: `🎯 ${escapeHtml(end.label)}`,
+        permanent: true,
+        offset: [0, -10] as [number, number],
+      },
+    ].forEach(({ point, color, show, tooltip, permanent, offset }) => {
+      const cm = L.circleMarker(point, {
         radius: 7,
-        color: index === 0 ? '#6ed1c2' : '#d49a3a',
+        color,
         weight: 2,
         fillColor: '#0b0d10',
         fillOpacity: 1,
-      })
-        .bindTooltip(`${index === 0 ? 'א' : 'ב'} · ${label}`, {
-          permanent: true,
+      });
+      if (show && props.visible.navLabels) {
+        cm.bindTooltip(tooltip, {
+          permanent,
           direction: 'top',
-          offset: [0, -10],
+          offset,
           className: 'route-tooltip',
-        })
-        .addTo(group);
+        });
+      }
+      cm.addTo(group);
     });
 
     if (!props.liveLocation && allRenderedPoints.length >= 2) {
@@ -1159,6 +1199,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     props.navigationRoute?.end.lon,
     props.routeDisplayMode,
     Boolean(props.liveLocation),
+    props.visible.navLabels,
   ]);
 
   // ---- multi-route overlays — Effect B: ACTIVE STYLE UPDATE ---------------
@@ -1216,13 +1257,28 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         iconAnchor: [17, 17],
       }),
     })
-      .bindTooltip('מיקום המכשיר', {
-        permanent: true,
-        direction: 'top',
-        offset: [0, -12],
-        className: 'route-tooltip',
-      })
       .addTo(group);
+    // Live-location tooltip: show remaining distance to destination when
+    // navLabels is on and a navigation route is active. No tooltip when off.
+    const layers = group.getLayers();
+    const liveMarker = layers[layers.length - 1] as L.Marker | undefined;
+    if (liveMarker && props.visible.navLabels && props.navigationRoute) {
+      const remKm = haversineKm(
+        [props.liveLocation!.lat, props.liveLocation!.lon],
+        [props.navigationRoute.end.lat, props.navigationRoute.end.lon],
+      );
+      const remStr = remKm < 1
+        ? `${Math.round(remKm * 1000)} מ'׳`
+        : remKm < 10
+        ? `${remKm.toFixed(2)} ק״מ`
+        : `${remKm.toFixed(1)} ק״מ`;
+      liveMarker.bindTooltip(`נותר: ${remStr} ליעד`, {
+        permanent: true,
+        direction: 'bottom',
+        offset: [0, 14],
+        className: 'route-tooltip nav-remain-tooltip',
+      });
+    }
     if (props.liveLocation.accuracy && props.liveLocation.accuracy > 0) {
       L.circle(p, {
         radius: props.liveLocation.accuracy,
@@ -1249,7 +1305,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       });
       lastLiveFollowRef.current = { lat: p[0], lon: p[1], at: now };
     }
-  }, [props.liveLocation, props.navigationRoute, props.mapBearing, props.navFollowZoom]);
+  }, [props.liveLocation, props.navigationRoute, props.mapBearing, props.navFollowZoom, props.visible.navLabels]);
 
   useEffect(() => {
     const map = mapRef.current;
