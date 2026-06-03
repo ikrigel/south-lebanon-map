@@ -510,6 +510,47 @@ body {
   text-align: center;
   line-height: 1.4;
 }
+/* ---- Tabbed town popup ---- */
+.town-popup { min-width: 200px; font-family: var(--font-ui, inherit); }
+.town-popup-tabs { position: relative; }
+
+/* Hide the radio inputs but keep them functional */
+.tpt-radio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; margin: 0; }
+
+.town-popup-tabbar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 6px;
+}
+.tpt-label {
+  flex: 1;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.04);
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.tpt-label:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.09); }
+
+/* Panel visibility controlled by radio state */
+.tpt-panel { display: none; }
+
+/* info panel active when first radio checked */
+.tpt-radio:nth-of-type(1):checked ~ .town-popup-tabbar .tpt-label:nth-child(1),
+.tpt-radio:nth-of-type(2):checked ~ .town-popup-tabbar .tpt-label:nth-child(2) {
+  color: #9ed4ff;
+  background: rgba(74,144,196,0.22);
+}
+.tpt-radio:nth-of-type(1):checked ~ .tpt-panel.tpt-panel-info  { display: block; }
+.tpt-radio:nth-of-type(2):checked ~ .tpt-panel.tpt-panel-nav   { display: block; }
+
 /* ---- Popup nav button (inside Leaflet popups) ---- */
 .popup-nav-btn {
   display: inline-flex;

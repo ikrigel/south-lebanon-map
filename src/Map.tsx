@@ -141,6 +141,22 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
 };
 
 /** Builds an HTML nav-button that the delegated listener picks up via data-nav-* attrs. */
+/**
+ * Tabbed popup for towns: פרטים | ניווט
+ * Tab switching uses the CSS checkbox-radio trick — no extra JS required.
+ */
+const townPopup = (
+  lat: number,
+  lon: number,
+  label: string,
+  infoHtml: string,
+): string => {
+  const uid = `tp-${Math.random().toString(36).slice(2, 8)}`;
+  const q = label.replace(/"/g, '&quot;');
+  return `<div class="town-popup"><div class="town-popup-tabs"><input type="radio" name="${uid}" id="${uid}-i" class="tpt-radio" checked><input type="radio" name="${uid}" id="${uid}-n" class="tpt-radio"><div class="town-popup-tabbar"><label for="${uid}-i" class="tpt-label">פרטים</label><label for="${uid}-n" class="tpt-label">ניווט ▶</label></div><div class="tpt-panel tpt-panel-info">${infoHtml}</div><div class="tpt-panel tpt-panel-nav"><div style="display:flex;flex-direction:column;gap:7px;padding-top:4px"><button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button><button class="popup-nav-btn popup-nav-btn-start" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button></div></div></div></div>`;
+};
+
+/** Simple nav-only bar for map taps, POIs, UNIFIL (no info-tab needed) */
 const navBtn = (lat: number, lon: number, label: string) =>
   `<div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
      <button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${label.replace(/"/g, '&quot;')}" data-nav-role="end">▶ נווט לכאן (יעד)</button>
@@ -386,7 +402,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         pane: 'popPane',  // above label pane (600) → mobile touch hits circles first
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span><br/>${navBtn(t.lat, t.lon, t.name_he)}`
+          townPopup(
+            t.lat, t.lon, t.name_he,
+            `<strong>${t.name_he}</strong>` +
+            (useSectColors && sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : '') +
+            `<br/><span style="color:#8b97a8">${t.name_en}</span>` +
+            `<br/>אוכלוסייה: ~${t.pop_estimate.toLocaleString('he-IL')}` +
+            (t.note ? `<br/><em style="color:#b0bec5">${t.note}</em>` : '') +
+            `<br/><span style="color:#6b7a8d;font-size:11px">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          ), { minWidth: 200 }
         )
         .addTo(popGroup);
     });
