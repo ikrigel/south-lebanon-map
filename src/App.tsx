@@ -987,7 +987,16 @@ export default function App() {
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string; label?: string } | null>(null);
   const [liveFollowDetached, setLiveFollowDetached] = useState(false);
   const [liveCenterRequestId, setLiveCenterRequestId] = useState(0);
-  const [navStartId, setNavStartId] = useState(() => initialNavSessionRef.current?.navStartId ?? '');
+  const [navStartId, setNavStartId] = useState(() => {
+    const saved = initialNavSessionRef.current?.navStartId ?? '';
+    // 'live-location' cannot be resolved on load (GPS not yet acquired).
+    // If coordinates were saved as navCustomStart, switch to that point so
+    // the route is immediately visible.  GPS will resume via liveActive.
+    if (saved === 'live-location') {
+      return initialNavSessionRef.current?.navCustomStart ? 'custom-nav-start' : '';
+    }
+    return saved;
+  });
   const [navEndId, setNavEndId] = useState(() => initialNavSessionRef.current?.navEndId ?? '');
   const [navStartQuery, setNavStartQuery] = useState(() => initialNavSessionRef.current?.navStartQuery ?? '');
   const [navEndQuery, setNavEndQuery] = useState(() => initialNavSessionRef.current?.navEndQuery ?? '');
@@ -1199,6 +1208,13 @@ export default function App() {
   const lastDistToDestMRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
+    // When GPS is the start, persist its last-known coordinates as navCustomStart.
+    // On the next page load navStartId will be converted to 'custom-nav-start' so
+    // the route is immediately visible even before the GPS lock is reacquired.
+    const persistedCustomStart =
+      navStartId === 'live-location' && liveLocation
+        ? { lat: liveLocation.lat, lon: liveLocation.lon, label: 'מיקום GPS שנשמר' }
+        : navCustomStart;
     safeStorageSet(NAV_SESSION_KEY, {
       navStartId,
       navEndId,
@@ -1211,7 +1227,7 @@ export default function App() {
       liveActive: locationStatus === 'watching',
       voiceGuidance,
       voiceLanguage,
-      navCustomStart,
+      navCustomStart: persistedCustomStart,
       navCustomEnd,
       activeRouteId,
       routeDisplayMode,
@@ -1223,6 +1239,7 @@ export default function App() {
     roadRoute, footRoute, activeSavedRoute, locationStatus,
     voiceGuidance, voiceLanguage,
     navCustomStart, navCustomEnd, activeRouteId, routeDisplayMode,
+    liveLocation,
   ]);
 
   useEffect(() => {
@@ -1562,7 +1579,17 @@ export default function App() {
     // Skip reset + re-fetch when these are the same IDs we restored from
     // localStorage on this page load. The restored roadRoute/footRoute are
     // already displayed; a re-fetch would flash "no route" while waiting.
-    const restoredStart = initialNavSessionRef.current?.navStartId;
+    //
+    // Account for the live-location → custom-nav-start conversion that happens
+    // in the navStartId useState() initializer: if the stored ID was
+    // 'live-location' and we converted it to 'custom-nav-start', treat them
+    // as the same session so we still skip the reset.
+    const rawRestoredStart = initialNavSessionRef.current?.navStartId;
+    const restoredStart =
+      rawRestoredStart === 'live-location' &&
+      initialNavSessionRef.current?.navCustomStart
+        ? 'custom-nav-start'
+        : rawRestoredStart;
     const restoredEnd   = initialNavSessionRef.current?.navEndId;
     const isRestoredSession =
       navStartId === restoredStart &&
@@ -1756,6 +1783,10 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     navStart?.id, navEnd?.id,
+    // Include coordinates so the aerial/geodesic path is recomputed when the
+    // GPS-based start point moves to a new location (live-location or
+    // custom-nav-start created from a fresh GPS fix).
+    navStart?.lat, navStart?.lon, navEnd?.lat, navEnd?.lon,
     roadRoute, footRoute,
     routeStatus, footRouteStatus,
   ]);

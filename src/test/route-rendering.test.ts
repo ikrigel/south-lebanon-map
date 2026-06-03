@@ -617,6 +617,90 @@ describe('Effect A deps — overlay fingerprint stability', () => {
 });
 
 // ===========================================================================
+// Suite 8b — live-location → custom-nav-start conversion
+// ===========================================================================
+describe('navStartId init — live-location to custom-nav-start conversion', () => {
+  /**
+   * When navStartId='live-location' is saved in localStorage, the app
+   * converts it to 'custom-nav-start' on load (GPS is not yet available).
+   * This mirrors the useState() initializer in App.tsx.
+   */
+
+  // Mirror of the App.tsx navStartId init function
+  const resolveNavStartId = (
+    saved: string,
+    navCustomStart: { lat: number; lon: number; label: string } | null,
+  ): string => {
+    if (saved === 'live-location') {
+      return navCustomStart ? 'custom-nav-start' : '';
+    }
+    return saved;
+  };
+
+  // Mirror of the isRestoredSession restoredStart resolver in App.tsx
+  const resolveRestoredStart = (
+    rawRestoredStart: string | undefined,
+    navCustomStart: { lat: number; lon: number; label: string } | null | undefined,
+  ): string | undefined => {
+    if (rawRestoredStart === 'live-location' && navCustomStart) {
+      return 'custom-nav-start';
+    }
+    return rawRestoredStart;
+  };
+
+  it('converts live-location to custom-nav-start when navCustomStart exists', () => {
+    const cs = { lat: 33.0, lon: 35.1, label: 'מיקום GPS שנשמר' };
+    expect(resolveNavStartId('live-location', cs)).toBe('custom-nav-start');
+  });
+
+  it('converts live-location to empty string when navCustomStart is null', () => {
+    expect(resolveNavStartId('live-location', null)).toBe('');
+  });
+
+  it('leaves town IDs unchanged', () => {
+    expect(resolveNavStartId('town:haifa', null)).toBe('town:haifa');
+    expect(resolveNavStartId('town:tyre', null)).toBe('town:tyre');
+  });
+
+  it('leaves custom-nav-start unchanged', () => {
+    const cs = { lat: 33.0, lon: 35.1, label: 'test' };
+    expect(resolveNavStartId('custom-nav-start', cs)).toBe('custom-nav-start');
+  });
+
+  it('leaves empty string unchanged', () => {
+    expect(resolveNavStartId('', null)).toBe('');
+  });
+
+  it('restoredStart resolver: maps live-location+customStart to custom-nav-start', () => {
+    const cs = { lat: 33.0, lon: 35.1, label: 'מיקום GPS שנשמר' };
+    expect(resolveRestoredStart('live-location', cs)).toBe('custom-nav-start');
+  });
+
+  it('restoredStart resolver: keeps live-location when no customStart (no skip)', () => {
+    // If there\'s no navCustomStart, the init returns '' for navStartId,
+    // so restoredStart stays 'live-location' and isRestoredSession will be
+    // false ('' !== 'live-location') — a fresh fetch will run.
+    expect(resolveRestoredStart('live-location', null)).toBe('live-location');
+  });
+
+  it('restoredStart resolver: passes through non-live IDs unchanged', () => {
+    expect(resolveRestoredStart('town:haifa', null)).toBe('town:haifa');
+    expect(resolveRestoredStart('custom-nav-start', null)).toBe('custom-nav-start');
+    expect(resolveRestoredStart(undefined, null)).toBeUndefined();
+  });
+
+  it('full round-trip: converted navStartId matches converted restoredStart → isRestoredSession true', () => {
+    const cs = { lat: 33.0, lon: 35.1, label: 'מיקום GPS שנשמר' };
+    const navStartId    = resolveNavStartId('live-location', cs);      // 'custom-nav-start'
+    const restoredStart = resolveRestoredStart('live-location', cs);   // 'custom-nav-start'
+    // isRestoredSession predicate (simplified)
+    const roadRoute: RoadRoute = { km: 45, durationMin: 38, path: [[33, 35], [33.1, 35.1]] };
+    const isRestored = navStartId === restoredStart && !!roadRoute;
+    expect(isRestored).toBe(true);
+  });
+});
+
+// ===========================================================================
 // Suite 8 — normalizeRoutePath validation
 // ===========================================================================
 describe('normalizeRoutePath — input validation', () => {
