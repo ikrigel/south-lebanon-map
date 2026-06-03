@@ -2289,7 +2289,11 @@ export default function App() {
       setNavStartQuery('');
       showToast(`יעד נקבע: ${toLabel}. קבע גם נקודת מוצא או הפעל GPS`);
     }
-    document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+    // Open side panel if collapsed, then scroll to nav section.
+    setPanelsCollapsed(false);
+    requestAnimationFrame(() =>
+      document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' })
+    );
   }, [liveLocation, showToast]);
 
   // Sets a map-tapped point as navigation start (from popup "הגדר כנקודת מוצא" button)
@@ -2298,7 +2302,10 @@ export default function App() {
     setNavStartId('custom-nav-start');
     setNavStartQuery(label);
     showToast(`נקודת מוצא נקבעה: ${label}`);
-    document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
+    setPanelsCollapsed(false);
+    requestAnimationFrame(() =>
+      document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' })
+    );
   }, [showToast]);
 
   // ---- Invalidate Leaflet map size whenever panels collapse/expand ----

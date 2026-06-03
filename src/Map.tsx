@@ -1055,10 +1055,16 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const overlays = props.routeOverlays ?? [];
     const mode = props.routeDisplayMode ?? 'road';
 
+    // In 'road' mode show drive+foot. But if both have no path yet
+    // (still loading or fetch failed) also include aerial so the user
+    // sees the geodesic arc immediately and the map pans to the right area.
+    const drivePathLen = overlays.find(o => o.id === 'drive')?.path.length ?? 0;
+    const footPathLen  = overlays.find(o => o.id === 'foot')?.path.length  ?? 0;
+    const aerialFallback = mode === 'road' && drivePathLen < 2 && footPathLen < 2;
     const visibleIds: Set<string> = new Set(
-      mode === 'road'   ? ['drive', 'foot'] :
-      mode === 'aerial' ? ['aerial'] :
-      ['drive', 'foot', 'aerial']
+      mode === 'aerial'                    ? ['aerial'] :
+      mode === 'road' && !aerialFallback   ? ['drive', 'foot'] :
+                                             ['drive', 'foot', 'aerial']
     );
 
     let allRenderedPoints: [number, number][] = [];
@@ -1071,7 +1077,9 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
     sortedOverlays.forEach(o => {
       if (o.path.length < 2) return;
-      const isActive = o.isActive;
+      // When aerial is shown as a fallback (drive+foot still loading),
+      // render it as active so it's clearly visible, not faded.
+      const isActive = aerialFallback && o.id === 'aerial' ? true : o.isActive;
       // CSS class encodes both lineStyle and active state.
       // stroke-dasharray is set ONLY in CSS (not as Leaflet dashArray option)
       // because CSS animation of stroke-dashoffset requires CSS stroke-dasharray,
