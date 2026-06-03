@@ -153,7 +153,8 @@ const townPopup = (
 ): string => {
   const uid = `tp-${Math.random().toString(36).slice(2, 8)}`;
   const q = label.replace(/"/g, '&quot;');
-  return `<div class="town-popup"><div class="town-popup-tabs"><input type="radio" name="${uid}" id="${uid}-i" class="tpt-radio" checked><input type="radio" name="${uid}" id="${uid}-n" class="tpt-radio"><div class="town-popup-tabbar"><label for="${uid}-i" class="tpt-label">פרטים</label><label for="${uid}-n" class="tpt-label">ניווט ▶</label></div><div class="tpt-panel tpt-panel-info">${infoHtml}</div><div class="tpt-panel tpt-panel-nav"><div style="display:flex;flex-direction:column;gap:7px;padding-top:4px"><button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button><button class="popup-nav-btn popup-nav-btn-start" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button></div></div></div></div>`;
+  // nav panel hidden by default via inline style; JS (popupopen handler) shows the correct panel
+  return `<div class="town-popup"><div class="town-popup-tabs"><input type="radio" name="${uid}" id="${uid}-i" class="tpt-radio" checked><input type="radio" name="${uid}" id="${uid}-n" class="tpt-radio"><div class="town-popup-tabbar"><label for="${uid}-i" class="tpt-label" style="color:#9ed4ff;background:rgba(74,144,196,0.22)">פרטים</label><label for="${uid}-n" class="tpt-label">ניווט ▶</label></div><div class="tpt-panel tpt-panel-info" style="display:block">${infoHtml}</div><div class="tpt-panel tpt-panel-nav" style="display:none"><div style="display:flex;flex-direction:column;gap:7px;padding-top:4px"><button class="popup-nav-btn" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button><button class="popup-nav-btn popup-nav-btn-start" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button></div></div></div></div>`;
 };
 
 /** Simple nav-only bar for map taps, POIs, UNIFIL (no info-tab needed) */
@@ -788,6 +789,54 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !props.onNavigateToPoint) return;
+    // ---- tab switching for tabbed town popups ----
+    const handleTabClick = (event: MouseEvent) => {
+      const label = (event.target as HTMLElement).closest('.tpt-label') as HTMLLabelElement | null;
+      if (!label) return;
+      const forId = label.getAttribute('for');
+      if (!forId) return;
+      const radio = document.getElementById(forId) as HTMLInputElement | null;
+      if (!radio) return;
+      // Mark this radio checked and uncheck sibling radios
+      const siblings = document.querySelectorAll<HTMLInputElement>(`input[name="${radio.name}"]`);
+      siblings.forEach(r => { r.checked = false; });
+      radio.checked = true;
+      // Show/hide panels manually (CSS :checked selector may not work in all Leaflet builds)
+      const tabs = radio.closest('.town-popup-tabs');
+      if (!tabs) return;
+      const panels = tabs.querySelectorAll<HTMLElement>('.tpt-panel');
+      const isInfo = forId.endsWith('-i');
+      panels.forEach(p => {
+        p.style.display = (isInfo ? p.classList.contains('tpt-panel-info') : p.classList.contains('tpt-panel-nav')) ? 'block' : 'none';
+      });
+      // Update active tab styling
+      const allLabels = tabs.querySelectorAll<HTMLElement>('.tpt-label');
+      allLabels.forEach((l, idx) => {
+        const active = isInfo ? idx === 0 : idx === 1;
+        l.style.color    = active ? '#9ed4ff' : '';
+        l.style.background = active ? 'rgba(74,144,196,0.22)' : '';
+      });
+      event.stopPropagation();
+    };
+    container.addEventListener('click', handleTabClick, { capture: true });
+    // Also handle popupopen to set correct initial panel visibility via JS
+    // (in case CSS :checked rule isn't applied inside the Leaflet popup)
+    const handlePopupOpen = () => {
+      document.querySelectorAll<HTMLElement>('.town-popup-tabs').forEach(tabs => {
+        const panels = tabs.querySelectorAll<HTMLElement>('.tpt-panel');
+        panels.forEach(p => {
+          p.style.display = p.classList.contains('tpt-panel-info') ? 'block' : 'none';
+        });
+        const labels = tabs.querySelectorAll<HTMLElement>('.tpt-label');
+        labels.forEach((l, idx) => {
+          l.style.color      = idx === 0 ? '#9ed4ff' : '';
+          l.style.background = idx === 0 ? 'rgba(74,144,196,0.22)' : '';
+        });
+      });
+    };
+    const map = mapRef.current;
+    map?.on('popupopen', handlePopupOpen);
+
     const handleNavClick = (event: MouseEvent) => {
       const btn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-nav-lat]');
       if (!btn) return;
@@ -807,7 +856,11 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       }
     };
     container.addEventListener('click', handleNavClick, { capture: true });
-    return () => container.removeEventListener('click', handleNavClick, { capture: true } as EventListenerOptions);
+    return () => {
+      container.removeEventListener('click', handleTabClick, { capture: true } as EventListenerOptions);
+      container.removeEventListener('click', handleNavClick, { capture: true } as EventListenerOptions);
+      map?.off('popupopen', handlePopupOpen);
+    };
   }, [props.onNavigateToPoint]);
 
   // ---- toggle layer visibility ----
