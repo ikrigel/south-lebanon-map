@@ -994,7 +994,11 @@ export default function App() {
   const [roadRoute, setRoadRoute] = useState<RoadRoute | null>(() => initialNavSessionRef.current?.roadRoute ?? null);
   const [alternativeRoute, setAlternativeRoute] = useState<{ km: number; durationMin: number; path: [number, number][] } | null>(null);
   const [activeRouteIndex, setActiveRouteIndex] = useState<0 | 1>(0);
-  const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    // If a road route was restored from localStorage, mark it ready immediately
+    // so the polyline renders on first paint without waiting for a re-fetch.
+    () => (initialNavSessionRef.current?.roadRoute ? 'ready' : 'idle'),
+  );
   const [routeName, setRouteName] = useState(() => initialNavSessionRef.current?.routeName ?? '');
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => loadLocalSavedRoutes());
   const [activeSavedRoute, setActiveSavedRoute] = useState<SavedRoute | null>(() => initialNavSessionRef.current?.activeSavedRoute ?? null);
@@ -1554,6 +1558,22 @@ export default function App() {
     // changes the start/end selection, not on every GPS position update.
     const start = navPoints.find(p => p.id === navStartId) ?? null;
     const end   = navPoints.find(p => p.id === navEndId)   ?? null;
+
+    // Skip reset + re-fetch when these are the same IDs we restored from
+    // localStorage on this page load. The restored roadRoute/footRoute are
+    // already displayed; a re-fetch would flash "no route" while waiting.
+    const restoredStart = initialNavSessionRef.current?.navStartId;
+    const restoredEnd   = initialNavSessionRef.current?.navEndId;
+    const isRestoredSession =
+      navStartId === restoredStart &&
+      navEndId   === restoredEnd   &&
+      !!initialNavSessionRef.current?.roadRoute;
+    if (isRestoredSession) {
+      // Mark status ready so UI reflects restored data; clear the init marker
+      // so any subsequent ID change does a full re-fetch.
+      initialNavSessionRef.current = { ...initialNavSessionRef.current, roadRoute: undefined };
+      return;
+    }
 
     setRoadRoute(null);
     setAlternativeRoute(null);
