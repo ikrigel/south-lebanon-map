@@ -871,7 +871,15 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         pane: 'popPane',  // keep circles above label pane after rebuild
       })
         .bindPopup(
-          `<strong>${t.name_he}</strong>${(useSectColors && sectLabel) ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : ''}<br/><span style="color:#8b97a8">שם באנגלית/ערבית מתועתקת: ${t.name_en}</span><br/>אומדן אוכלוסיה: ~${t.pop_estimate.toLocaleString('he-IL')}<br/>${t.note ? `<em>${t.note}</em><br/>` : ''}<span style="color:#8b97a8">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          townPopup(
+            t.lat, t.lon, t.name_he,
+            `<strong>${t.name_he}</strong>` +
+            (useSectColors && sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : '') +
+            `<br/><span style="color:#8b97a8">${t.name_en}</span>` +
+            `<br/>אוכלוסייה: ~${t.pop_estimate.toLocaleString('he-IL')}` +
+            (t.note ? `<br/><em style="color:#b0bec5">${t.note}</em>` : '') +
+            `<br/><span style="color:#6b7a8d;font-size:11px">מקור: ויקיפדיה / אומדן ציבורי</span>`
+          ), { minWidth: 200 }
         )
         .addTo(popGroup);
     });
