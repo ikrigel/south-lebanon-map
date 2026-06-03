@@ -1189,15 +1189,12 @@ export default function App() {
     safeStorageSet(SAVED_MULTI_ROUTES_STORAGE_KEY, savedMultiRoutes);
   }, [savedMultiRoutes]);
 
+  // Tracks last-known distance-to-dest (metres). Updated by a later effect that
+  // has access to navPoints/navigationRoute. Read here only via ref to avoid a
+  // forward-reference TypeScript error.
+  const lastDistToDestMRef = useRef<number | undefined>(undefined);
+
   useEffect(() => {
-    // Compute distance to destination for arrived-detection on next load
-    let lastDistToDestM: number | undefined;
-    if (navPosition && navigationRoute) {
-      lastDistToDestM = haversineKm(
-        [navPosition.lat, navPosition.lon],
-        [navigationRoute.end.lat, navigationRoute.end.lon],
-      ) * 1000;
-    }
     safeStorageSet(NAV_SESSION_KEY, {
       navStartId,
       navEndId,
@@ -1215,14 +1212,13 @@ export default function App() {
       activeRouteId,
       routeDisplayMode,
       savedAt: Date.now(),
-      lastDistToDestM,
+      lastDistToDestM: lastDistToDestMRef.current,
     } satisfies LocalNavSession);
   }, [
     navStartId, navEndId, navStartQuery, navEndQuery, routeName,
     roadRoute, footRoute, activeSavedRoute, locationStatus,
     voiceGuidance, voiceLanguage,
     navCustomStart, navCustomEnd, activeRouteId, routeDisplayMode,
-    navPosition, navigationRoute,
   ]);
 
   useEffect(() => {
@@ -1799,6 +1795,19 @@ export default function App() {
     durationMin: opt.durationMin,
     isActive: opt.id === activeRouteId,
   })), [routeOptions, activeRouteId]);
+
+  // Keep lastDistToDestMRef in sync so the nav-session save effect can read it
+  // without creating a forward-reference TypeScript error.
+  useEffect(() => {
+    if (navPosition && navigationRoute) {
+      lastDistToDestMRef.current = haversineKm(
+        [navPosition.lat, navPosition.lon],
+        [navigationRoute.end.lat, navigationRoute.end.lon],
+      ) * 1000;
+    } else {
+      lastDistToDestMRef.current = undefined;
+    }
+  }, [navPosition, navigationRoute]);
 
   const mapBearing = useMemo(() => {
     if (typeof liveLocation?.heading === 'number' && isFinite(liveLocation.heading)) {
