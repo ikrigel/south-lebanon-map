@@ -1085,6 +1085,18 @@ body {
   color: white; font-weight: 700; font-family: 'JetBrains Mono', monospace;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
 }
+/* popPane SVG fix: Leaflet sets pointer-events="none" on the SVG root element.
+   On desktop, path.leaflet-interactive still receives mouse events because the
+   browser does per-element hit-testing inside SVG even when the SVG root says none.
+   On mobile (touch), Chrome/Safari do NOT descend into a pointer-events:none SVG for
+   touch hit-testing — they skip the entire SVG subtree. We must re-enable it on the
+   SVG inside our custom popPane so circleMarker touch events work on Android/iOS.
+   The <path class="leaflet-interactive"> already has pointer-events:auto from Leaflet
+   CSS, but that only takes effect once the parent SVG is not blocking touch. */
+.leaflet-pop-pane svg {
+  pointer-events: auto;
+}
+
 /* label icon wrapper — must not intercept clicks on map layers beneath */
 .map-label-icon {
   pointer-events: none !important;
