@@ -393,6 +393,37 @@ describe('popup info toggle — delegated handler', () => {
 
     expect(onNavigate).not.toHaveBeenCalled();
   });
+
+  it('touch tap on toggle opens info and stays open (no double-fire)', async () => {
+    // Regression: touchend + synthetic click were both firing, causing the
+    // info div to open and immediately close again in the same gesture.
+    const ref = createRef<MapHandle>();
+    const { container } = render(<MapView ref={ref} {...makeProps()} />);
+    await act(async () => {});
+
+    const t = towns.find(t => t.id === 'beitlif')!;
+    const html = getCaptured().get(t.name_he)!;
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { popup } = mountLeafletPopup(mapDiv, html);
+
+    const toggleBtn = popup.querySelector<HTMLButtonElement>('[data-info-toggle]')!;
+    const infoDiv   = popup.querySelector<HTMLElement>('.town-popup-info')!;
+
+    // Initially collapsed
+    expect(infoDiv.style.display).toBe('none');
+
+    // Simulate touch tap (touchend → click)
+    simulateTouchTap(toggleBtn);
+
+    // Must be open — the synthetic click must have been suppressed
+    expect(infoDiv.style.display).toBe('block');
+    expect(toggleBtn.textContent).toContain('▲');
+
+    // Second touch tap — should collapse
+    simulateTouchTap(toggleBtn);
+    expect(infoDiv.style.display).toBe('none');
+    expect(toggleBtn.textContent).toContain('▼');
+  });
 });
 
 // ===========================================================================

@@ -847,8 +847,17 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       content.querySelectorAll<HTMLButtonElement>('[data-info-toggle]').forEach(toggleBtn => {
         const infoDiv = toggleBtn.nextElementSibling as HTMLElement | null;
         if (!infoDiv) return;
+        // Same double-fire guard as nav buttons: touchend fires first on mobile,
+        // then the browser emits a synthetic click — suppress that click.
+        let touchFired = false;
         const fire = (ev: Event) => {
           ev.stopPropagation();
+          if (ev.type === 'touchend') {
+            touchFired = true;
+          } else if (ev.type === 'click' && touchFired) {
+            touchFired = false;
+            return;
+          }
           const isOpen = infoDiv.style.display !== 'none';
           infoDiv.style.display = isOpen ? 'none' : 'block';
           toggleBtn.textContent = isOpen ? 'פרטים ▼' : 'פרטים ▲';
