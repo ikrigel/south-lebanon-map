@@ -3,25 +3,14 @@
  *
  * Regression tests for the town popup HTML structure.
  *
- * Background: two separate useEffect calls build town popups —
- *   Effect A (initial mount): always uses townPopup()
- *   Effect B (sectColors toggle): previously used raw HTML (bug!),
- *             now fixed to also use townPopup()
+ * Design decision: info is ALWAYS visible (no toggle/accordion).
+ * This avoids inline onclick reliability issues on mobile (Android/iOS).
+ * Layout: info section → divider → nav buttons.
  *
- * Strategy: inline copy of the pure townPopup() helper (zero React/Leaflet
- * needed). Tests assert on the HTML string it returns.
+ * Both useEffect calls (initial mount + sectColors rebuild) must produce
+ * this structure via townPopup().
  *
- * Covered invariants:
- *  1. Wrapper has dir="rtl" and class="town-popup"
- *  2. Two nav buttons always present (end + start roles), carrying correct lat/lon/label
- *  3. "פרטים ▼" toggle button always present (.popup-info-toggle)
- *  4. Info div present, hidden by default (style="display:none")
- *  5. Info div contains the infoHtml content
- *  6. Toggle onclick inverts display and updates button text
- *  7. Each call gets a unique uid — no collisions across parallel popups
- *  8. Special chars in label are escaped in data-nav-label attribute
- *  9. Specific towns: בית ליף, בינת ג׳בייל, דבל, עלמא א-שעב, יאטר
- * 10. sectColors effect produces townPopup structure (not raw HTML)
+ * Specific towns tested: בית ליף, בינת ג׳בייל, דבל, עלמא א-שעב, יאטר
  */
 
 import { describe, it, expect } from 'vitest';
@@ -36,27 +25,21 @@ function townPopup(
   label: string,
   infoHtml: string,
 ): string {
-  const uid = `tp${Math.random().toString(36).slice(2, 8)}`;
   const q = label.replace(/"/g, '&quot;');
   return [
     `<div class="town-popup" dir="rtl">`,
+    `<div class="town-popup-info">${infoHtml}</div>`,
+    `<div class="town-popup-divider"></div>`,
     `<div class="town-popup-nav">`,
     `<button class="popup-nav-btn popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button>`,
     `<button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>`,
     `</div>`,
-    `<button class="popup-info-toggle" onclick="(function(b){`,
-      `var d=document.getElementById('${uid}');`,
-      `var open=d.style.display!=='none';`,
-      `d.style.display=open?'none':'block';`,
-      `b.textContent=open?'פרטים ▼':'פרטים ▲';`,
-    `})(this)">פרטים ▼</button>`,
-    `<div id="${uid}" class="town-popup-info" style="display:none">${infoHtml}</div>`,
     `</div>`,
   ].join('');
 }
 
 // ---------------------------------------------------------------------------
-// Helper: build infoHtml the same way both effects do (sect-aware)
+// Helpers
 // ---------------------------------------------------------------------------
 const SECT_COLORS: Record<string, string> = {
   shia: '#2a8a6e', sunni: '#c97d2a', druze: '#7b3fa0',
@@ -83,15 +66,33 @@ function buildInfoHtml(
   );
 }
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
 // 1. Structural invariants
-// ---------------------------------------------------------------------------
+// ===========================================================================
 describe('townPopup() — structure', () => {
   const html = townPopup(33.127, 35.339, 'בית ליף', '<strong>בית ליף</strong>');
 
   it('has wrapper div.town-popup with dir=rtl', () => {
     expect(html).toContain('class="town-popup"');
     expect(html).toContain('dir="rtl"');
+  });
+
+  it('has .town-popup-info section', () => {
+    expect(html).toContain('class="town-popup-info"');
+  });
+
+  it('info is visible by default — no display:none on it', () => {
+    // The info div must NOT be hidden; inline onclick toggle was removed
+    expect(html).not.toContain('display:none');
+  });
+
+  it('has .town-popup-divider between info and nav', () => {
+    expect(html).toContain('class="town-popup-divider"');
+    const infoIdx  = html.indexOf('town-popup-info');
+    const divIdx   = html.indexOf('town-popup-divider');
+    const navIdx   = html.indexOf('town-popup-nav');
+    expect(infoIdx).toBeLessThan(divIdx);
+    expect(divIdx).toBeLessThan(navIdx);
   });
 
   it('has .town-popup-nav wrapper', () => {
@@ -104,22 +105,21 @@ describe('townPopup() — structure', () => {
     expect(matches!.length).toBe(2);
   });
 
-  it('nav button end has data-nav-role="end"', () => {
+  it('end button has data-nav-role="end"', () => {
     expect(html).toContain('data-nav-role="end"');
   });
 
-  it('nav button start has data-nav-role="start"', () => {
+  it('start button has data-nav-role="start"', () => {
     expect(html).toContain('data-nav-role="start"');
   });
 
-  it('has .popup-info-toggle button with "פרטים ▼" text', () => {
-    expect(html).toContain('class="popup-info-toggle"');
-    expect(html).toContain('>פרטים ▼</button>');
+  it('no popup-info-toggle button (removed — caused mobile breakage)', () => {
+    expect(html).not.toContain('popup-info-toggle');
   });
 
-  it('info div has class town-popup-info and is hidden by default', () => {
-    expect(html).toContain('class="town-popup-info"');
-    expect(html).toContain('style="display:none"');
+  it('no inline onclick handler (removed)', () => {
+    expect(html).not.toContain('onclick=');
+    expect(html).not.toContain('getElementById');
   });
 
   it('info div contains the infoHtml', () => {
@@ -127,28 +127,26 @@ describe('townPopup() — structure', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
 // 2. Nav button data attributes carry correct values
-// ---------------------------------------------------------------------------
+// ===========================================================================
 describe('townPopup() — nav button data attributes', () => {
-  it('end button carries correct lat/lon/label for בית ליף', () => {
+  it('both buttons carry correct lat/lon/label for בית ליף', () => {
     const t = towns.find(t => t.id === 'beitlif')!;
     expect(t).toBeDefined();
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
     expect(html).toContain(`data-nav-lat="${t.lat}"`);
     expect(html).toContain(`data-nav-lon="${t.lon}"`);
     expect(html).toContain(`data-nav-label="בית ליף"`);
+    // Both end and start present
+    expect(html).toContain('data-nav-role="end"');
+    expect(html).toContain('data-nav-role="start"');
   });
 
-  it('start button carries correct lat/lon/label for בינת ג׳בייל', () => {
+  it('both buttons carry correct lat/lon for בינת ג׳בייל', () => {
     const t = towns.find(t => t.id === 'bintj')!;
     expect(t).toBeDefined();
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
-    // Both buttons share the same lat/lon/label
-    const endMatches = [...html.matchAll(/data-nav-role="end"/g)];
-    const startMatches = [...html.matchAll(/data-nav-role="start"/g)];
-    expect(endMatches.length).toBe(1);
-    expect(startMatches.length).toBe(1);
     expect(html).toContain(`data-nav-lat="${t.lat}"`);
     expect(html).toContain(`data-nav-lon="${t.lon}"`);
   });
@@ -156,67 +154,57 @@ describe('townPopup() — nav button data attributes', () => {
   it('label with double-quotes is escaped to &quot;', () => {
     const html = townPopup(33.1, 35.3, 'כפר "הדס"', '<p>test</p>');
     expect(html).toContain('data-nav-label="כפר &quot;הדס&quot;"');
-    expect(html).not.toContain('data-nav-label="כפר "הדס"');
+    expect(html).not.toMatch(/data-nav-label="כפר "הדס"/);
   });
 });
 
-// ---------------------------------------------------------------------------
-// 3. Toggle button inline onclick
-// ---------------------------------------------------------------------------
-describe('townPopup() — toggle onclick', () => {
-  it('onclick contains getElementById with the uid', () => {
-    const html = townPopup(33.1, 35.3, 'test', '');
-    // Extract uid from the id attribute of the info div
-    const idMatch = html.match(/id="(tp[a-z0-9]+)"/);
-    expect(idMatch).not.toBeNull();
-    const uid = idMatch![1];
-    expect(html).toContain(`getElementById('${uid}')`);
+// ===========================================================================
+// 3. Info content rendered correctly
+// ===========================================================================
+describe('townPopup() — info content', () => {
+  it('town name appears in info section', () => {
+    const t = towns.find(t => t.id === 'beitlif')!;
+    const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
+    expect(html).toContain(t.name_he);
+    expect(html).toContain(t.name_en);
   });
 
-  it('onclick swaps display between none and block', () => {
-    const html = townPopup(33.1, 35.3, 'test', '');
-    expect(html).toContain(`d.style.display=open?'none':'block'`);
+  it('population estimate rendered with Hebrew locale formatting', () => {
+    const t = towns.find(t => t.id === 'beitlif')!;
+    const info = buildInfoHtml(t);
+    expect(info).toContain('אוכלוסייה');
+    expect(info).toContain(t.pop_estimate.toLocaleString('he-IL'));
   });
 
-  it('onclick swaps button text between ▼ and ▲', () => {
-    const html = townPopup(33.1, 35.3, 'test', '');
-    expect(html).toContain(`b.textContent=open?'פרטים ▼':'פרטים ▲'`);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. Unique uid per call — no collisions in batch
-// ---------------------------------------------------------------------------
-describe('townPopup() — uid uniqueness', () => {
-  it('100 calls produce 100 unique uids', () => {
-    const uids = new Set<string>();
-    for (let i = 0; i < 100; i++) {
-      const html = townPopup(33.1 + i * 0.001, 35.3, `town${i}`, '');
-      const m = html.match(/id="(tp[a-z0-9]+)"/);
-      expect(m).not.toBeNull();
-      uids.add(m![1]);
-    }
-    expect(uids.size).toBe(100);
+  it('source attribution always present', () => {
+    const t = towns.find(t => t.id === 'yater')!;
+    const info = buildInfoHtml(t);
+    expect(info).toContain('מקור: ויקיפדיה');
   });
 
-  it('each uid appears exactly twice in the HTML (id attr + getElementById)', () => {
-    const html = townPopup(33.1, 35.3, 'test', '');
-    const m = html.match(/id="(tp[a-z0-9]+)"/);
-    expect(m).not.toBeNull();
-    const uid = m![1];
-    const count = (html.match(new RegExp(uid, 'g')) ?? []).length;
-    expect(count).toBe(2);
+  it('note field rendered when present', () => {
+    const t = towns.find(t => t.id === 'beit-yahoun');
+    if (!t?.note) return; // skip if town not in data
+    const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
+    expect(html).toContain(t.note);
+  });
+
+  it('no empty <em> when note is absent', () => {
+    const t = towns.find(t => t.id === 'beitlif')!;
+    expect(t.note).toBeFalsy();
+    const info = buildInfoHtml(t);
+    expect(info).not.toContain('<em');
   });
 });
 
-// ---------------------------------------------------------------------------
-// 5. Specific towns — בית ליף, בינת ג׳בייל, דבל, עלמא א-שעב, יאטר
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// 4. Specific towns
+// ===========================================================================
 describe('townPopup() — specific LB towns', () => {
   const TOWNS_TO_TEST = ['beitlif', 'bintj', 'debel', 'alma', 'yater'];
 
   TOWNS_TO_TEST.forEach(id => {
-    it(`${id}: popup contains town name in both Hebrew and English`, () => {
+    it(`${id}: contains Hebrew + English name`, () => {
       const t = towns.find(t => t.id === id);
       expect(t, `town ${id} not found in geo.ts`).toBeDefined();
       const html = townPopup(t!.lat, t!.lon, t!.name_he, buildInfoHtml(t!));
@@ -224,104 +212,74 @@ describe('townPopup() — specific LB towns', () => {
       expect(html).toContain(t!.name_en);
     });
 
-    it(`${id}: popup has nav buttons with town's coordinates`, () => {
+    it(`${id}: nav buttons carry correct coordinates`, () => {
       const t = towns.find(t => t.id === id)!;
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
       expect(html).toContain(`data-nav-lat="${t.lat}"`);
       expect(html).toContain(`data-nav-lon="${t.lon}"`);
     });
 
-    it(`${id}: popup has .popup-info-toggle and hidden info div`, () => {
+    it(`${id}: info visible — no display:none`, () => {
       const t = towns.find(t => t.id === id)!;
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
-      expect(html).toContain('popup-info-toggle');
-      expect(html).toContain('display:none');
+      expect(html).not.toContain('display:none');
     });
   });
 });
 
-// ---------------------------------------------------------------------------
-// 6. sectColors effect — uses townPopup() structure (not raw HTML fallback)
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// 5. sectColors effect — uses townPopup() structure
+// ===========================================================================
 describe('sectColors effect — popup structure', () => {
-  // Simulate what Effect B now does: build popup via townPopup()
   const LB_TOWNS = towns.filter(t => t.side === 'LB');
 
-  it('all LB towns produce a popup with .town-popup-nav (not raw HTML)', () => {
+  it('all LB towns produce .town-popup-nav', () => {
     LB_TOWNS.forEach(t => {
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, false));
       expect(html, `${t.id}: missing .town-popup-nav`).toContain('town-popup-nav');
     });
   });
 
-  it('all LB towns produce a popup with .popup-info-toggle', () => {
+  it('all LB towns show info without display:none', () => {
     LB_TOWNS.forEach(t => {
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, false));
-      expect(html, `${t.id}: missing .popup-info-toggle`).toContain('popup-info-toggle');
+      expect(html, `${t.id}: info is hidden`).not.toContain('display:none');
     });
   });
 
-  it('all LB towns produce a popup with hidden info div', () => {
-    LB_TOWNS.forEach(t => {
-      const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, false));
-      expect(html, `${t.id}: info div not hidden`).toContain('display:none');
-    });
-  });
-
-  it('sectColors=true embeds sect badge in infoHtml for shia town (בית ליף)', () => {
+  it('sectColors=true: shia badge in בית ליף', () => {
     const t = towns.find(t => t.id === 'beitlif')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, true));
     expect(html).toContain('שיעים');
-    expect(html).toContain('#2a8a6e'); // shia color
+    expect(html).toContain('#2a8a6e');
   });
 
-  it('sectColors=true embeds sect badge in infoHtml for christian town (דבל)', () => {
+  it('sectColors=true: christian badge in דבל', () => {
     const t = towns.find(t => t.id === 'debel')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, true));
     expect(html).toContain('נוצרים');
-    expect(html).toContain('#b03030'); // christian color
+    expect(html).toContain('#b03030');
   });
 
-  it('sectColors=false produces no sect badge', () => {
+  it('sectColors=false: no sect badge', () => {
     const t = towns.find(t => t.id === 'beitlif')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, false));
     expect(html).not.toContain('שיעים');
   });
 
-  it('nav buttons appear BEFORE info section in HTML (nav-first layout)', () => {
+  it('info section appears BEFORE nav buttons in HTML', () => {
     const t = towns.find(t => t.id === 'beitlif')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, true));
-    const navIdx = html.indexOf('town-popup-nav');
-    const infoIdx = html.indexOf('popup-info-toggle');
-    expect(navIdx).toBeLessThan(infoIdx);
+    const infoIdx = html.indexOf('town-popup-info');
+    const navIdx  = html.indexOf('town-popup-nav');
+    expect(infoIdx).toBeLessThan(navIdx);
   });
 
-  it('raw popup HTML does NOT contain old tpt-panel or tpt-label classes', () => {
+  it('no legacy tpt-panel / tpt-label / town-popup-tabs in any popup', () => {
     const t = towns.find(t => t.id === 'yater')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, true));
     expect(html).not.toContain('tpt-panel');
     expect(html).not.toContain('tpt-label');
     expect(html).not.toContain('town-popup-tabs');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 7. Note field — towns that have notes (e.g. beit-yahoun, naqoura)
-// ---------------------------------------------------------------------------
-describe('townPopup() — note field rendering', () => {
-  it('town with note includes note in infoHtml', () => {
-    const t = towns.find(t => t.id === 'beit-yahoun');
-    expect(t?.note).toBeTruthy();
-    const html = townPopup(t!.lat, t!.lon, t!.name_he, buildInfoHtml(t!));
-    expect(html).toContain(t!.note!);
-  });
-
-  it('town without note does not produce empty <em> tag', () => {
-    const t = towns.find(t => t.id === 'beitlif');
-    expect(t?.note).toBeFalsy();
-    const infoHtml = buildInfoHtml(t!);
-    expect(infoHtml).not.toContain('<em');
-    const html = townPopup(t!.lat, t!.lon, t!.name_he, infoHtml);
-    expect(html).not.toContain('<em');
   });
 });

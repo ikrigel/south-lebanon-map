@@ -135,8 +135,9 @@ describe('MapView mount — popup HTML captured for LB towns', () => {
     const html = getCaptured().get('בית ליף');
     expect(html, 'popup for בית ליף not captured — circleMarker.bindPopup not called').toBeDefined();
     expect(html).toContain('town-popup-nav');
-    expect(html).toContain('popup-info-toggle');
-    expect(html).toContain('display:none');
+    expect(html).toContain('town-popup-info');
+    // info must be visible (no display:none — mobile fix)
+    expect(html).not.toContain('display:none');
   });
 
   it("captures popup HTML for בינת ג'בייל after mount", async () => {
@@ -174,7 +175,7 @@ describe('MapView mount — popup HTML captured for LB towns', () => {
       // Only check entries that look like town popups (have town-popup wrapper)
       if (!html.includes('town-popup')) return;
       expect(html, `${label}: missing town-popup-nav`).toContain('town-popup-nav');
-      expect(html, `${label}: info not hidden by default`).toContain('display:none');
+      expect(html, `${label}: info must be visible`).not.toContain('display:none');
     });
   });
 });
@@ -333,8 +334,9 @@ describe('sectColors toggle — popup HTML stays accordion-style', () => {
     captured.forEach((html, label) => {
       if (!html.includes('town-popup')) return;
       expect(html, `${label}: missing town-popup-nav with sectColors=true`).toContain('town-popup-nav');
-      expect(html, `${label}: info not hidden`).toContain('display:none');
-      expect(html, `${label}: missing popup-info-toggle`).toContain('popup-info-toggle');
+      // info must be visible — no toggle, no display:none
+      expect(html, `${label}: info must be visible`).not.toContain('display:none');
+      expect(html, `${label}: no inline onclick allowed`).not.toContain('onclick=');
     });
   });
 
@@ -361,10 +363,10 @@ describe('sectColors toggle — popup HTML stays accordion-style', () => {
     expect(html).toBeDefined();
     // shia color in popup
     expect(html).toContain('#2a8a6e');
-    // nav buttons appear before info toggle
-    const navIdx = html!.indexOf('town-popup-nav');
-    const toggleIdx = html!.indexOf('popup-info-toggle');
-    expect(navIdx).toBeLessThan(toggleIdx);
+    // info appears before nav buttons
+    const infoIdx = html!.indexOf('town-popup-info');
+    const navIdx  = html!.indexOf('town-popup-nav');
+    expect(infoIdx).toBeLessThan(navIdx);
   });
 });
 

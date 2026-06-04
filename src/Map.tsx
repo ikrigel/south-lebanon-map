@@ -152,24 +152,18 @@ const townPopup = (
   label: string,
   infoHtml: string,
 ): string => {
-  const uid = `tp${Math.random().toString(36).slice(2, 8)}`;
   const q = label.replace(/"/g, '&quot;');
   return [
     `<div class="town-popup" dir="rtl">`,
+    // ── info section (always visible) ──
+    `<div class="town-popup-info">${infoHtml}</div>`,
+    // ── divider ──
+    `<div class="town-popup-divider"></div>`,
     // ── nav buttons (always visible) ──
     `<div class="town-popup-nav">`,
     `<button class="popup-nav-btn popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button>`,
     `<button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>`,
     `</div>`,
-    // ── toggle button ──
-    `<button class="popup-info-toggle" onclick="(function(b){`,
-      `var d=document.getElementById('${uid}');`,
-      `var open=d.style.display!=='none';`,
-      `d.style.display=open?'none':'block';`,
-      `b.textContent=open?'פרטים ▼':'פרטים ▲';`,
-    `})(this)">פרטים ▼</button>`,
-    // ── info section (hidden by default) ──
-    `<div id="${uid}" class="town-popup-info" style="display:none">${infoHtml}</div>`,
     `</div>`,
   ].join('');
 };
