@@ -28,12 +28,12 @@ function townPopup(
   const q = label.replace(/"/g, '&quot;');
   return [
     `<div class="town-popup" dir="rtl">`,
-    `<div class="town-popup-info">${infoHtml}</div>`,
-    `<div class="town-popup-divider"></div>`,
     `<div class="town-popup-nav">`,
     `<button class="popup-nav-btn popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button>`,
     `<button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>`,
     `</div>`,
+    `<button class="popup-info-toggle" data-info-toggle="1">פרטים ▼</button>`,
+    `<div class="town-popup-info" style="display:none">${infoHtml}</div>`,
     `</div>`,
   ].join('');
 }
@@ -81,18 +81,15 @@ describe('townPopup() — structure', () => {
     expect(html).toContain('class="town-popup-info"');
   });
 
-  it('info is visible by default — no display:none on it', () => {
-    // The info div must NOT be hidden; inline onclick toggle was removed
-    expect(html).not.toContain('display:none');
+  it('info is hidden by default (toggle expands it)', () => {
+    expect(html).toContain('display:none');
   });
 
-  it('has .town-popup-divider between info and nav', () => {
-    expect(html).toContain('class="town-popup-divider"');
-    const infoIdx  = html.indexOf('town-popup-info');
-    const divIdx   = html.indexOf('town-popup-divider');
-    const navIdx   = html.indexOf('town-popup-nav');
-    expect(infoIdx).toBeLessThan(divIdx);
-    expect(divIdx).toBeLessThan(navIdx);
+  it('nav buttons appear BEFORE toggle in HTML', () => {
+    const navIdx    = html.indexOf('town-popup-nav');
+    const toggleIdx = html.indexOf('popup-info-toggle');
+    expect(navIdx).toBeGreaterThanOrEqual(0);
+    expect(navIdx).toBeLessThan(toggleIdx);
   });
 
   it('has .town-popup-nav wrapper', () => {
@@ -113,11 +110,8 @@ describe('townPopup() — structure', () => {
     expect(html).toContain('data-nav-role="start"');
   });
 
-  it('no popup-info-toggle button (removed — caused mobile breakage)', () => {
-    expect(html).not.toContain('popup-info-toggle');
-  });
-
-  it('no inline onclick handler (removed)', () => {
+  it('toggle uses data-info-toggle attribute (not inline onclick)', () => {
+    expect(html).toContain('data-info-toggle="1"');
     expect(html).not.toContain('onclick=');
     expect(html).not.toContain('getElementById');
   });
@@ -219,10 +213,10 @@ describe('townPopup() — specific LB towns', () => {
       expect(html).toContain(`data-nav-lon="${t.lon}"`);
     });
 
-    it(`${id}: info visible — no display:none`, () => {
+    it(`${id}: info collapsed by default (display:none)`, () => {
       const t = towns.find(t => t.id === id)!;
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t));
-      expect(html).not.toContain('display:none');
+      expect(html).toContain('display:none');
     });
   });
 });
@@ -240,10 +234,10 @@ describe('sectColors effect — popup structure', () => {
     });
   });
 
-  it('all LB towns show info without display:none', () => {
+  it('all LB towns have info collapsed by default (display:none)', () => {
     LB_TOWNS.forEach(t => {
       const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, false));
-      expect(html, `${t.id}: info is hidden`).not.toContain('display:none');
+      expect(html, `${t.id}: info should be collapsed`).toContain('display:none');
     });
   });
 
@@ -267,12 +261,12 @@ describe('sectColors effect — popup structure', () => {
     expect(html).not.toContain('שיעים');
   });
 
-  it('info section appears BEFORE nav buttons in HTML', () => {
+  it('nav buttons appear BEFORE info in HTML (nav-first layout)', () => {
     const t = towns.find(t => t.id === 'beitlif')!;
     const html = townPopup(t.lat, t.lon, t.name_he, buildInfoHtml(t, true));
-    const infoIdx = html.indexOf('town-popup-info');
     const navIdx  = html.indexOf('town-popup-nav');
-    expect(infoIdx).toBeLessThan(navIdx);
+    const infoIdx = html.indexOf('town-popup-info');
+    expect(navIdx).toBeLessThan(infoIdx);
   });
 
   it('no legacy tpt-panel / tpt-label / town-popup-tabs in any popup', () => {

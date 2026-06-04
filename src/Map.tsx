@@ -155,15 +155,15 @@ const townPopup = (
   const q = label.replace(/"/g, '&quot;');
   return [
     `<div class="town-popup" dir="rtl">`,
-    // ── info section (always visible) ──
-    `<div class="town-popup-info">${infoHtml}</div>`,
-    // ── divider ──
-    `<div class="town-popup-divider"></div>`,
-    // ── nav buttons (always visible) ──
+    // ── nav buttons (always at top) ──
     `<div class="town-popup-nav">`,
     `<button class="popup-nav-btn popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="end">▶ נווט לכאן — יעד</button>`,
     `<button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${lat}" data-nav-lon="${lon}" data-nav-label="${q}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>`,
     `</div>`,
+    // ── toggle button — delegated handler in Map.tsx toggles the info div ──
+    `<button class="popup-info-toggle" data-info-toggle="1">פרטים ▼</button>`,
+    // ── info section (collapsed by default) ──
+    `<div class="town-popup-info" style="display:none">${infoHtml}</div>`,
     `</div>`,
   ].join('');
 };
@@ -748,6 +748,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest('.leaflet-control, .leaflet-popup')) return;
+      if (target?.closest('[data-nav-lat]')) return;  // popup nav button — handled by handleNavClick
       if (!props.pointPickMode && target?.closest('.leaflet-marker-icon, .leaflet-tooltip')) return;
       // ---- rotation-aware click → LatLng conversion ----------------------
       // Leaflet's mouseEventToLatLng uses getBoundingClientRect() to compute
@@ -801,6 +802,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const container = containerRef.current;
     if (!container || !props.onNavigateToPoint) return;
     const handleNavClick = (event: MouseEvent) => {
+      // ---- info toggle ----
+      const toggleBtn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-info-toggle]');
+      if (toggleBtn) {
+        event.stopPropagation();
+        const infoDiv = toggleBtn.nextElementSibling as HTMLElement | null;
+        if (infoDiv) {
+          const isOpen = infoDiv.style.display !== 'none';
+          infoDiv.style.display = isOpen ? 'none' : 'block';
+          toggleBtn.textContent = isOpen ? 'פרטים ▼' : 'פרטים ▲';
+        }
+        return;
+      }
+      // ---- nav button ----
       const btn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-nav-lat]');
       if (!btn) return;
       event.stopPropagation();

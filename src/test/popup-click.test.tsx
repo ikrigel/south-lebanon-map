@@ -108,6 +108,31 @@ function simulateTouchTap(el: Element): void {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: mount popup HTML exactly as Leaflet does in production:
+//   map-container → .leaflet-pane.leaflet-popup-pane → .leaflet-popup → content
+// This is the structure that handleClick's .leaflet-popup guard is designed for.
+// ---------------------------------------------------------------------------
+function mountLeafletPopup(mapDiv: HTMLElement, townHtml: string): {
+  popup: HTMLElement;
+  endBtn: HTMLButtonElement;
+  startBtn: HTMLButtonElement;
+} {
+  const pane = document.createElement('div');
+  pane.className = 'leaflet-pane leaflet-popup-pane';
+  const popup = document.createElement('div');
+  popup.className = 'leaflet-popup';
+  const content = document.createElement('div');
+  content.className = 'leaflet-popup-content';
+  content.innerHTML = townHtml;
+  popup.appendChild(content);
+  pane.appendChild(popup);
+  mapDiv.appendChild(pane);
+  const endBtn   = content.querySelector<HTMLButtonElement>('[data-nav-role="end"]')!;
+  const startBtn = content.querySelector<HTMLButtonElement>('[data-nav-role="start"]')!;
+  return { popup, endBtn, startBtn };
+}
+
+// ---------------------------------------------------------------------------
 // Import MapView
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -136,8 +161,9 @@ describe('MapView mount — popup HTML captured for LB towns', () => {
     expect(html, 'popup for בית ליף not captured — circleMarker.bindPopup not called').toBeDefined();
     expect(html).toContain('town-popup-nav');
     expect(html).toContain('town-popup-info');
-    // info must be visible (no display:none — mobile fix)
-    expect(html).not.toContain('display:none');
+    // toggle via delegated handler, not inline onclick
+    expect(html).toContain('data-info-toggle');
+    expect(html).not.toContain('onclick=');
   });
 
   it("captures popup HTML for בינת ג'בייל after mount", async () => {
@@ -175,135 +201,227 @@ describe('MapView mount — popup HTML captured for LB towns', () => {
       // Only check entries that look like town popups (have town-popup wrapper)
       if (!html.includes('town-popup')) return;
       expect(html, `${label}: missing town-popup-nav`).toContain('town-popup-nav');
-      expect(html, `${label}: info must be visible`).not.toContain('display:none');
+      expect(html, `${label}: must have data-info-toggle`).toContain('data-info-toggle');
+      expect(html, `${label}: no inline onclick`).not.toContain('onclick=');
     });
   });
 });
 
 // ===========================================================================
-// Suite 2 — click on "נווט לכאן — יעד" button fires onNavigateToPoint
+// Suite 2 — click inside real Leaflet popup DOM structure
+// Popup is mounted as: mapDiv > .leaflet-popup-pane > .leaflet-popup > content
+// This matches exactly what Leaflet renders in production.
+// Regression: handleClick (the map-wide click handler) must NOT intercept
+// clicks on nav buttons — it must bail out when target is inside [data-nav-lat].
 // ===========================================================================
-describe('popup nav button — desktop click', () => {
-  it('click on end-button calls onNavigateToPoint with correct lat/lon/label', async () => {
+describe('popup nav button — click inside .leaflet-popup DOM', () => {
+  it('end-button click calls onNavigateToPoint, not onMapClick', async () => {
     const onNavigate = vi.fn();
+    const onMapClick = vi.fn();
     const ref = createRef<MapHandle>();
     const { container } = render(
-      <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate })} />
+      <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate, onMapClick })} />
     );
-
     await act(async () => {});
 
     const t = towns.find(t => t.id === 'beitlif')!;
     const html = getCaptured().get(t.name_he);
     expect(html, 'popup HTML not captured for בית ליף').toBeTruthy();
 
-    // Inject popup HTML as child of the MapView container
-    // (the delegated click handler listens on containerRef, which is the
-    //  first div child rendered by MapView)
-    const mapDiv = container.firstElementChild as HTMLElement;
-    const popup = document.createElement('div');
-    popup.innerHTML = html!;
-    mapDiv.appendChild(popup);
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { endBtn } = mountLeafletPopup(mapDiv, html!);
+    expect(endBtn, 'end btn missing').not.toBeNull();
 
-    const endBtn = popup.querySelector<HTMLButtonElement>('[data-nav-role="end"]');
-    expect(endBtn, 'end nav button not found in popup HTML').not.toBeNull();
-    endBtn!.click();
+    endBtn.click();
 
+    // nav callback must fire
     expect(onNavigate).toHaveBeenCalledTimes(1);
     const [lat, lon, label] = onNavigate.mock.calls[0] as [number, number, string];
     expect(lat).toBeCloseTo(t.lat, 4);
     expect(lon).toBeCloseTo(t.lon, 4);
     expect(label).toBe(t.name_he);
+    // map click must NOT fire (handleClick must bail on [data-nav-lat])
+    expect(onMapClick).not.toHaveBeenCalled();
   });
 
-  it('click on start-button calls onSetNavStart with correct lat/lon/label', async () => {
+  it('start-button click calls onSetNavStart, not onMapClick', async () => {
     const onSetStart = vi.fn();
+    const onMapClick = vi.fn();
     const ref = createRef<MapHandle>();
     const { container } = render(
-      <MapView ref={ref} {...makeProps({ onSetNavStart: onSetStart })} />
+      <MapView ref={ref} {...makeProps({ onSetNavStart: onSetStart, onMapClick })} />
     );
-
     await act(async () => {});
 
     const t = towns.find(t => t.id === 'bintj')!;
     const html = getCaptured().get(t.name_he);
-    expect(html, 'popup HTML not captured for בינת ג׳בייל').toBeTruthy();
+    expect(html).toBeTruthy();
 
-    const mapDiv = container.firstElementChild as HTMLElement;
-    const popup = document.createElement('div');
-    popup.innerHTML = html!;
-    mapDiv.appendChild(popup);
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { startBtn } = mountLeafletPopup(mapDiv, html!);
 
-    const startBtn = popup.querySelector<HTMLButtonElement>('[data-nav-role="start"]');
-    expect(startBtn).not.toBeNull();
-    startBtn!.click();
+    startBtn.click();
 
     expect(onSetStart).toHaveBeenCalledTimes(1);
     const [lat, lon, label] = onSetStart.mock.calls[0] as [number, number, string];
     expect(lat).toBeCloseTo(t.lat, 4);
     expect(lon).toBeCloseTo(t.lon, 4);
     expect(label).toBe(t.name_he);
+    expect(onMapClick).not.toHaveBeenCalled();
   });
-});
 
-// ===========================================================================
-// Suite 3 — mobile touch tap on nav buttons
-// ===========================================================================
-describe('popup nav button — mobile touch tap', () => {
-  it('touch tap on end-button fires onNavigateToPoint', async () => {
+  it('end-button click works for יאטר too', async () => {
     const onNavigate = vi.fn();
     const ref = createRef<MapHandle>();
     const { container } = render(
       <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate })} />
     );
-
     await act(async () => {});
 
     const t = towns.find(t => t.id === 'yater')!;
     const html = getCaptured().get(t.name_he);
-    expect(html, 'popup HTML not captured for יאטר').toBeTruthy();
+    expect(html).toBeTruthy();
 
-    const mapDiv = container.firstElementChild as HTMLElement;
-    const popup = document.createElement('div');
-    popup.innerHTML = html!;
-    mapDiv.appendChild(popup);
-
-    const endBtn = popup.querySelector<HTMLButtonElement>('[data-nav-role="end"]');
-    expect(endBtn).not.toBeNull();
-    simulateTouchTap(endBtn!);
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { endBtn } = mountLeafletPopup(mapDiv, html!);
+    endBtn.click();
 
     expect(onNavigate).toHaveBeenCalledTimes(1);
-    const [lat, lon] = onNavigate.mock.calls[0] as [number, number, string];
+    const [lat, lon] = onNavigate.mock.calls[0] as [number, number];
     expect(lat).toBeCloseTo(t.lat, 4);
     expect(lon).toBeCloseTo(t.lon, 4);
   });
 
-  it('touch tap on start-button fires onSetNavStart', async () => {
-    const onSetStart = vi.fn();
+  it('end-button click works for דבל', async () => {
+    const onNavigate = vi.fn();
     const ref = createRef<MapHandle>();
     const { container } = render(
-      <MapView ref={ref} {...makeProps({ onSetNavStart: onSetStart })} />
+      <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate })} />
     );
-
     await act(async () => {});
 
     const t = towns.find(t => t.id === 'debel')!;
     const html = getCaptured().get(t.name_he);
-    expect(html, 'popup HTML not captured for דבל').toBeTruthy();
+    expect(html).toBeTruthy();
 
-    const mapDiv = container.firstElementChild as HTMLElement;
-    const popup = document.createElement('div');
-    popup.innerHTML = html!;
-    mapDiv.appendChild(popup);
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { endBtn } = mountLeafletPopup(mapDiv, html!);
+    endBtn.click();
 
-    const startBtn = popup.querySelector<HTMLButtonElement>('[data-nav-role="start"]');
-    expect(startBtn).not.toBeNull();
-    simulateTouchTap(startBtn!);
-
-    expect(onSetStart).toHaveBeenCalledTimes(1);
-    const [lat, lon] = onSetStart.mock.calls[0] as [number, number, string];
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    const [lat, lon] = onNavigate.mock.calls[0] as [number, number];
     expect(lat).toBeCloseTo(t.lat, 4);
     expect(lon).toBeCloseTo(t.lon, 4);
+  });
+});
+
+// ===========================================================================
+// Suite 2b — info toggle (data-info-toggle) works via delegated handler
+// Simulates the user tapping "פרטים ▼" to expand the info section.
+// ===========================================================================
+describe('popup info toggle — delegated handler', () => {
+  it('clicking the toggle shows the info div and changes button text', async () => {
+    const ref = createRef<MapHandle>();
+    const { container } = render(
+      <MapView ref={ref} {...makeProps()} />
+    );
+    await act(async () => {});
+
+    const t = towns.find(t => t.id === 'beitlif')!;
+    const html = getCaptured().get(t.name_he);
+    expect(html).toBeTruthy();
+
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { popup } = mountLeafletPopup(mapDiv, html!);
+
+    const toggleBtn = popup.querySelector<HTMLButtonElement>('[data-info-toggle]')!;
+    const infoDiv   = popup.querySelector<HTMLDivElement>('.town-popup-info')!;
+    expect(toggleBtn, 'toggle button not found').not.toBeNull();
+    expect(infoDiv,   'info div not found').not.toBeNull();
+
+    // Initially collapsed
+    expect(infoDiv.style.display).toBe('none');
+    expect(toggleBtn.textContent).toContain('▼');
+
+    // First click — expand
+    toggleBtn.click();
+    expect(infoDiv.style.display).toBe('block');
+    expect(toggleBtn.textContent).toContain('▲');
+
+    // Second click — collapse again
+    toggleBtn.click();
+    expect(infoDiv.style.display).toBe('none');
+    expect(toggleBtn.textContent).toContain('▼');
+  });
+
+  it('toggle click does NOT fire onNavigateToPoint', async () => {
+    const onNavigate = vi.fn();
+    const ref = createRef<MapHandle>();
+    const { container } = render(
+      <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate })} />
+    );
+    await act(async () => {});
+
+    const t = towns.find(t => t.id === 'yater')!;
+    const html = getCaptured().get(t.name_he);
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { popup } = mountLeafletPopup(mapDiv, html!);
+
+    const toggleBtn = popup.querySelector<HTMLButtonElement>('[data-info-toggle]')!;
+    toggleBtn.click();
+    toggleBtn.click(); // expand then collapse
+
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+});
+
+// ===========================================================================
+// Suite 3 — mobile touch tap inside .leaflet-popup
+// ===========================================================================
+describe('popup nav button — mobile touch inside .leaflet-popup', () => {
+  it('touch tap on end-button fires onNavigateToPoint, not onMapClick', async () => {
+    const onNavigate = vi.fn();
+    const onMapClick = vi.fn();
+    const ref = createRef<MapHandle>();
+    const { container } = render(
+      <MapView ref={ref} {...makeProps({ onNavigateToPoint: onNavigate, onMapClick })} />
+    );
+    await act(async () => {});
+
+    const t = towns.find(t => t.id === 'yater')!;
+    const html = getCaptured().get(t.name_he);
+    expect(html).toBeTruthy();
+
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { endBtn } = mountLeafletPopup(mapDiv, html!);
+    simulateTouchTap(endBtn);
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    const [lat, lon] = onNavigate.mock.calls[0] as [number, number];
+    expect(lat).toBeCloseTo(t.lat, 4);
+    expect(lon).toBeCloseTo(t.lon, 4);
+    expect(onMapClick).not.toHaveBeenCalled();
+  });
+
+  it('touch tap on start-button fires onSetNavStart, not onMapClick', async () => {
+    const onSetStart = vi.fn();
+    const onMapClick = vi.fn();
+    const ref = createRef<MapHandle>();
+    const { container } = render(
+      <MapView ref={ref} {...makeProps({ onSetNavStart: onSetStart, onMapClick })} />
+    );
+    await act(async () => {});
+
+    const t = towns.find(t => t.id === 'debel')!;
+    const html = getCaptured().get(t.name_he);
+    expect(html).toBeTruthy();
+
+    const mapDiv = container.querySelector('[data-testid="map-canvas"]') as HTMLElement;
+    const { startBtn } = mountLeafletPopup(mapDiv, html!);
+    simulateTouchTap(startBtn);
+
+    expect(onSetStart).toHaveBeenCalledTimes(1);
+    expect(onMapClick).not.toHaveBeenCalled();
   });
 });
 
@@ -334,8 +452,7 @@ describe('sectColors toggle — popup HTML stays accordion-style', () => {
     captured.forEach((html, label) => {
       if (!html.includes('town-popup')) return;
       expect(html, `${label}: missing town-popup-nav with sectColors=true`).toContain('town-popup-nav');
-      // info must be visible — no toggle, no display:none
-      expect(html, `${label}: info must be visible`).not.toContain('display:none');
+      expect(html, `${label}: must have data-info-toggle`).toContain('data-info-toggle');
       expect(html, `${label}: no inline onclick allowed`).not.toContain('onclick=');
     });
   });
@@ -363,10 +480,10 @@ describe('sectColors toggle — popup HTML stays accordion-style', () => {
     expect(html).toBeDefined();
     // shia color in popup
     expect(html).toContain('#2a8a6e');
-    // info appears before nav buttons
-    const infoIdx = html!.indexOf('town-popup-info');
+    // nav appears before info (nav-first layout)
     const navIdx  = html!.indexOf('town-popup-nav');
-    expect(infoIdx).toBeLessThan(navIdx);
+    const infoIdx = html!.indexOf('town-popup-info');
+    expect(navIdx).toBeLessThan(infoIdx);
   });
 });
 
