@@ -753,8 +753,12 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest('.leaflet-control, .leaflet-popup')) return;
-      if (target?.closest('[data-nav-lat]')) return;  // popup nav button — handled by handleNavClick
-      if (!props.pointPickMode && target?.closest('.leaflet-marker-icon, .leaflet-tooltip')) return;
+      if (target?.closest('[data-nav-lat]')) return;  // popup nav button — handled by popupopen
+      // Suppress coord-popup when clicking Leaflet interactive layers (circle markers, polylines)
+      // or marker icons / tooltips.  SVG circleMarkers carry .leaflet-interactive on the SVG path.
+      if (!props.pointPickMode && target?.closest(
+        '.leaflet-marker-icon, .leaflet-tooltip, .leaflet-interactive'
+      )) return;
       // ---- rotation-aware click → LatLng conversion ----------------------
       // Leaflet's mouseEventToLatLng uses getBoundingClientRect() to compute
       // the scale factor. When the container has CSS rotate()+scale(), the
