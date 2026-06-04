@@ -226,6 +226,11 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
   const liveFollowDetachedRef = useRef(false);
+  // Always-fresh refs for popup button callbacks (used in popupopen handler)
+  const onNavigateRef = useRef(props.onNavigateToPoint);
+  const onSetNavStartRef = useRef(props.onSetNavStart);
+  onNavigateRef.current  = props.onNavigateToPoint;
+  onSetNavStartRef.current = props.onSetNavStart;
 
   const layersRef = useRef<{
     base?: L.TileLayer;
@@ -797,46 +802,66 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     return () => container.removeEventListener('click', handleClick);
   }, [props.onMapClick, props.pointPickMode, props.onNavigateToPoint]);
 
-  // ---- delegated "navigate here" click from popup buttons ----
+  // ---- popup button wiring via popupopen ----
+  // We wire buttons directly on the popup DOM each time it opens.
+  // This is more reliable on mobile than delegated listeners on the map
+  // container, because Leaflet's touch handling can swallow bubbling events.
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !props.onNavigateToPoint) return;
-    const handleNavClick = (event: MouseEvent) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const onPopupOpen = (e: L.PopupEvent) => {
+      const content = e.popup.getElement()?.querySelector<HTMLElement>('.leaflet-popup-content');
+      if (!content) return;
+
+      // ---- nav buttons ----
+      content.querySelectorAll<HTMLButtonElement>('[data-nav-lat]').forEach(btn => {
+        // touchend fires on mobile; the browser then also fires a synthetic click.
+        // We use a flag to ensure the callback fires exactly once per gesture.
+        let touchFired = false;
+        const fire = (ev: Event) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+          if (ev.type === 'touchend') {
+            touchFired = true;
+          } else if (ev.type === 'click' && touchFired) {
+            // Suppress the synthetic click that follows touchend
+            touchFired = false;
+            return;
+          }
+          const lat = parseFloat(btn.dataset.navLat ?? '');
+          const lon = parseFloat(btn.dataset.navLon ?? '');
+          const label = btn.dataset.navLabel ?? `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+          const role = btn.dataset.navRole ?? 'end';
+          if (!isNaN(lat) && !isNaN(lon)) {
+            if (role === 'start') onSetNavStartRef.current?.(lat, lon, label);
+            else onNavigateRef.current?.(lat, lon, label);
+            map.closePopup();
+          }
+        };
+        btn.addEventListener('touchend', fire, { passive: false });
+        btn.addEventListener('click', fire);
+      });
+
       // ---- info toggle ----
-      const toggleBtn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-info-toggle]');
-      if (toggleBtn) {
-        event.stopPropagation();
+      content.querySelectorAll<HTMLButtonElement>('[data-info-toggle]').forEach(toggleBtn => {
         const infoDiv = toggleBtn.nextElementSibling as HTMLElement | null;
-        if (infoDiv) {
+        if (!infoDiv) return;
+        const fire = (ev: Event) => {
+          ev.stopPropagation();
           const isOpen = infoDiv.style.display !== 'none';
           infoDiv.style.display = isOpen ? 'none' : 'block';
           toggleBtn.textContent = isOpen ? 'פרטים ▼' : 'פרטים ▲';
-        }
-        return;
-      }
-      // ---- nav button ----
-      const btn = (event.target as HTMLElement)?.closest<HTMLElement>('[data-nav-lat]');
-      if (!btn) return;
-      event.stopPropagation();
-      const lat = parseFloat(btn.dataset.navLat ?? '');
-      const lon = parseFloat(btn.dataset.navLon ?? '');
-      const label = btn.dataset.navLabel ?? `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
-      const role = btn.dataset.navRole ?? 'end';
-      if (!isNaN(lat) && !isNaN(lon)) {
-        if (role === 'start' && props.onSetNavStart) {
-          props.onSetNavStart(lat, lon, label);
-        } else {
-          props.onNavigateToPoint!(lat, lon, label);
-        }
-        // close the popup
-        mapRef.current?.closePopup();
-      }
+        };
+        toggleBtn.addEventListener('touchend', fire, { passive: false });
+        toggleBtn.addEventListener('click', fire);
+      });
     };
-    container.addEventListener('click', handleNavClick, { capture: true });
-    return () => {
-      container.removeEventListener('click', handleNavClick, { capture: true } as EventListenerOptions);
-    };
-  }, [props.onNavigateToPoint]);
+
+    map.on('popupopen', onPopupOpen);
+    return () => { map.off('popupopen', onPopupOpen); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);  // mount-once; callbacks accessed via navRef closure
 
   // ---- toggle layer visibility ----
   useEffect(() => {

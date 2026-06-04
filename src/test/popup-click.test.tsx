@@ -38,6 +38,16 @@ import { towns } from '../data/geo';
 const getCaptured = (): Map<string, string> =>
   (globalThis as unknown as Record<string, Map<string, string>>).__capturedPopups;
 
+// Typed accessor for the Leaflet map mock
+type MapMock = {
+  on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
+  closePopup: ReturnType<typeof vi.fn>;
+  __emit: (event: string, arg: unknown) => void;
+};
+const getMap = (): MapMock =>
+  (globalThis as unknown as Record<string, MapMock>).__leafletMapInstance;
+
 // ---------------------------------------------------------------------------
 // Minimal valid MapProps factory
 // ---------------------------------------------------------------------------
@@ -108,9 +118,12 @@ function simulateTouchTap(el: Element): void {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: mount popup HTML exactly as Leaflet does in production:
-//   map-container → .leaflet-pane.leaflet-popup-pane → .leaflet-popup → content
-// This is the structure that handleClick's .leaflet-popup guard is designed for.
+// Helper: mount popup HTML exactly as Leaflet does, then fire 'popupopen'.
+// Structure: mapDiv > .leaflet-pane.leaflet-popup-pane > .leaflet-popup > content
+//
+// The new popup wiring uses map.on('popupopen') to attach listeners directly
+// to the popup DOM (no delegated container listener). This helper simulates
+// Leaflet firing that event so the MapView effect can wire up the buttons.
 // ---------------------------------------------------------------------------
 function mountLeafletPopup(mapDiv: HTMLElement, townHtml: string): {
   popup: HTMLElement;
@@ -127,6 +140,13 @@ function mountLeafletPopup(mapDiv: HTMLElement, townHtml: string): {
   popup.appendChild(content);
   pane.appendChild(popup);
   mapDiv.appendChild(pane);
+
+  // Simulate Leaflet's popup.getElement() — returns the .leaflet-popup div
+  const popupMock = { getElement: () => popup };
+
+  // Fire the popupopen event on the map mock so MapView wires the buttons
+  getMap().__emit('popupopen', { popup: popupMock });
+
   const endBtn   = content.querySelector<HTMLButtonElement>('[data-nav-role="end"]')!;
   const startBtn = content.querySelector<HTMLButtonElement>('[data-nav-role="start"]')!;
   return { popup, endBtn, startBtn };

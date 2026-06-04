@@ -22,11 +22,18 @@ vi.mock('leaflet', () => {
     options: { subdomains: 'abc', maxNativeZoom: 19, maxZoom: 19 },
   });
 
+  // Real event emitter so useEffect hooks that call map.on() actually fire.
+  // Tests can call map.__emit(eventName, arg) to simulate Leaflet events.
+  const mapListeners: Record<string, Array<(arg: unknown) => void>> = {};
   const map = {
     invalidateSize: vi.fn(),
     remove: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
+    on: vi.fn().mockImplementation((event: string, cb: (arg: unknown) => void) => {
+      (mapListeners[event] ??= []).push(cb);
+    }),
+    off: vi.fn().mockImplementation((event: string, cb: (arg: unknown) => void) => {
+      if (mapListeners[event]) mapListeners[event] = mapListeners[event].filter(h => h !== cb);
+    }),
     once: vi.fn(),
     setView: vi.fn().mockReturnThis(),
     fitBounds: vi.fn(),
@@ -41,7 +48,13 @@ vi.mock('leaflet', () => {
     createPane: vi.fn(),
     whenReady: vi.fn((cb: () => void) => { cb(); }),
     closePopup: vi.fn(),
+    // Test helper: simulate a Leaflet event
+    __emit: (event: string, arg: unknown) => {
+      (mapListeners[event] ?? []).forEach(cb => cb(arg));
+    },
   };
+  // Expose the map instance so tests can call map.__emit()
+  (globalThis as Record<string, unknown>).__leafletMapInstance = map;
 
   // circleMarker captures popup HTML into globalThis.__capturedPopups
   const makeCircleMarker = () => {
