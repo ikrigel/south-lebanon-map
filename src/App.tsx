@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import MapView, { LayerVis, MapHandle } from './Map';
+import TransferModal, { type CustomPoi as TransferPoi, type SavedRoute as TransferRoute, type MultiPointRoute as TransferMultiRoute, type RecordingPayload } from './TransferModal';
 import { incidents, blueLine, Incident, towns, unifilPoints, influenceZones, terrainFeatures } from './data/geo';
 import { sources } from './data/sources';
 import {
@@ -966,6 +967,7 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadLocalThemeMode());
   const [autoDay, setAutoDay] = useState(isDaytime());
   const [largeLabels, setLargeLabels] = useState(() => initialLabelPrefsRef.current?.largeLabels ?? false);
@@ -2595,6 +2597,70 @@ export default function App() {
     }
   };
 
+  // ── QR Transfer import handlers ──────────────────────────────────────────
+  const handleQrImportPois = useCallback((pois: TransferPoi[]) => {
+    const valid = (pois as unknown as Partial<CustomPoi>[]).map(normalizePoi).filter((p): p is CustomPoi => Boolean(p));
+    if (!valid.length) return;
+    // deduplicate: skip pois whose id already exists
+    setCustomPois(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const fresh = valid.filter(p => !existingIds.has(p.id));
+      if (!fresh.length) return prev;
+      showToast(`${fresh.length} נקודות עניין יובאו מברקוד`);
+      return [...fresh, ...prev];
+    });
+  }, []);
+
+  const handleQrImportRoutes = useCallback((routes: TransferRoute[]) => {
+    const valid = (routes as SavedRoute[]).filter(r =>
+      r?.start && r?.end &&
+      typeof r.start.lat === 'number' && typeof r.start.lon === 'number' &&
+      typeof r.end.lat === 'number' && typeof r.end.lon === 'number'
+    ).map((r: SavedRoute) => ({
+      id: safeText(r.id) || `route-${Date.now()}-${Math.random()}`,
+      name: safeText(r.name, 'מסלול מיובא') || 'מסלול מיובא',
+      createdAt: safeText(r.createdAt, new Date().toISOString()) || new Date().toISOString(),
+      startId: safeText(r.startId),
+      endId: safeText(r.endId),
+      start: { lat: r.start.lat, lon: r.start.lon, label: safeText(r.start.label, 'נקודת מוצא') || 'נקודת מוצא' },
+      end: { lat: r.end.lat, lon: r.end.lon, label: safeText(r.end.label, 'יעד') || 'יעד' },
+      km: typeof r.km === 'number' && isFinite(r.km) && r.km >= 0 ? r.km : haversineKm([r.start.lat, r.start.lon], [r.end.lat, r.end.lon]),
+      durationMin: typeof r.durationMin === 'number' && isFinite(r.durationMin) ? r.durationMin : undefined,
+      path: Array.isArray(r.path)
+        ? (r.path as [number, number][]).filter(p => Array.isArray(p) && p.length >= 2 && typeof p[0] === 'number' && typeof p[1] === 'number')
+        : undefined,
+      instructions: undefined,
+    }));
+    if (!valid.length) return;
+    setSavedRoutes(prev => {
+      const existingIds = new Set(prev.map(r => r.id));
+      const fresh = valid.filter(r => !existingIds.has(r.id));
+      return fresh.length ? [...fresh, ...prev] : prev;
+    });
+  }, []);
+
+  const handleQrImportMultiRoutes = useCallback((routes: TransferMultiRoute[]) => {
+    const valid = (routes as MultiPointRoute[]).filter(r =>
+      r && Array.isArray(r.points) && r.points.length > 0
+    );
+    if (!valid.length) return;
+    setSavedMultiRoutes(prev => {
+      const existingIds = new Set(prev.map(r => r.id));
+      const fresh = valid.filter(r => !existingIds.has(r.id));
+      return fresh.length ? [...fresh, ...prev] : prev;
+    });
+  }, []);
+
+  const handleQrImportRecording = useCallback((rec: RecordingPayload) => {
+    if (!rec.recordedTrack?.length) return;
+    const track = normalizeRoutePath(rec.recordedTrack) ?? [];
+    if (!track.length) return;
+    setRecordedTrack(track);
+    if (rec.recordingName) setRecordingName(rec.recordingName);
+    showToast('הקלטת נסיעה יובאה מברקוד');
+  }, []);
+  // ────────────────────────────────────────────────────────────────────────────
+
   const shareCurrentApp = async () => {
     const shareData = {
       title: 'מפת מרחב דרום לבנון',
@@ -2940,6 +3006,9 @@ export default function App() {
           </button>
           <button className="btn ghost" onClick={() => setDrawerOpen(true)} data-testid="button-sources">
             מקורות ועל אודות
+          </button>
+          <button className="btn" onClick={() => setTransferOpen(true)} data-testid="button-transfer">
+            העברת מרשמים
           </button>
         </div>
       </header>
@@ -4599,6 +4668,21 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {transferOpen && (
+        <TransferModal
+          onClose={() => setTransferOpen(false)}
+          customPois={customPois}
+          savedRoutes={savedRoutes}
+          savedMultiRoutes={savedMultiRoutes}
+          recordedTrack={recordedTrack}
+          recordingName={recordingName}
+          onImportPois={handleQrImportPois}
+          onImportRoutes={handleQrImportRoutes}
+          onImportMultiRoutes={handleQrImportMultiRoutes}
+          onImportRecording={handleQrImportRecording}
+        />
       )}
 
       {supportOpen && (
