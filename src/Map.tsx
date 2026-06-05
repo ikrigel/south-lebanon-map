@@ -247,11 +247,14 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   }), []);
   const lastLiveFollowRef = useRef<{ lat: number; lon: number; at: number } | null>(null);
   const liveFollowDetachedRef = useRef(false);
-  // Always-fresh refs for popup button callbacks (used in popupopen handler)
+  // Always-fresh refs — updated every render so closures are never stale
   const onNavigateRef = useRef(props.onNavigateToPoint);
   const onSetNavStartRef = useRef(props.onSetNavStart);
   onNavigateRef.current  = props.onNavigateToPoint;
   onSetNavStartRef.current = props.onSetNavStart;
+  // propsRef: keeps handleClick closure fresh without re-registering the listener
+  const propsRef = useRef(props);
+  propsRef.current = props;
 
   const layersRef = useRef<{
     base?: L.TileLayer;
@@ -770,7 +773,10 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (target?.closest('[data-nav-lat]')) return;  // popup nav button — handled by popupopen
       // Suppress coord-popup when clicking Leaflet interactive layers (circle markers, polylines)
       // or marker icons / tooltips.  SVG circleMarkers carry .leaflet-interactive on the SVG path.
-      if (!props.pointPickMode && target?.closest(
+      // Use propsRef.current so this closure always sees up-to-date props
+      // without needing to re-register the listener on every render.
+      const p = propsRef.current;
+      if (!p.pointPickMode && target?.closest(
         '.leaflet-marker-icon, .leaflet-tooltip, .leaflet-interactive'
       )) return;
       // ---- rotation-aware click → LatLng conversion ----------------------
@@ -800,7 +806,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         return map.containerPointToLatLng(containerPt);
       })();
       // In normal (non-mode) navigation: open a coord popup with a nav button.
-      if (!props.pointPickMode && props.onNavigateToPoint) {
+      if (!p.pointPickMode && p.onNavigateToPoint) {
         const coordLabel = `${latLng.lat.toFixed(5)}°N, ${latLng.lng.toFixed(5)}°E`;
 
         // Find nearest town within 500 m to show info toggle
@@ -813,7 +819,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
         const nearbySection = nearbyTown
           ? `<button class="popup-info-toggle" data-info-toggle="1" style="margin-top:6px">פרטים ▼</button>` +
-            `<div class="town-popup-info" style="display:none;margin-top:4px">${buildTownInfoHtml(nearbyTown, props.visible.sectColors)}</div>`
+            `<div class="town-popup-info" style="display:none;margin-top:4px">${buildTownInfoHtml(nearbyTown, p.visible.sectColors)}</div>`
           : '';
 
         const popHtml =
@@ -830,11 +836,13 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
           .setContent(popHtml)
           .openOn(map);
       }
-      props.onMapClick(latLng.lat, latLng.lng);
+      p.onMapClick(latLng.lat, latLng.lng);
     };
     container.addEventListener('click', handleClick);
     return () => container.removeEventListener('click', handleClick);
-  }, [props.onMapClick, props.pointPickMode, props.onNavigateToPoint]);
+  // Mount-once: propsRef.current always has the latest props, no stale closure.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- popup button wiring via popupopen ----
   // We wire buttons directly on the popup DOM each time it opens.
