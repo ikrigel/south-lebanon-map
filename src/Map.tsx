@@ -146,6 +146,27 @@ const poiIconHtml = (color: string, shape: string, size: string, draft = false) 
  * with an expandable info section below.
  * Uses inline onclick toggle — no React, no event delegation needed.
  */
+// Builds the info-section HTML for a town (used by both townPopup and coord-popup)
+const buildTownInfoHtml = (
+  t: { name_he: string; name_en: string; pop_estimate: number; sect?: string; note?: string },
+  useSectColors: boolean,
+): string => {
+  const SECT_LABELS_: Record<string, string> = {
+    shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים',
+    christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי',
+  };
+  const sectColor = (useSectColors && t.sect) ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
+  const sectLabel = t.sect ? (SECT_LABELS_[t.sect] ?? '') : '';
+  return (
+    `<strong>${t.name_he}</strong>` +
+    (useSectColors && sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : '') +
+    `<br/><span style="color:#8b97a8">${t.name_en}</span>` +
+    `<br/>אוכלוסייה: ~${t.pop_estimate.toLocaleString('he-IL')}` +
+    (t.note ? `<br/><em style="color:#b0bec5">${t.note}</em>` : '') +
+    `<br/><span style="color:#6b7a8d;font-size:11px">מקור: ויקיפדיה / אומדן ציבורי</span>`
+  );
+};
+
 const townPopup = (
   lat: number,
   lon: number,
@@ -419,15 +440,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         pane: 'popPane',  // above label pane (600) → mobile touch hits circles first
       })
         .bindPopup(
-          townPopup(
-            t.lat, t.lon, t.name_he,
-            `<strong>${t.name_he}</strong>` +
-            (useSectColors && sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : '') +
-            `<br/><span style="color:#8b97a8">${t.name_en}</span>` +
-            `<br/>אוכלוסייה: ~${t.pop_estimate.toLocaleString('he-IL')}` +
-            (t.note ? `<br/><em style="color:#b0bec5">${t.note}</em>` : '') +
-            `<br/><span style="color:#6b7a8d;font-size:11px">מקור: ויקיפדיה / אומדן ציבורי</span>`
-          ), { minWidth: 200 }
+          townPopup(t.lat, t.lon, t.name_he, buildTownInfoHtml(t, useSectColors)),
+          { minWidth: 200 }
         )
         .addTo(popGroup);
     });
@@ -788,12 +802,28 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       // In normal (non-mode) navigation: open a coord popup with a nav button.
       if (!props.pointPickMode && props.onNavigateToPoint) {
         const coordLabel = `${latLng.lat.toFixed(5)}°N, ${latLng.lng.toFixed(5)}°E`;
+
+        // Find nearest town within 500 m to show info toggle
+        const NEARBY_KM = 0.5;
+        const nearbyTown = towns
+          .filter(t => t.side === 'LB')
+          .map(t => ({ t, d: haversineKm([latLng.lat, latLng.lng], [t.lat, t.lon]) }))
+          .filter(({ d }) => d <= NEARBY_KM)
+          .sort((a, b) => a.d - b.d)[0]?.t ?? null;
+
+        const nearbySection = nearbyTown
+          ? `<button class="popup-info-toggle" data-info-toggle="1" style="margin-top:6px">פרטים ▼</button>` +
+            `<div class="town-popup-info" style="display:none;margin-top:4px">${buildTownInfoHtml(nearbyTown, props.visible.sectColors)}</div>`
+          : '';
+
         const popHtml =
-          `<div style="min-width:180px">
-            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b97a8;margin-bottom:6px">
-              ${coordLabel}
+          `<div class="town-popup" dir="rtl" style="min-width:200px">
+            <div class="town-popup-nav">
+              <button class="popup-nav-btn popup-nav-full" data-nav-lat="${latLng.lat}" data-nav-lon="${latLng.lng}" data-nav-label="${coordLabel.replace(/"/g, '&quot;')}" data-nav-role="end">▶ נווט לכאן — יעד</button>
+              <button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${latLng.lat}" data-nav-lon="${latLng.lng}" data-nav-label="${coordLabel.replace(/"/g, '&quot;')}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>
             </div>
-            ${navBtn(latLng.lat, latLng.lng, coordLabel)}
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8b97a8;margin-top:6px;text-align:center">${coordLabel}</div>
+            ${nearbySection}
           </div>`;
         L.popup({ offset: [0, -4], closeButton: true, className: 'coord-popup' })
           .setLatLng([latLng.lat, latLng.lng])
@@ -904,10 +934,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (wasVisible) map.removeLayer(L_.pop);
     const popGroup = L.layerGroup();
     const useSectColors = props.visible.sectColors;
-    const SECT_LABELS_: Record<string, string> = { shia: 'שיעים', sunni: 'סונים', druze: 'דרוזים', christian: 'נוצרים', mixed: 'מעורב', jewish: 'יהודי' };
     towns.filter(t => t.side === 'LB').forEach(t => {
       const sectColor = (useSectColors && t.sect) ? (SECT_COLORS[t.sect] ?? '#d0b58a') : '#d0b58a';
-      const sectLabel = t.sect ? (SECT_LABELS_[t.sect] ?? '') : '';
       L.circleMarker([t.lat, t.lon], {
         radius: POP_RADIUS[t.pop_band],
         color: sectColor,
@@ -917,15 +945,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         pane: 'popPane',  // keep circles above label pane after rebuild
       })
         .bindPopup(
-          townPopup(
-            t.lat, t.lon, t.name_he,
-            `<strong>${t.name_he}</strong>` +
-            (useSectColors && sectLabel ? ` <span style="color:${sectColor};font-size:11px">● ${sectLabel}</span>` : '') +
-            `<br/><span style="color:#8b97a8">${t.name_en}</span>` +
-            `<br/>אוכלוסייה: ~${t.pop_estimate.toLocaleString('he-IL')}` +
-            (t.note ? `<br/><em style="color:#b0bec5">${t.note}</em>` : '') +
-            `<br/><span style="color:#6b7a8d;font-size:11px">מקור: ויקיפדיה / אומדן ציבורי</span>`
-          ), { minWidth: 200 }
+          townPopup(t.lat, t.lon, t.name_he, buildTownInfoHtml(t, useSectColors)),
+          { minWidth: 200 }
         )
         .addTo(popGroup);
     });
