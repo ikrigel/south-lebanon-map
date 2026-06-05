@@ -3,8 +3,8 @@
 Static Vite + React + Leaflet app, Hebrew RTL. Dark/light analytical dashboard
 visualizing the area between the Blue Line and the Litani River, with layer
 toggles, security-incident filters, distance measurement, road routing,
-live-device location, recorded routes, user-created points of interest and
-file-based sharing.
+live-device location, recorded routes, user-created points of interest,
+file-based sharing and QR-barcode peer-to-peer data transfer between devices.
 
 Production URL: https://south-lebanon-map.vercel.app/
 
@@ -105,6 +105,25 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - **Support development** – the in-app support drawer links to the developer
   portfolio, app sharing and a Bit donation link:
   https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C
+- **QR barcode data transfer** – the "העברת מרשמים" button in the header
+  opens a two-tab modal: *Send* and *Receive*. The Send tab lets the user select
+  which personal data to export (custom POIs, saved routes, multi-point routes,
+  recorded GPS track) and generates a QR code on-screen using `qrcode.react`.
+  The Receive tab activates the device camera and uses `jsqr` to scan frames in
+  real time; when a valid code is detected, items are merged into the app state
+  (deduplicating by id). Route paths are downsampled to ≤ 60 points to stay
+  within QR capacity; full-fidelity transfer of long routes still uses JSON export.
+  No internet connection, server or file-system access is required.
+- **Coordinate popup with nearby-town info** – tapping empty map space opens a
+  coord popup with the exact lat/lon and nav buttons (set as start or end). If
+  the tapped location is within 500 m of a known Lebanese settlement, a
+  collapsible "פרטים ▼" toggle reveals the town's name, sect affiliation and
+  population level. The toggle uses CSS theme variables so it renders correctly
+  in both dark and light themes.
+- **Light-theme popup fix** – popup toggle button and nav buttons now use CSS
+  variables (`--text-muted`, `--bg-3`, `--blue`, `--accent`) instead of
+  hard-coded `rgba(255,255,255,…)` values, making them fully visible in light
+  and auto-day theme modes.
 
 ## Privacy and data handling
 
@@ -116,8 +135,9 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - User-created routes and recordings are kept in browser-local storage when the
   browser allows it. Users can also export them to JSON for backup or transfer
   to another device.
-- Sharing between devices is explicit and file-based: the user exports a JSON
-  file and imports it on another device.
+- Sharing between devices is either file-based (JSON export/import) or
+  QR-code based (the built-in barcode transfer modal). Both methods transfer
+  data directly between devices without any server or shared database.
 - Live location is read through the browser geolocation API after user
   permission. It is rendered locally in the browser and is not persisted by the
   app.
@@ -189,3 +209,11 @@ Deployable as a fully static bundle: `deploy_website(project_path="south-lebanon
 - `button-record-route`, `button-save-recording`, `button-export-recording`
 - `button-add-poi-mode`, `input-poi-name`, `textarea-poi-description`,
   `button-save-poi`, `button-export-pois`, `input-import-pois`
+- `button-transfer`, `transfer-modal-overlay`, `transfer-modal`,
+  `transfer-modal-close`, `transfer-tab-send`, `transfer-tab-receive`,
+  `transfer-send-panel`, `transfer-receive-panel`,
+  `transfer-check-pois`, `transfer-check-routes`,
+  `transfer-check-multi-routes`, `transfer-check-recording`,
+  `transfer-qr-canvas`, `transfer-start-scan`, `transfer-stop-scan`,
+  `transfer-scan-error`, `transfer-import-result`, `transfer-scan-again`,
+  `transfer-video`
