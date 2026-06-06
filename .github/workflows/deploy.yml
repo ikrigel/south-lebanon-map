@@ -10,6 +10,10 @@ on:
       - 'vite.config.ts'
       - '.github/workflows/deploy.yml'
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -58,29 +62,34 @@ jobs:
       - name: Pull Vercel environment information
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Build project artifacts
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy project artifacts to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel deploy --prod --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prod --prebuilt --token="${VERCEL_TOKEN}"
 
       - name: Create deployment status
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         if: always()
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'production',
-              production_environment: true,
-              description: 'v2.0.0 deployed to Vercel',
-              auto_merge: false,
-            });
+            try {
+              github.rest.repos.createDeployment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.sha,
+                environment: 'production',
+                production_environment: true,
+                description: 'v2.0.0 deployed to Vercel',
+                auto_merge: false,
+              });
+            } catch (error) {
+              console.log('Deployment status creation (optional) failed:', error.message);
+            }
