@@ -4760,6 +4760,7 @@ export default function App() {
                   <span>React + Leaflet</span>
                   <span>RTL Hebrew UI</span>
                   <span>Local-first privacy</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent)' }}>v2.0.0</span>
                 </div>
                 <div className="support-actions">
                   <a
