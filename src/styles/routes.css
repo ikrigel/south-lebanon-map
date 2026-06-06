@@ -1,0 +1,156 @@
+﻿/* â”€â”€ Route line base (active) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* stroke-dasharray MUST be in CSS (not SVG attribute) for animation to work */
+.route-line {
+  stroke-width: 6px;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-dashoffset: 0;
+  will-change: stroke-dashoffset;
+}
+/* Solid â€” drive route: use a long dash+gap that looks continuous */
+.route-line.route-line-solid {
+  stroke-dasharray: 28px 4px;
+  stroke-linecap: round;
+  animation: routeFlowSolid 1.0s linear infinite;
+}
+/* Dashed â€” foot/terrain route: period = 14+8 = 22px */
+.route-line.route-line-dashed {
+  stroke-dasharray: 14px 8px;
+  stroke-linecap: round;
+  animation: routeFlowDashed 1.4s linear infinite;
+}
+/* Dotted â€” aerial route: period = 5+8 = 13px, round caps = visible circles */
+.route-line.route-line-dotted {
+  stroke-dasharray: 0.1px 13px;
+  stroke-linecap: round;
+  animation: routeFlowDotted 1.3s linear infinite;
+}
+
+/* â”€â”€ Route line inactive (background) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.route-line-inactive {
+  stroke-width: 3px;
+  stroke-linecap: round;
+  opacity: 0.38;
+}
+.route-line-inactive.route-line-inactive-solid {
+  stroke-dasharray: 28px 4px;
+}
+.route-line-inactive.route-line-inactive-dashed {
+  stroke-dasharray: 8px 7px;
+}
+.route-line-inactive.route-line-inactive-dotted {
+  stroke-dasharray: 0.1px 10px;
+  stroke-linecap: round;
+}
+
+.route-line-alt {
+  opacity: 0.55;
+}
+.recorded-track-line {
+  stroke-dasharray: 10px 8px;
+  stroke-dashoffset: 0;
+  animation: routeFlowDashed 2.2s linear infinite;
+}
+
+/* â”€â”€ @keyframes: each moves exactly one dash-period per cycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* solid: period = 28+4 = 32px */
+@keyframes routeFlowSolid {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -32px; }
+}
+/* dashed: period = 14+8 = 22px */
+@keyframes routeFlowDashed {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -22px; }
+}
+/* dotted: period = 0.1+13 â‰ˆ 13px */
+@keyframes routeFlowDotted {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -13px; }
+}
+.route-alt-label {
+  opacity: 0.75;
+  font-style: italic;
+}
+.live-location-dot {
+  filter: drop-shadow(0 0 8px rgba(79,179,166,0.9));
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+.live-location-arrow {
+  width: 34px;
+  height: 34px;
+  position: relative;
+  filter: drop-shadow(0 0 10px rgba(79,179,166,0.85));
+}
+.live-location-ring {
+  position: absolute;
+  inset: 3px;
+  border: 2px solid #ffffff;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+.live-location-heading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  color: #07131a;
+  font-size: 15px;
+  line-height: 1;
+  padding-top: 1px;
+  transform-origin: 50% 50%;
+  transition: transform .25s ease;
+}
+.poi-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+}
+.poi-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid color-mix(in srgb, var(--bg-1) 92%, white);
+  color: #07131a;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.08),
+    0 4px 14px rgba(0,0,0,0.48),
+    0 0 18px color-mix(in srgb, currentColor 20%, transparent);
+  animation: poiDropInner .28s ease-out both;
+}
+.poi-shape-circle { border-radius: 50%; }
+.poi-shape-square { border-radius: 8px; }
+.poi-shape-diamond { border-radius: 8px; }
+.poi-shape-star {
+  border-radius: 50%;
+  clip-path: polygon(50% 0%, 61% 33%, 96% 35%, 68% 56%, 78% 91%, 50% 70%, 22% 91%, 32% 56%, 4% 35%, 39% 33%);
+}
+.poi-shape-star span { transform: translateY(-1px); }
+.poi-pin-draft {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 4px;
+  animation: poiDraftPulseInner 1.35s ease-in-out infinite;
+}
+.poi-draft-tooltip {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-2));
+}
+@keyframes poiDropInner {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes poiDraftPulseInner {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .72; }
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}

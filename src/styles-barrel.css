@@ -1,0 +1,18 @@
+/* Main styles.css — all imports bundled by Vite at build time */
+
+@import './styles/variables.css';
+@import './styles/layout.css';
+@import './styles/buttons.css';
+@import './styles/controls.css';
+@import './styles/nav-form.css';
+@import './styles/popups.css';
+@import './styles/nav-hud.css';
+@import './styles/markers.css';
+@import './styles/routes.css';
+@import './styles/analytics.css';
+@import './styles/poi.css';
+@import './styles/drawer.css';
+@import './styles/help.css';
+@import './styles/measure.css';
+@import './styles/dialogs.css';
+@import './styles/mobile.css';

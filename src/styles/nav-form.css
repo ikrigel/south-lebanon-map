@@ -1,0 +1,289 @@
+﻿/* ------- Road routing ------- */
+.route-form { display: grid; gap: 10px; min-width: 0; max-width: 100%; }
+.route-form label { display: grid; gap: 6px; color: var(--text-muted); font-size: 12px; }
+.route-picker-grid { display: grid; gap: 10px; min-width: 0; }
+.route-picker { display: grid; gap: 6px; min-width: 0; }
+/* Start row: text input + '×ž×ž×™×§×•×ž×™' button side by side */
+.route-start-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.route-start-row .search { flex: 1; min-width: 0; }
+.use-my-location-btn {
+  white-space: nowrap;
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+  background: rgba(90, 143, 191, 0.15) !important;
+  border-color: rgba(90, 143, 191, 0.4) !important;
+  color: #8ec6f0 !important;
+  flex-shrink: 0;
+}
+.use-my-location-btn:hover {
+  background: rgba(90, 143, 191, 0.28) !important;
+}
+.use-my-location-btn.active {
+  background: rgba(90, 143, 191, 0.35) !important;
+  border-color: rgba(90, 143, 191, 0.7) !important;
+  color: #b8ddff !important;
+}
+/* '× ×•×•×˜ ×¢×›×©×™×•' prominent launch button */
+.launch-nav-box {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(74, 144, 196, 0.09);
+  border: 1px solid rgba(74, 144, 196, 0.3);
+}
+.launch-nav-btn {
+  width: 100%;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 10px 16px !important;
+  background: rgba(74, 144, 196, 0.22) !important;
+  border-color: rgba(74, 144, 196, 0.6) !important;
+  color: #a8d8ff !important;
+  letter-spacing: 0.02em;
+}
+.launch-nav-btn:hover {
+  background: rgba(74, 144, 196, 0.38) !important;
+  color: #c8e8ff !important;
+}
+.launch-nav-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+/* ---- Tabbed town popup ---- */
+.town-popup { min-width: 200px; font-family: var(--font-ui, inherit); }
+.town-popup-tabs { position: relative; }
+
+/* Hide the radio inputs but keep them functional */
+.tpt-radio { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; margin: 0; }
+
+.town-popup-tabbar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 6px;
+}
+.tpt-label {
+  flex: 1;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.04);
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.tpt-label:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.09); }
+
+/* Panel visibility controlled by radio state */
+.tpt-panel { display: none; }
+
+/* info panel active when first radio checked */
+.tpt-radio:nth-of-type(1):checked ~ .town-popup-tabbar .tpt-label:nth-child(1),
+.tpt-radio:nth-of-type(2):checked ~ .town-popup-tabbar .tpt-label:nth-child(2) {
+  color: #9ed4ff;
+  background: rgba(74,144,196,0.22);
+}
+.tpt-radio:nth-of-type(1):checked ~ .tpt-panel.tpt-panel-info  { display: block; }
+.tpt-radio:nth-of-type(2):checked ~ .tpt-panel.tpt-panel-nav   { display: block; }
+
+/* ---- Town popup: nav-first, delegated toggle for info ---- */
+.town-popup { min-width: 200px; direction: rtl; }
+.town-popup-nav { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+.popup-nav-full {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.popup-info-toggle {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-3);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  margin-bottom: 4px;
+  transition: background 0.15s, color 0.15s;
+  /* large touch target for mobile */
+  min-height: 36px;
+}
+.popup-info-toggle:active,
+.popup-info-toggle:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.town-popup-info {
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* ---- Popup nav button (inside Leaflet popups) ---- */
+.popup-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 144, 196, 0.55);
+  background: rgba(74, 144, 196, 0.18);
+  color: var(--blue);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.popup-nav-btn:hover {
+  background: rgba(74, 144, 196, 0.32);
+  color: var(--text);
+}
+/* "Set as start" variant â€” green tint */
+.popup-nav-btn.popup-nav-btn-start {
+  border-color: rgba(109, 196, 99, 0.55);
+  background: rgba(109, 196, 99, 0.15);
+  color: var(--accent);
+}
+.popup-nav-btn.popup-nav-btn-start:hover {
+  background: rgba(109, 196, 99, 0.28);
+  color: var(--text);
+}
+/* Coordinate popup (bare tap) â€” slightly compact */
+.coord-popup .leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+.coord-popup .leaflet-popup-content {
+  margin: 10px 12px !important;
+}
+
+/* ---- Nav scale selector ---- */
+.nav-scale-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 2px;
+}
+.nav-scale-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: 2px; /* RTL: visual gap before buttons */
+  flex-shrink: 0;
+}
+.nav-scale-btn {
+  font-size: 11px !important;
+  padding: 4px 7px !important;
+  border-radius: 5px !important;
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: var(--text-muted) !important;
+  min-width: 46px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-scale-btn:hover {
+  background: rgba(255,255,255,0.11) !important;
+  color: var(--text-primary) !important;
+}
+.nav-scale-btn.active {
+  background: rgba(74, 144, 196, 0.28) !important;
+  border-color: rgba(74, 144, 196, 0.65) !important;
+  color: #b8ddff !important;
+  font-weight: 600 !important;
+}
+.route-pick-results {
+  display: grid;
+  gap: 5px;
+  max-height: 148px;
+  overflow-y: auto;
+}
+.route-pick {
+  text-align: right;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font: inherit;
+}
+.route-pick:hover { border-color: var(--accent); background: var(--bg-3); }
+.route-pick[data-active="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--bg-2)); }
+.route-pick span { display: block; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.route-pick small { display: block; color: var(--text-muted); font-size: 10px; line-height: 1.3; margin-top: 1px; }
+.route-advanced {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  padding: 8px 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+.route-advanced summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.route-advanced[open] { display: grid; gap: 10px; }
+.route-form select {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+}
+.route-form select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+.route-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.route-summary {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: 8px;
+  padding: 9px 10px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.route-summary strong { color: var(--accent-hi); font-family: 'JetBrains Mono', monospace; font-size: 16px; }
+.route-summary.compact { padding: 7px 9px; font-size: 11px; }
+.voice-guidance-box {
+  display: grid;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--unifil) 34%, var(--border));
+  background: color-mix(in srgb, var(--unifil) 6%, var(--bg-2));
+  border-radius: 10px;
+  padding: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+.voice-guidance-head {
+  display: flex;

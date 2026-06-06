@@ -1,0 +1,59 @@
+/* === South Lebanon Map — Dark analytical dashboard, Hebrew RTL === */
+
+:root {
+  --header-h: 48px;
+  --bg: #0b0d10;
+  --bg-1: #0f1217;
+  --bg-2: #131820;
+  --bg-3: #1a212c;
+  --border: #232b38;
+  --border-2: #2c3645;
+  --text: #d8dee8;
+  --text-muted: #8b97a8;
+  --text-faint: #5b6577;
+  --accent: #4fb3a6;
+  --accent-hi: #6ed1c2;
+  --warn: #d49a3a;
+  --danger: #c45a4b;
+  --blue: #5a8fbf;
+  --litani: #4e7fb0;
+  --hez: #b56466;
+  --unifil: #6da7d1;
+  --civ: #d0b58a;
+  --grid: rgba(255,255,255,0.04);
+  --shadow: 0 6px 24px rgba(0,0,0,0.45);
+  font-family: 'Heebo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+:root.theme-light {
+  --bg: #eef2f0;
+  --bg-1: #f7f9f7;
+  --bg-2: #ffffff;
+  --bg-3: #e8f0ee;
+  --border: #d2ddd9;
+  --border-2: #b9c8c4;
+  --text: #16201f;
+  --text-muted: #536361;
+  --text-faint: #7a8986;
+  --accent: #2c8f84;
+  --accent-hi: #0b665d;
+  --warn: #a96a14;
+  --danger: #a9433e;
+  --blue: #376f9f;
+  --litani: #3477a8;
+  --hez: #a4575c;
+  --unifil: #3f83b7;
+  --civ: #9b793b;
+  --grid: rgba(0,0,0,0.06);
+  --shadow: 0 8px 24px rgba(20,38,36,0.14);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

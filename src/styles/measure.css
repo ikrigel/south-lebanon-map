@@ -1,0 +1,134 @@
+﻿/* measure HUD */
+.measure-hud {
+  position: absolute;
+  top: calc(var(--header-h) + 8px);
+  inset-inline-end: 12px;
+  z-index: 1000;
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 12px;
+  min-width: 230px;
+  box-shadow: var(--shadow);
+}
+.compass-button {
+  position: absolute;
+  top: calc(var(--header-h) + 8px);
+  inset-inline-start: 12px;
+  z-index: 1001;
+  min-width: 98px;
+  min-height: 48px;
+  border: 1px solid var(--border-2);
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  color: var(--text);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 7px;
+  align-items: center;
+  padding: 7px 10px;
+  cursor: pointer;
+  font-family: 'Heebo', sans-serif;
+  text-align: right;
+}
+.compass-button:hover { border-color: var(--accent); background: var(--bg-2); }
+.compass-button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-hi); }
+.compass-needle {
+  grid-row: 1 / span 2;
+  color: var(--danger);
+  font-size: 17px;
+  line-height: 1;
+  transform-origin: center center;
+  transition: transform .25s ease;
+}
+.compass-button span:not(.compass-needle) { font-weight: 800; font-size: 12px; line-height: 1.1; }
+.compass-button small { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+/* Reset-north button â€” shown when map is manually rotated.
+   Positioned at top-right to avoid overlapping the compass / menu buttons on the left. */
+.reset-north-btn {
+  /* Override left-anchor from .compass-button */
+  inset-inline-start: unset !important;
+  inset-inline-end: 12px;
+  top: calc(var(--header-h) + 8px);
+  border-color: rgba(246, 196, 83, 0.5) !important;
+  background: color-mix(in srgb, rgba(246,196,83,0.12) 100%, transparent) !important;
+}
+.reset-north-btn:hover {
+  background: color-mix(in srgb, rgba(246,196,83,0.22) 100%, transparent) !important;
+  border-color: rgba(246, 196, 83, 0.75) !important;
+}
+.reset-north-btn .compass-needle { color: #f6c453; }
+/* Rotation lock button â€” sits between reset-north and map-menu-fab */
+.rotation-lock-btn {
+  position: absolute;
+  top: calc(var(--header-h) + 8px + 70px);
+  inset-inline-start: 12px;
+  z-index: 1001;
+  min-width: 80px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background .15s, border-color .15s, color .15s;
+  padding: 4px 8px;
+}
+.rotation-lock-btn:hover { background: var(--bg-2); color: var(--text); }
+.rotation-lock-btn.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-1));
+  color: var(--accent-hi);
+}
+.rotation-lock-btn .lock-icon { font-size: 14px; line-height: 1; }
+.rotation-lock-btn small { font-size: 9px; color: var(--text-faint); }
+.rotation-lock-btn.active small { color: var(--accent); }
+
+/* Snap rotation picker */
+.snap-rotation-picker {
+  position: absolute;
+  top: calc(var(--header-h) + 8px + 70px);
+  inset-inline-start: calc(12px + 88px);
+  z-index: 1002;
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.5));
+  min-width: 200px;
+}
+.snap-picker-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: center;
+  font-weight: 600;
+}
+.snap-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.snap-angle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 16px;

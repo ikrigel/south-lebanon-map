@@ -1,0 +1,149 @@
+﻿
+/* Custom markers */
+.marker-incident {
+  border-radius: 50%;
+  border: 1.5px solid #07131a;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+}
+.marker-town { background: var(--civ); border: 1px solid rgba(0,0,0,0.4); border-radius: 50%; }
+.marker-town.il { background: #88a3b8; }
+.marker-unifil {
+  background: var(--unifil);
+  border: 1.5px solid #07131a;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.2);
+}
+/* popPane SVG fix: Leaflet sets pointer-events="none" on the SVG root element.
+   On desktop, path.leaflet-interactive still receives mouse events because the
+   browser does per-element hit-testing inside SVG even when the SVG root says none.
+   On mobile (touch), Chrome/Safari do NOT descend into a pointer-events:none SVG for
+   touch hit-testing â€” they skip the entire SVG subtree. We must re-enable it on the
+   SVG inside our custom popPane so circleMarker touch events work on Android/iOS.
+   The <path class="leaflet-interactive"> already has pointer-events:auto from Leaflet
+   CSS, but that only takes effect once the parent SVG is not blocking touch. */
+.leaflet-pop-pane svg {
+  pointer-events: auto;
+}
+
+/* label icon wrapper â€” must not intercept clicks on map layers beneath */
+.map-label-icon {
+  pointer-events: none !important;
+  direction: rtl;
+  text-align: center;
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-2) 85%, transparent);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 2px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  font-family: 'Heebo', sans-serif;
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+  /* Center label horizontally over the marker point regardless of text width.
+     iconAnchor=[0,10] places top-left at the point; translateX(-50%) shifts
+     the label left by half its own width â€” works for any label length. */
+  transform: translateX(-50%);
+}
+.map-label-icon .label-he { display: block; font-weight: 800; }
+.map-label-icon .label-en { display: none; color: var(--text-muted); font-size: 9px; margin-top: 1px; direction: ltr; }
+.map-label-icon.label-expanded {
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 9px;
+}
+.map-label-icon.label-expanded .label-en { display: block; font-size: 11px; }
+.map-label-icon.label-compact { opacity: 0.92; }
+.unifil-label { border-color: color-mix(in srgb, var(--unifil) 70%, var(--border)); }
+.il-label { border-color: color-mix(in srgb, #88a3b8 65%, var(--border)); }
+.lb-label { border-color: color-mix(in srgb, var(--civ) 65%, var(--border)); }
+
+/* Sect border colors on labels â€” !important ensures override over .lb-label and
+   .map-label-icon border shorthand on all browsers including mobile Safari */
+.sect-shia     { border-color: #2a8a6e !important; }
+.sect-sunni    { border-color: #c97d2a !important; }
+.sect-druze    { border-color: #7b3fa0 !important; }
+.sect-christian{ border-color: #b03030 !important; }
+.sect-mixed    { border-color: #6b7280 !important; }
+
+/* Sect dot inside label */
+.sect-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: 3px;
+  margin-bottom: -1px;
+  flex-shrink: 0;
+}
+
+/* Sect legend in panel */
+.sect-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 6px 0 4px;
+}
+.sect-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-main);
+}
+.sect-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.terrain-label {
+  background: color-mix(in srgb, var(--bg-1) 80%, transparent);
+  border-style: dashed;
+  font-size: 9.5px;
+}
+.terrain-river, .terrain-wadi, .terrain-water {
+  color: color-mix(in srgb, var(--litani) 78%, var(--text));
+  border-color: color-mix(in srgb, var(--litani) 70%, var(--border));
+}
+.terrain-ridge, .terrain-mountain, .terrain-valley {
+  color: color-mix(in srgb, var(--warn) 78%, var(--text));
+  border-color: color-mix(in srgb, var(--warn) 70%, var(--border));
+}
+.map-label-icon.label-expanded.terrain-label { font-size: 12px; }
+.route-tooltip {
+  direction: rtl;
+  background: var(--bg-1);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-family: 'Heebo', sans-serif;
+  font-size: 11px;
+}
+.route-tooltip::before { display: none; }
+.focus-tooltip {
+  direction: rtl;
+  background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, #f6c453 64%, var(--border));
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-family: 'Heebo', sans-serif;
+  font-weight: 800;
+}
+.focus-tooltip::before { display: none; }
+.route-distance-label {
+  direction: rtl;
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-1));
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 5px 10px;
+  box-shadow: var(--shadow);
+  font-family: 'Heebo', sans-serif;
+  font-weight: 800;
+  white-space: nowrap;
+}
+/* â”€â”€ Route line base (active) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
