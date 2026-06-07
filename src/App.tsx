@@ -41,6 +41,7 @@ import {
 } from './storage/sessionLoaders';
 import { normalizePoi } from './storage/normalize';
 import { useLiveLocation } from './hooks/useLiveLocation';
+import { useRouteOptions } from './hooks/useRouteOptions';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -680,6 +681,15 @@ export default function App() {
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
   const navEnd = navPoints.find(p => p.id === navEndId) ?? null;
+  const { routeOptions, activeRouteOption, routeOverlaysMemo } = useRouteOptions({
+    navStart,
+    navEnd,
+    roadRoute,
+    footRoute,
+    routeStatus,
+    footRouteStatus: footRouteStatus,
+    activeRouteId,
+  });
   const navFollowZoom = NAV_SCALES.find(s => s.label === navScaleLabel)?.zoom ?? 15;
   const routePointMatches = (q: string) => {
     const term = clean(q);
@@ -851,75 +861,7 @@ export default function App() {
 
   // ── Build routeOptions for multi-route selector (memoised — stable ref) ──
   // NOTE: deps intentionally exclude liveLocation so GPS updates do NOT
-  //       rebuild the route objects → eliminates the 1-second render flicker.
-  const routeOptions: RouteOption[] = useMemo(() => {
-    if (!navStart || !navEnd || navStart.id === navEnd.id) return [];
-    const aerialKm = haversineKm([navStart.lat, navStart.lon], [navEnd.lat, navEnd.lon]);
-    // Great-circle path: the geometrically shortest route between two points
-    // on the globe. Interpolated to 32 intermediate points so it renders as a
-    // smooth arc on the Mercator map (not a straight screen line).
-    const aerialPath = computeGeodesicPath(
-      [navStart.lat, navStart.lon],
-      [navEnd.lat,   navEnd.lon],
-      32,
-    );
-    return [
-      {
-        id: 'drive',
-        labelHe: 'מסלול כביש',
-        km: roadRoute?.km ?? aerialKm,
-        durationMin: roadRoute?.durationMin,
-        path: roadRoute?.path,
-        instructions: roadRoute?.instructions,
-        passabilityHe: 'כלי רכב בלבד',
-        airspaceHe: 'ללא אישור מיוחד',
-        color: '#4a90c4',
-        lineStyle: 'solid' as const,
-        status: routeStatus as RouteOption['status'],
-      },
-      {
-        id: 'foot',
-        labelHe: 'שביל שטח (הליכה)',
-        km: footRoute?.km ?? aerialKm,
-        durationMin: footRoute?.durationMin,
-        path: footRoute?.path,
-        instructions: footRoute?.instructions,
-        passabilityHe: 'כוחות קרקעיים בלבד',
-        airspaceHe: 'שביל / דרך עפר',
-        color: '#6dc463',
-        lineStyle: 'dashed' as const,
-        status: footRouteStatus as RouteOption['status'],
-      },
-      {
-        id: 'aerial',
-        labelHe: 'קו טיסה ישיר',
-        km: aerialKm,
-        durationMin: undefined,
-        path: aerialPath,
-        instructions: undefined,
-        passabilityHe: 'כלי טיס בלבד',
-        airspaceHe: 'אזור אווירי מוגבל — נדרש אישור',
-        color: '#e8c44a',
-        lineStyle: 'dotted' as const,
-        status: 'ready' as const,
-      },
-    ];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    navStart?.id, navEnd?.id,
-    // Include coordinates so the aerial/geodesic path is recomputed when the
-    // GPS-based start point moves to a new location (live-location or
-    // custom-nav-start created from a fresh GPS fix).
-    navStart?.lat, navStart?.lon, navEnd?.lat, navEnd?.lon,
-    roadRoute, footRoute,
-    routeStatus, footRouteStatus,
-  ]);
-
-  // The active route option — stable ref, not rebuilt on GPS tick
-  const activeRouteOption = useMemo(
-    () => routeOptions.find(r => r.id === activeRouteId) ?? routeOptions[0] ?? null,
-    [routeOptions, activeRouteId],
-  );
+  // Route options memoized via useRouteOptions hook above
 
   // calculatedRoute — stable ref, rebuilt only when endpoint IDs or active route change.
   // IMPORTANT: deps are navStartId/navEndId (strings), NOT navStart/navEnd objects.
@@ -958,18 +900,7 @@ export default function App() {
     return calculatedRoute;
   }, [activeSavedRoute, calculatedRoute]);
 
-  // Memoised overlay list — only changes when a route data or active selection changes,
-  // NOT on every GPS update. Passed as a stable prop to MapView.
-  const routeOverlaysMemo = useMemo(() => routeOptions.map(opt => ({
-    id: opt.id,
-    path: opt.path ?? [],
-    color: opt.color,
-    lineStyle: opt.lineStyle,
-    labelHe: opt.labelHe,
-    km: opt.km,
-    durationMin: opt.durationMin,
-    isActive: opt.id === activeRouteId,
-  })), [routeOptions, activeRouteId]);
+  // Route overlays memoized via useRouteOptions hook above
 
   // Keep lastDistToDestMRef in sync so the nav-session save effect can read it
   // without creating a forward-reference TypeScript error.
