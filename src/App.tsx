@@ -42,6 +42,7 @@ import {
 import { normalizePoi } from './storage/normalize';
 import { useLiveLocation } from './hooks/useLiveLocation';
 import { useRouteOptions } from './hooks/useRouteOptions';
+import { useRecording } from './hooks/useRecording';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -172,7 +173,7 @@ export default function App() {
       return next;
     });
   }, []);
-  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'error' | 'unsupported'>('idle');
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'error'>('idle');
   const [recordingWatchId, setRecordingWatchId] = useState<number | null>(null);
   const [recordedTrack, setRecordedTrack] = useState<[number, number][]>(() => initialRecordingSessionRef.current?.recordedTrack ?? []);
   const [recordingName, setRecordingName] = useState(() => initialRecordingSessionRef.current?.recordingName ?? '');
@@ -187,7 +188,6 @@ export default function App() {
   const resumedLiveRef = useRef(false);
   const resumedRecordingRef = useRef(false);
   const liveToastShownRef = useRef(false);
-  const recordingToastShownRef = useRef(false);
   const toastTimeoutRef = useRef<number | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const [donationCopied, setDonationCopied] = useState(false);
@@ -618,6 +618,20 @@ export default function App() {
   const recordedKm = useMemo(() => {
     return recordedTrack.slice(1).reduce((sum, point, idx) => sum + haversineKm(recordedTrack[idx], point), 0);
   }, [recordedTrack]);
+
+  const { beginRecordingWatch: hookBeginRecordingWatch, startRecording: hookStartRecording, stopRecording: hookStopRecording, recordingToRoute: hookRecordingToRoute, saveRecording: hookSaveRecording } = useRecording({
+    recordedTrack,
+    recordingName,
+    recordedKm,
+    setRecordedTrack,
+    setRecordingStatus,
+    setRecordingWatchId,
+    setLiveLocation,
+    setSavedRoutes,
+    setActiveSavedRoute,
+    setRecordingName,
+    showToast,
+  });
 
   const navPoints = useMemo<NavPoint[]>(() => {
     const townPoints = towns.map(t => ({
@@ -1435,87 +1449,12 @@ export default function App() {
     showToast('המפה חזרה להתמקד במיקום החי');
   }, [liveLocation, showToast]);
 
-  const beginRecordingWatch = (resetTrack: boolean) => {
-    if (!('geolocation' in navigator)) {
-      setRecordingStatus('unsupported');
-      showToast('הדפדפן אינו תומך בהקלטת מיקום');
-      return null;
-    }
-    if (recordingWatchId !== null) return;
-    if (resetTrack) {
-      setRecordedTrack([]);
-      recordedTrackRef.current = [];
-    }
-    const id = navigator.geolocation.watchPosition(
-      pos => {
-        const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setLiveLocation({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-          heading: pos.coords.heading,
-        });
-        setRecordedTrack(prev => {
-          const last = prev[prev.length - 1];
-          if (last && haversineKm(last, point) < 0.01) return prev;
-          return [...prev, point].slice(-10000);
-        });
-        setRecordingStatus('recording');
-        if (!recordingToastShownRef.current) {
-          recordingToastShownRef.current = true;
-          showToast('הקלטת המסלול החלה');
-        }
-      },
-      () => {
-        setRecordingStatus('error');
-        showToast('לא ניתן להקליט מיקום. בדוק הרשאת GPS בדפדפן');
-      },
-      { enableHighAccuracy: true, maximumAge: 2_000, timeout: 15_000 }
-    );
-    setRecordingWatchId(id);
-    setRecordingStatus('recording');
-    return id;
-  };
-
-  const startRecording = () => {
-    recordingToastShownRef.current = false;
-    showToast('מבקש הרשאת מיקום ומתחיל הקלטה…');
-    beginRecordingWatch(true);
-  };
-
-  const stopRecording = () => {
-    if (recordingWatchId !== null && 'geolocation' in navigator) {
-      navigator.geolocation.clearWatch(recordingWatchId);
-    }
-    setRecordingWatchId(null);
-    setRecordingStatus('idle');
-    showToast('הקלטת המסלול נעצרה');
-  };
-
-  const recordingToRoute = (): SavedRoute | null => {
-    if (recordedTrack.length < 2) return null;
-    const start = recordedTrack[0];
-    const end = recordedTrack[recordedTrack.length - 1];
-    const name = safeText(recordingName, `הקלטת מסלול ${new Date().toLocaleString('he-IL')}`) || 'הקלטת מסלול';
-    return {
-      id: `recorded-${Date.now()}`,
-      name,
-      createdAt: new Date().toISOString(),
-      start: { lat: start[0], lon: start[1], label: `${name} — התחלה` },
-      end: { lat: end[0], lon: end[1], label: `${name} — סיום` },
-      km: recordedKm,
-      path: recordedTrack,
-    };
-  };
-
-  const saveRecording = () => {
-    const route = recordingToRoute();
-    if (!route) return;
-    setSavedRoutes(prev => [route, ...prev]);
-    setActiveSavedRoute(route);
-    setRecordingName('');
-    showToast(`ההקלטה “${route.name}” נשמרה כמסלול`);
-  };
+  // Recording functions wired via useRecording hook above
+  const beginRecordingWatch = hookBeginRecordingWatch;
+  const startRecording = hookStartRecording;
+  const stopRecording = hookStopRecording;
+  const recordingToRoute = hookRecordingToRoute;
+  const saveRecording = hookSaveRecording;
 
   const importRoutes = async (file: File | undefined) => {
     if (!file) return;
@@ -2715,8 +2654,7 @@ export default function App() {
                 {recordingStatus === 'recording' && <span>הקלטה פעילה · {recordedTrack.length} נקודות · {fmtKm(recordedKm)}</span>}
                 {recordingStatus === 'idle' && recordedTrack.length > 0 && <span>הקלטה מוכנה לשמירה · {recordedTrack.length} נקודות · {fmtKm(recordedKm)}</span>}
                 {recordingStatus === 'idle' && recordedTrack.length === 0 && <span>לחץ “התחל הקלטה” כדי לשמור מסלול GPS תוך כדי נסיעה.</span>}
-                {recordingStatus === 'error' && <span>לא ניתן להקליט מיקום. בדוק הרשאת מיקום בדפדפן.</span>}
-                {recordingStatus === 'unsupported' && <span>הדפדפן אינו תומך בהקלטת מיקום.</span>}
+                {recordingStatus === 'error' && <span>לא ניתן להקליט מיקום. בדוק הרשאת מיקום בדפדפן או שהדפדפן אינו תומך בהקלטת מיקום.</span>}
               </div>
               <input
                 className="search"
