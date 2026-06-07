@@ -6,198 +6,20 @@ import { sources } from './data/sources';
 import {
   TYPE_LABEL, TYPE_COLOR, SEV_LABEL, fmtDate, fmtKm, haversineKm, distanceToPolyline, safeText, bearingDegrees,
 } from './util';
+import type {
+  ThemeMode, VoiceGuidanceMode, VoiceLanguage, TurnAction, TurnInstruction, RoadRoute, RouteDisplayMode,
+  RouteOption, SavedRoute, NavPoint, PoiColor, PoiShape, PoiSize, CustomPoi, LocalNavSession, LocalRecordingSession,
+  LocalMapView, LocalLabelPreferences, DifficultyLevel, PassabilityLevel, MultiPointRoute, LocalUiState, LocalFilterState,
+} from './types';
+import {
+  TYPES, SEVS, MAX_ROUTE_FILE_BYTES, MAX_IMPORTED_ROUTES, MAX_ROUTE_POINTS, MAX_POI_FILE_BYTES, MAX_IMPORTED_POIS,
+  MAX_MULTI_ROUTE_POINTS, POI_STORAGE_KEY, NAV_SESSION_KEY, RECORDING_STORAGE_KEY, THEME_STORAGE_KEY,
+  LAYER_VIS_STORAGE_KEY, MAP_VIEW_STORAGE_KEY, LABEL_PREF_STORAGE_KEY, UI_STATE_STORAGE_KEY, FILTER_STATE_STORAGE_KEY,
+  SAVED_ROUTES_STORAGE_KEY, SAVED_MULTI_ROUTES_STORAGE_KEY, MULTI_ROUTE_STORAGE_KEY, DEFAULT_THEME_MODE,
+  DEFAULT_MAP_VIEW, DONATION_CONTACT_URL, POI_COLORS, POI_SHAPES, POI_SIZES, DIFFICULTY_LABELS, PASSABILITY_LABELS,
+  NAV_SCALES, DEFAULT_NAV_SCALE_LABEL, SNAP_ANGLES, SNAP_LABELS, DEFAULT_LAYER_VISIBILITY,
+} from './constants';
 
-const TYPES: Incident['type'][] = ['rocket', 'atgm', 'uav', 'idf_strike', 'unifil', 'ground', 'displacement'];
-const SEVS: Incident['severity'][] = ['low', 'med', 'high'];
-const MAX_ROUTE_FILE_BYTES = 1_000_000;
-const MAX_IMPORTED_ROUTES = 100;
-const MAX_ROUTE_POINTS = 5000;
-const MAX_POI_FILE_BYTES = 750_000;
-const MAX_IMPORTED_POIS = 500;
-const POI_STORAGE_KEY = 'south-lebanon-map:custom-pois:v1';
-const NAV_SESSION_KEY = 'south-lebanon-map:navigation-session:v1';
-const RECORDING_STORAGE_KEY = 'south-lebanon-map:recorded-track:v1';
-const THEME_STORAGE_KEY = 'south-lebanon-map:theme-mode:v1';
-const LAYER_VIS_STORAGE_KEY = 'south-lebanon-map:layer-visibility:v1';
-const MAP_VIEW_STORAGE_KEY = 'south-lebanon-map:last-map-view:v1';
-const LABEL_PREF_STORAGE_KEY = 'south-lebanon-map:label-preferences:v1';
-const UI_STATE_STORAGE_KEY = 'south-lebanon-map:ui-state:v1';
-const FILTER_STATE_STORAGE_KEY = 'south-lebanon-map:filter-state:v1';
-const SAVED_ROUTES_STORAGE_KEY = 'south-lebanon-map:saved-routes:v1';
-const SAVED_MULTI_ROUTES_STORAGE_KEY = 'south-lebanon-map:saved-multi-routes:v1';
-const DEFAULT_THEME_MODE: ThemeMode = 'dark';
-const DEFAULT_MAP_VIEW = { lat: 33.25, lon: 35.38, zoom: 10 };
-const DONATION_CONTACT_URL = 'https://www.bitpay.co.il/app/me/7193501F-35B9-B8F9-0E46-32EA6E76DDFAF94C';
-const POI_COLORS = [
-  { value: '#f6c453', label: 'זהב' },
-  { value: '#4fb3a6', label: 'טורקיז' },
-  { value: '#6aa7d8', label: 'כחול' },
-  { value: '#d96b6b', label: 'אדום' },
-  { value: '#b98cff', label: 'סגול' },
-  { value: '#88c37a', label: 'ירוק' },
-] as const;
-const POI_SHAPES = [
-  { value: 'circle', label: 'עיגול' },
-  { value: 'square', label: 'ריבוע' },
-  { value: 'diamond', label: 'יהלום' },
-  { value: 'star', label: 'כוכב' },
-] as const;
-const POI_SIZES = [
-  { value: 'sm', label: 'קטן' },
-  { value: 'md', label: 'בינוני' },
-  { value: 'lg', label: 'גדול' },
-] as const;
-type ThemeMode = 'auto' | 'light' | 'dark';
-type VoiceGuidanceMode = 'off' | 'basic' | 'detailed';
-type VoiceLanguage = 'he' | 'en';
-type TurnAction = 'straight' | 'right' | 'left' | 'uturn' | 'arrive' | 'none';
-type PoiColor = typeof POI_COLORS[number]['value'];
-type PoiShape = typeof POI_SHAPES[number]['value'];
-type PoiSize = typeof POI_SIZES[number]['value'];
-type NavPoint = {
-  id: string;
-  label: string;
-  group: string;
-  lat: number;
-  lon: number;
-};
-type TurnInstruction = {
-  text: string;
-  textEn: string;
-  action: TurnAction;
-  distanceM: number;
-  bearing: number;
-  confidence: 'route' | 'estimated';
-  lat?: number;
-  lon?: number;
-  roadName?: string;
-};
-type RoadRoute = {
-  km: number;
-  durationMin: number;
-  path: [number, number][];
-  instructions?: TurnInstruction[];
-};
-// How the distance HUD and line are displayed during navigation
-type RouteDisplayMode = 'road' | 'aerial' | 'both';
-
-// A computed route option shown in the route-type selector
-type RouteOption = {
-  id: 'drive' | 'foot' | 'aerial';
-  labelHe: string;           // e.g. 'כביש סלול'
-  km: number;
-  durationMin?: number;
-  path?: [number, number][];
-  instructions?: TurnInstruction[];
-  passabilityHe: string;     // human-readable clearance label
-  airspaceHe: string;        // airspace/difficulty label
-  color: string;             // polyline colour on map
-  lineStyle: 'solid' | 'dashed' | 'dotted';
-  status: 'ready' | 'loading' | 'error' | 'none';
-};
-type SavedRoute = {
-  id: string;
-  name: string;
-  createdAt: string;
-  startId?: string;
-  endId?: string;
-  start: { lat: number; lon: number; label: string };
-  end: { lat: number; lon: number; label: string };
-  km: number;
-  durationMin?: number;
-  path?: [number, number][];
-  instructions?: TurnInstruction[];
-};
-type CustomPoi = {
-  id: string;
-  name: string;
-  description: string;
-  lat: number;
-  lon: number;
-  createdAt: string;
-  markerColor: PoiColor;
-  markerShape: PoiShape;
-  markerSize: PoiSize;
-};
-type LocalNavSession = {
-  navStartId?: string;
-  navEndId?: string;
-  navStartQuery?: string;
-  navEndQuery?: string;
-  routeName?: string;
-  roadRoute?: RoadRoute | null;
-  footRoute?: RoadRoute | null;
-  activeSavedRoute?: SavedRoute | null;
-  liveActive?: boolean;
-  voiceGuidance?: VoiceGuidanceMode;
-  voiceLanguage?: VoiceLanguage;
-  // New: persist map-tapped custom points
-  navCustomStart?: { lat: number; lon: number; label: string } | null;
-  navCustomEnd?:   { lat: number; lon: number; label: string } | null;
-  // New: active route selection + display mode
-  activeRouteId?: 'drive' | 'foot' | 'aerial';
-  routeDisplayMode?: RouteDisplayMode;
-  // Timestamp of last save — used to detect "arrived" state on resume
-  savedAt?: number;
-  // Last known distance-to-destination (metres) so we can skip asking if already arrived
-  lastDistToDestM?: number;
-};
-type LocalRecordingSession = {
-  recordingName?: string;
-  recordedTrack?: [number, number][];
-  recordingActive?: boolean;
-};
-type LocalMapView = {
-  lat: number;
-  lon: number;
-  zoom: number;
-};
-type LocalLabelPreferences = {
-  largeLabels?: boolean;
-  allLabels?: boolean;
-};
-type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'extreme';
-type PassabilityLevel = 'paved' | 'dirt' | 'offroad' | 'foot_only';
-type MultiPointRoute = {
-  id: string;
-  name: string;
-  description: string;
-  difficulty: DifficultyLevel;
-  passability: PassabilityLevel;
-  points: { lat: number; lon: number; label: string; order: number }[];
-  totalKm: number;
-  createdAt: string;
-};
-const DEFAULT_LAYER_VISIBILITY: LayerVis = {
-  pop: true,
-  unifil: true,
-  hez: true,
-  blueLine: true,
-  litani: true,
-  rivers: true,
-  topo: false,
-  cityLabels: true,
-  settlementLabels: true,
-  ridgeLabels: true,
-  waterLabels: true,
-  sectColors: true,
-  navLabels: true,
-};
-
-const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
-  easy: 'קל',
-  medium: 'בינוני',
-  hard: 'קשה',
-  extreme: 'קיצוני',
-};
-const PASSABILITY_LABELS: Record<PassabilityLevel, string> = {
-  paved: 'כביש סלול',
-  dirt: 'דרך עפר',
-  offroad: 'שטח פתוח',
-  foot_only: 'הליכה בלבד',
-};
-const MULTI_ROUTE_STORAGE_KEY = 'south-lebanon-map:multi-routes:v1';
-const MAX_MULTI_ROUTE_POINTS = 50;
 
 const isDaytime = () => {
   const hour = new Date().getHours();
@@ -505,20 +327,6 @@ const parseValhallaInstructions = (trip: any): TurnInstruction[] => {
 // 1:50   →2^z≈17.9  → zoom=17  (street/path detail)
 // 1:100  →2^z≈16.9  → zoom=16  (village detail)
 // 1:200  →2^z≈15.9  → zoom=15  (settlement cluster)
-// 1:500  →2^z≈13.3  → zoom=13  (sector overview)
-// 1:1000 →2^z≈12.3  → zoom=12  (district overview)
-// 1:2000 →2^z≈11.3  → zoom=11  (regional overview)
-const NAV_SCALES: { label: string; zoom: number }[] = [
-  { label: '1:20',   zoom: 18 },
-  { label: '1:50',   zoom: 17 },
-  { label: '1:100',  zoom: 16 },
-  { label: '1:200',  zoom: 15 },
-  { label: '1:500',  zoom: 13 },
-  { label: '1:1000', zoom: 12 },
-  { label: '1:2000', zoom: 11 },
-];
-const DEFAULT_NAV_SCALE_LABEL = '1:200'; // sensible default during navigation
-
 const isMobileLikeDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
@@ -832,12 +640,6 @@ const loadLocalRecordingSession = (): LocalRecordingSession => {
 };
 
 // ---- UI state (panelsCollapsed, panelHeightPct, userMapRotation) ----
-type LocalUiState = {
-  panelsCollapsed?: boolean;
-  panelHeightPct?: number;
-  userMapRotation?: number;
-};
-
 const loadLocalUiState = (): LocalUiState => {
   try {
     const raw = safeStorageGet(UI_STATE_STORAGE_KEY);
@@ -860,13 +662,6 @@ const loadLocalUiState = (): LocalUiState => {
 };
 
 // ---- Incident filter state ----
-type LocalFilterState = {
-  yearFrom?: number;
-  yearTo?: number;
-  typeFilter?: string[];
-  sevFilter?: string[];
-};
-
 const loadLocalFilterState = (): LocalFilterState => {
   try {
     const raw = safeStorageGet(FILTER_STATE_STORAGE_KEY);
@@ -1035,11 +830,6 @@ export default function App() {
   // user picks snap angles (0/45/90/135/180/225/270/315) via a picker.
   const [rotationLocked, setRotationLocked] = useState(false);
   const [snapPickerOpen, setSnapPickerOpen] = useState(false);
-  const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
-  const SNAP_LABELS: Record<number, string> = {
-    0: '↑ צפון', 45: '↗ ס״מ', 90: '→ מזרח', 135: '↘ ד״מ',
-    180: '↓ דרום', 225: '↙ ד״מ', 270: '← מערב', 315: '↖ ס״מ',
-  };
   const handleSnapRotation = useCallback((deg: number) => {
     setUserMapRotation(deg);
     setSnapPickerOpen(false);

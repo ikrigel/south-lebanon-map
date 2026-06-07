@@ -1,8 +1,9 @@
-import type { DifficultyLevel, PassabilityLevel, ThemeMode, LocalMapView, LayerVis } from './types';
+import type { DifficultyLevel, PassabilityLevel, ThemeMode, LocalMapView } from './types';
+import type { LayerVis } from './Map';
 
 // Incident type and severity filters
-export const TYPES = ['rocket', 'atgm', 'uav', 'idf_strike', 'unifil', 'ground', 'displacement'] as const;
-export const SEVS = ['low', 'med', 'high'] as const;
+export const TYPES = ['rocket', 'atgm', 'uav', 'idf_strike', 'unifil', 'ground', 'displacement'];
+export const SEVS = ['low', 'med', 'high'];
 
 // Route and POI file size/count limits
 export const MAX_ROUTE_FILE_BYTES = 1_000_000;
