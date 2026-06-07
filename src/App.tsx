@@ -25,7 +25,7 @@ import {
   composeTurnInstruction, osrmStepToAction,
 } from './navigation/turnHelpers';
 import {
-  parseOsrmInstructions, normalizeRouteInstructions, decodePolyline6, computeGeodesicPath, parseValhallaInstructions,
+  normalizeRouteInstructions,
 } from './navigation/routeParsers';
 import { isMobileLikeDevice, openExternalNav } from './navigation/externalNav';
 import {
@@ -43,6 +43,7 @@ import { normalizePoi } from './storage/normalize';
 import { useLiveLocation } from './hooks/useLiveLocation';
 import { useRouteOptions } from './hooks/useRouteOptions';
 import { useRecording } from './hooks/useRecording';
+import { useRouteCalculation } from './hooks/useRouteCalculation';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -132,7 +133,7 @@ export default function App() {
   const [navEndQuery, setNavEndQuery] = useState(() => initialNavSessionRef.current?.navEndQuery ?? '');
   const [roadRoute, setRoadRoute] = useState<RoadRoute | null>(() => initialNavSessionRef.current?.roadRoute ?? null);
   const [alternativeRoute, setAlternativeRoute] = useState<{ km: number; durationMin: number; path: [number, number][] } | null>(null);
-  const [activeRouteIndex, setActiveRouteIndex] = useState<0 | 1>(0);
+  const [activeRouteIndex, setActiveRouteIndex] = useState<number>(0);
   const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
     // If a road route was restored from localStorage, mark it ready immediately
     // so the polyline renders on first paint without waiting for a re-fetch.
@@ -695,6 +696,19 @@ export default function App() {
 
   const navStart = navPoints.find(p => p.id === navStartId) ?? null;
   const navEnd = navPoints.find(p => p.id === navEndId) ?? null;
+  useRouteCalculation({
+    navStartId,
+    navEndId,
+    navPoints,
+    initialNavSessionRef,
+    setRoadRoute,
+    setAlternativeRoute,
+    setActiveRouteIndex,
+    setActiveSavedRoute,
+    setFootRoute,
+    setRouteStatus,
+    setFootRouteStatus,
+  });
   const { routeOptions, activeRouteOption, routeOverlaysMemo } = useRouteOptions({
     navStart,
     navEnd,
@@ -714,168 +728,7 @@ export default function App() {
   };
   const startMatches = routePointMatches(navStartQuery);
   const endMatches = routePointMatches(navEndQuery);
-  useEffect(() => {
-    // ── Snapshot coords from navPoints at effect start ──────────────────────
-    // IMPORTANT: deps are [navStartId, navEndId], NOT [navStart, navEnd].
-    // navStart/navEnd are derived from navPoints which depends on liveLocation,
-    // so every GPS tick creates new object refs even when IDs are unchanged.
-    // Using IDs as deps means this effect only fires when the user actually
-    // changes the start/end selection, not on every GPS position update.
-    const start = navPoints.find(p => p.id === navStartId) ?? null;
-    const end   = navPoints.find(p => p.id === navEndId)   ?? null;
-
-    // Skip reset + re-fetch when these are the same IDs we restored from
-    // localStorage on this page load. The restored roadRoute/footRoute are
-    // already displayed; a re-fetch would flash "no route" while waiting.
-    //
-    // Account for the live-location → custom-nav-start conversion that happens
-    // in the navStartId useState() initializer: if the stored ID was
-    // 'live-location' and we converted it to 'custom-nav-start', treat them
-    // as the same session so we still skip the reset.
-    const rawRestoredStart = initialNavSessionRef.current?.navStartId;
-    const restoredStart =
-      rawRestoredStart === 'live-location' &&
-      initialNavSessionRef.current?.navCustomStart
-        ? 'custom-nav-start'
-        : rawRestoredStart;
-    const restoredEnd   = initialNavSessionRef.current?.navEndId;
-    const isRestoredSession =
-      navStartId === restoredStart &&
-      navEndId   === restoredEnd   &&
-      !!initialNavSessionRef.current?.roadRoute;
-    if (isRestoredSession) {
-      // Mark status ready so UI reflects restored data; clear the init marker
-      // so any subsequent ID change does a full re-fetch.
-      initialNavSessionRef.current = { ...initialNavSessionRef.current, roadRoute: undefined };
-      return;
-    }
-
-    setRoadRoute(null);
-    setAlternativeRoute(null);
-    setActiveRouteIndex(0);
-    setActiveSavedRoute(null);
-    setFootRoute(null);
-    setFootRouteStatus('idle');
-    if (!start || !end || start.id === end.id) {
-      setRouteStatus('idle');
-      return;
-    }
-
-    const driveCtrl = new AbortController();
-    const footCtrl  = new AbortController();
-
-    // ── Driving route (OSRM) ──────────────────────────────────────────────
-    const driveUrl = `https://router.project-osrm.org/route/v1/driving/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson&alternatives=true&steps=true`;
-    setRouteStatus('loading');
-    fetch(driveUrl, { signal: driveCtrl.signal })
-      .then(res => {
-        if (!res.ok) throw new Error(`OSRM drive ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        const route = data?.routes?.[0];
-        const coords = route?.geometry?.coordinates;
-        if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No drive route');
-        setRoadRoute({
-          km: route.distance / 1000,
-          durationMin: route.duration / 60,
-          path: coords.map(([lon, lat]: [number, number]) => [lat, lon]),
-          instructions: parseOsrmInstructions(route),
-        });
-        const altRoute = data?.routes?.[1];
-        const altCoords = altRoute?.geometry?.coordinates;
-        if (altRoute && Array.isArray(altCoords) && altCoords.length >= 2) {
-          setAlternativeRoute({
-            km: altRoute.distance / 1000,
-            durationMin: altRoute.duration / 60,
-            path: altCoords.map(([lon, lat]: [number, number]) => [lat, lon] as [number, number]),
-          });
-        }
-        setRouteStatus('ready');
-      })
-      .catch(err => {
-        if (err.name === 'AbortError') return;
-        setRouteStatus('error');
-      });
-
-    // ── Foot / terrain route ──────────────────────────────────────────────
-    // Primary: Valhalla pedestrian with use_trails preference.
-    // Fallback: OSRM foot profile if Valhalla is unavailable / returns error.
-    const fetchFootOsrmFallback = (s: AbortSignal) => {
-      const url = `https://router.project-osrm.org/route/v1/foot/${start.lon},${start.lat};${end.lon},${end.lat}?overview=full&geometries=geojson&steps=true`;
-      return fetch(url, { signal: s })
-        .then(res => { if (!res.ok) throw new Error(`OSRM foot ${res.status}`); return res.json(); })
-        .then(data => {
-          const route = data?.routes?.[0];
-          const coords = route?.geometry?.coordinates;
-          if (!route || !Array.isArray(coords) || coords.length < 2) throw new Error('No OSRM foot route');
-          setFootRoute({
-            km: route.distance / 1000,
-            durationMin: route.duration / 60,
-            path: coords.map(([lon, lat]: [number, number]) => [lat, lon] as [number, number]),
-            instructions: parseOsrmInstructions(route),
-          });
-          setFootRouteStatus('ready');
-        });
-    };
-
-    const footBody = JSON.stringify({
-      locations: [
-        { lon: start.lon, lat: start.lat },
-        { lon: end.lon,   lat: end.lat   },
-      ],
-      costing: 'pedestrian',
-      costing_options: {
-        pedestrian: {
-          use_trails: 0.8,
-          walking_speed: 4.0,
-          use_roads: 0.3,
-        },
-      },
-      directions_options: { units: 'km' },
-    });
-    setFootRouteStatus('loading');
-    fetch('https://valhalla1.openstreetmap.de/route', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: footBody,
-      signal: footCtrl.signal,
-    })
-      .then(res => { if (!res.ok) throw new Error(`Valhalla ${res.status}`); return res.json(); })
-      .then(data => {
-        const trip = data?.trip;
-        const shapeStr: string = trip?.legs?.[0]?.shape ?? '';
-        if (!shapeStr) throw new Error('No Valhalla shape');
-        const path = decodePolyline6(shapeStr);
-        if (path.length < 2) throw new Error('Valhalla path too short');
-        const summary = trip?.summary ?? {};
-        setFootRoute({
-          km: typeof summary.length === 'number' ? summary.length : haversineKm([start.lat, start.lon], [end.lat, end.lon]),
-          durationMin: typeof summary.time === 'number' ? summary.time / 60 : undefined,
-          path,
-          instructions: parseValhallaInstructions(trip),
-        });
-        setFootRouteStatus('ready');
-      })
-      .catch(err => {
-        if (err.name === 'AbortError') return;
-        // Valhalla failed — try OSRM foot as fallback
-        fetchFootOsrmFallback(footCtrl.signal).catch(err2 => {
-          if (err2.name === 'AbortError') return;
-          setFootRouteStatus('error');
-        });
-      });
-
-    return () => {
-      driveCtrl.abort();
-      footCtrl.abort();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navStartId, navEndId]);
-
-  // ── Build routeOptions for multi-route selector (memoised — stable ref) ──
-  // NOTE: deps intentionally exclude liveLocation so GPS updates do NOT
-  // Route options memoized via useRouteOptions hook above
+  // Route calculation wired via useRouteCalculation hook above
 
   // calculatedRoute — stable ref, rebuilt only when endpoint IDs or active route change.
   // IMPORTANT: deps are navStartId/navEndId (strings), NOT navStart/navEnd objects.
