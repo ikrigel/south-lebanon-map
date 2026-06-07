@@ -1,4 +1,5 @@
-import type { ThemeMode, LayerVis, LocalMapView, LocalLabelPreferences } from '../types';
+import type { ThemeMode, LocalMapView, LocalLabelPreferences } from '../types';
+import type { LayerVis } from '../Map';
 import {
   THEME_STORAGE_KEY,
   LAYER_VIS_STORAGE_KEY,

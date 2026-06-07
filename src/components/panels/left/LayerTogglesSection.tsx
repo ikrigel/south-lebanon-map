@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LayerVis } from '../../../types';
+import type { LayerVis } from '../../../Map';
 
 export const LayerTogglesSection: React.FC<{
   visible: LayerVis;

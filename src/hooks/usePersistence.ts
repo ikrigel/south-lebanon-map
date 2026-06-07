@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react';
 import type {
   CustomPoi,
   ThemeMode,
-  LayerVis,
   LocalLabelPreferences,
   LocalUiState,
   LocalFilterState,
   LocalNavSession,
   LocalRecordingSession,
 } from '../types';
+import type { LayerVis } from '../Map';
 import {
   THEME_STORAGE_KEY,
   LAYER_VIS_STORAGE_KEY,

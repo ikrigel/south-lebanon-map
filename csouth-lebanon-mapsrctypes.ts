@@ -1,30 +1,10 @@
-// Theme and display configuration types
+// Theme and UI types
 export type ThemeMode = 'auto' | 'light' | 'dark';
 export type VoiceGuidanceMode = 'off' | 'basic' | 'detailed';
 export type VoiceLanguage = 'he' | 'en';
 
-// Navigation and routing types
+// Turn instruction and routing types
 export type TurnAction = 'straight' | 'right' | 'left' | 'uturn' | 'arrive' | 'none';
-export type RouteDisplayMode = 'road' | 'aerial' | 'both';
-
-// POI customization types
-export type PoiColor = '#f6c453' | '#4fb3a6' | '#6aa7d8' | '#d96b6b' | '#b98cff' | '#88c37a';
-export type PoiShape = 'circle' | 'square' | 'diamond' | 'star';
-export type PoiSize = 'sm' | 'md' | 'lg';
-
-// Difficulty and passability types for multi-point routes
-export type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'extreme';
-export type PassabilityLevel = 'paved' | 'dirt' | 'offroad' | 'foot_only';
-
-// Core data structure types
-export type NavPoint = {
-  id: string;
-  label: string;
-  group: string;
-  lat: number;
-  lon: number;
-};
-
 export type TurnInstruction = {
   text: string;
   textEn: string;
@@ -37,6 +17,7 @@ export type TurnInstruction = {
   roadName?: string;
 };
 
+// Route types
 export type RoadRoute = {
   km: number;
   durationMin: number;
@@ -44,17 +25,18 @@ export type RoadRoute = {
   instructions?: TurnInstruction[];
 };
 
-// A computed route option shown in the route-type selector
+export type RouteDisplayMode = 'road' | 'aerial' | 'both';
+
 export type RouteOption = {
   id: 'drive' | 'foot' | 'aerial';
-  labelHe: string;           // e.g. 'כביש סלול'
+  labelHe: string;
   km: number;
   durationMin?: number;
   path?: [number, number][];
   instructions?: TurnInstruction[];
-  passabilityHe: string;     // human-readable clearance label
-  airspaceHe: string;        // airspace/difficulty label
-  color: string;             // polyline colour on map
+  passabilityHe: string;
+  airspaceHe: string;
+  color: string;
   lineStyle: 'solid' | 'dashed' | 'dotted';
   status: 'ready' | 'loading' | 'error' | 'none';
 };
@@ -73,6 +55,20 @@ export type SavedRoute = {
   instructions?: TurnInstruction[];
 };
 
+// Navigation point type
+export type NavPoint = {
+  id: string;
+  label: string;
+  group: string;
+  lat: number;
+  lon: number;
+};
+
+// POI types
+export type PoiColor = '#f6c453' | '#4fb3a6' | '#6aa7d8' | '#d96b6b' | '#b98cff' | '#88c37a';
+export type PoiShape = 'circle' | 'square' | 'diamond' | 'star';
+export type PoiSize = 'sm' | 'md' | 'lg';
+
 export type CustomPoi = {
   id: string;
   name: string;
@@ -85,18 +81,7 @@ export type CustomPoi = {
   markerSize: PoiSize;
 };
 
-export type MultiPointRoute = {
-  id: string;
-  name: string;
-  description: string;
-  difficulty: DifficultyLevel;
-  passability: PassabilityLevel;
-  points: { lat: number; lon: number; label: string; order: number }[];
-  totalKm: number;
-  createdAt: string;
-};
-
-// Session persistence types
+// Navigation session state
 export type LocalNavSession = {
   navStartId?: string;
   navEndId?: string;
@@ -109,41 +94,57 @@ export type LocalNavSession = {
   liveActive?: boolean;
   voiceGuidance?: VoiceGuidanceMode;
   voiceLanguage?: VoiceLanguage;
-  // New: persist map-tapped custom points
   navCustomStart?: { lat: number; lon: number; label: string } | null;
-  navCustomEnd?:   { lat: number; lon: number; label: string } | null;
-  // New: active route selection + display mode
+  navCustomEnd?: { lat: number; lon: number; label: string } | null;
   activeRouteId?: 'drive' | 'foot' | 'aerial';
   routeDisplayMode?: RouteDisplayMode;
-  // Timestamp of last save — used to detect "arrived" state on resume
   savedAt?: number;
-  // Last known distance-to-destination (metres) so we can skip asking if already arrived
   lastDistToDestM?: number;
 };
 
+// Recording session state
 export type LocalRecordingSession = {
   recordingName?: string;
   recordedTrack?: [number, number][];
   recordingActive?: boolean;
 };
 
+// Map view state
 export type LocalMapView = {
   lat: number;
   lon: number;
   zoom: number;
 };
 
+// Label preferences
 export type LocalLabelPreferences = {
   largeLabels?: boolean;
   allLabels?: boolean;
 };
 
+// Multi-route types
+export type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'extreme';
+export type PassabilityLevel = 'paved' | 'dirt' | 'offroad' | 'foot_only';
+
+export type MultiPointRoute = {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: DifficultyLevel;
+  passability: PassabilityLevel;
+  points: { lat: number; lon: number; label: string; order: number }[];
+  totalKm: number;
+  createdAt: string;
+};
+
+// UI state persistence
 export type LocalUiState = {
   panelsCollapsed?: boolean;
   panelHeightPct?: number;
   userMapRotation?: number;
 };
 
+// Filter state persistence
 export type LocalFilterState = {
   yearFrom?: number;
   yearTo?: number;
