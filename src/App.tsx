@@ -40,6 +40,7 @@ import {
   loadLocalRecordingSession, loadLocalUiState, loadLocalFilterState, loadLocalSavedRoutes, loadLocalSavedMultiRoutes,
 } from './storage/sessionLoaders';
 import { normalizePoi } from './storage/normalize';
+import { useLiveLocation } from './hooks/useLiveLocation';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -144,6 +145,7 @@ export default function App() {
   // so those expensive O(n) path scans don't run on every GPS wobble.
   const [navPosition, setNavPosition] = useState<{ lat: number; lon: number } | null>(null);
   const navPositionRef = useRef<{ lat: number; lon: number } | null>(null);
+  useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
   const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error' | 'unsupported'>('idle');
   const [watchId, setWatchId] = useState<number | null>(null);
   const [compassMode, setCompassMode] = useState(false);
@@ -1376,21 +1378,6 @@ export default function App() {
     showToast('מבקש הרשאת מיקום מהמכשיר…');
     beginLiveLocationWatch();
   };
-
-  // ── navPosition throttle: only update when device moves >= 15 m ──────────────
-  // Prevents O(n) path scan (currentTurnInstruction useMemo) from running on
-  // every sub-metre GPS wobble, which was the root cause of the animation flicker.
-  useEffect(() => {
-    if (!liveLocation) return;
-    const prev = navPositionRef.current;
-    if (prev) {
-      const movedKm = haversineKm([prev.lat, prev.lon], [liveLocation.lat, liveLocation.lon]);
-      if (movedKm * 1000 < 15) return; // haven't moved 15 m yet — skip expensive recalc
-    }
-    const next = { lat: liveLocation.lat, lon: liveLocation.lon };
-    navPositionRef.current = next;
-    setNavPosition(next);
-  }, [liveLocation]);
 
   // ---- Navigate from current position ----
   // If GPS is already active, sets live-location as start and the given point as end.
