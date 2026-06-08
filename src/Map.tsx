@@ -8,6 +8,8 @@ import {
 import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm, haversineKm } from './util';
 import type { MapHandle, LayerVis, MapProps } from './mapTypes';
 import { POP_RADIUS, TILESETS, SECT_COLORS, NAVIGATION_FOLLOW_MIN_ZOOM, labelHtml, poiSizePx, poiShapeClass, poiSymbol, poiIconHtml, buildTownInfoHtml, townPopup, navBtn } from './mapHtml';
+import { useMapRecording } from './hooks/useMapRecording';
+import { useMapPois } from './hooks/useMapPois';
 
 // Re-export types for use by other modules
 export type { MapHandle, LayerVis, MapProps };
@@ -1267,86 +1269,10 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   }, [props.liveCenterRequestId]);
 
   // ---- recorded GPS track ----
-  useEffect(() => {
-    const group = layersRef.current.recording;
-    if (!group) return;
-    group.clearLayers();
-    if (props.recordedTrack.length === 0) return;
-    if (props.recordedTrack.length > 1) {
-      L.polyline(props.recordedTrack, {
-        color: '#f2c14e',
-        weight: 3,
-        opacity: 0.95,
-        className: 'recorded-track-line',
-      }).addTo(group);
-    }
-    const first = props.recordedTrack[0];
-    const last = props.recordedTrack[props.recordedTrack.length - 1];
-    [
-      { point: first, label: 'תחילת הקלטה', color: '#4fb3a6' },
-      { point: last, label: 'נקודה אחרונה', color: '#f2c14e' },
-    ].forEach(({ point, label, color }) => {
-      L.circleMarker(point, {
-        radius: 6,
-        color,
-        weight: 2,
-        fillColor: '#0b0d10',
-        fillOpacity: 1,
-      })
-        .bindTooltip(label, {
-          permanent: false,
-          direction: 'top',
-          className: 'route-tooltip',
-        })
-        .addTo(group);
-    });
-  }, [props.recordedTrack]);
+  useMapRecording(layersRef, props.recordedTrack);
 
   // ---- user-created points of interest ----
-  useEffect(() => {
-    const group = layersRef.current.pois;
-    if (!group) return;
-    group.clearLayers();
-    if (props.poiDraft) {
-      const px = poiSizePx(props.poiDraftStyle.markerSize) + 10;
-      L.marker([props.poiDraft.lat, props.poiDraft.lon], {
-        icon: L.divIcon({
-          className: 'poi-marker poi-draft-marker',
-          html: poiIconHtml(
-            props.poiDraftStyle.markerColor,
-            props.poiDraftStyle.markerShape,
-            props.poiDraftStyle.markerSize,
-            true
-          ),
-          iconSize: [px, px],
-          iconAnchor: [px / 2, px / 2],
-        }),
-      })
-        .bindTooltip('נקודה נבחרה — מלא שם ושמור', {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -16],
-          className: 'route-tooltip poi-draft-tooltip',
-        })
-        .addTo(group);
-    }
-    props.customPois.forEach(poi => {
-      const px = poiSizePx(poi.markerSize) + 10;
-      const marker = L.marker([poi.lat, poi.lon], {
-        icon: L.divIcon({
-          className: 'poi-marker',
-          html: poiIconHtml(poi.markerColor, poi.markerShape, poi.markerSize),
-          iconSize: [px, px],
-          iconAnchor: [px / 2, px / 2],
-        }),
-      });
-      marker
-        .bindPopup(
-          `<div style="min-width:220px"><strong>${escapeHtml(poi.name)}</strong><br/><div style="font-size:11px;line-height:1.45;margin:6px 0;color:#8b97a8">${escapeHtml(poi.description || 'נקודת עניין שהמשתמש הוסיף')}</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8b97a8">${poi.lat.toFixed(5)}, ${poi.lon.toFixed(5)}</div>${navBtn(poi.lat, poi.lon, poi.name)}</div>`
-        )
-        .addTo(group);
-    });
-  }, [props.customPois, props.poiDraft]);
+  useMapPois(layersRef, props.customPois, props.poiDraft, props.poiDraftStyle);
 
   useEffect(() => {
     const group = layersRef.current.multiRoute;
