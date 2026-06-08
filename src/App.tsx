@@ -44,6 +44,7 @@ import { useLiveLocation } from './hooks/useLiveLocation';
 import { useRouteOptions } from './hooks/useRouteOptions';
 import { useRecording } from './hooks/useRecording';
 import { useRouteCalculation } from './hooks/useRouteCalculation';
+import { usePersistence } from './hooks/usePersistence';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -149,7 +150,7 @@ export default function App() {
   const [navPosition, setNavPosition] = useState<{ lat: number; lon: number } | null>(null);
   const navPositionRef = useRef<{ lat: number; lon: number } | null>(null);
   useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error' | 'unsupported'>('idle');
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error'>('idle');
   const [watchId, setWatchId] = useState<number | null>(null);
   const [compassMode, setCompassMode] = useState(false);
   const [userMapRotation, setUserMapRotation] = useState(
@@ -282,100 +283,43 @@ export default function App() {
     } satisfies LocalMapView);
   }, []);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setAutoDay(isDaytime()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    saveLocalPois(customPois);
-  }, [customPois]);
-
-  useEffect(() => {
-    safeStorageSet(THEME_STORAGE_KEY, themeMode);
-  }, [themeMode]);
-
-  useEffect(() => {
-    safeStorageSet(LAYER_VIS_STORAGE_KEY, visible);
-  }, [visible]);
-
-  useEffect(() => {
-    safeStorageSet(LABEL_PREF_STORAGE_KEY, { largeLabels, allLabels } satisfies LocalLabelPreferences);
-  }, [largeLabels, allLabels]);
-
-  useEffect(() => {
-    safeStorageSet(UI_STATE_STORAGE_KEY, {
-      panelsCollapsed,
-      panelHeightPct,
-      userMapRotation,
-    } satisfies LocalUiState);
-  }, [panelsCollapsed, panelHeightPct, userMapRotation]);
-
-  useEffect(() => {
-    safeStorageSet(FILTER_STATE_STORAGE_KEY, {
-      yearFrom,
-      yearTo,
-      typeFilter: [...typeFilter],
-      sevFilter: [...sevFilter],
-    } satisfies LocalFilterState);
-  }, [yearFrom, yearTo, typeFilter, sevFilter]);
-
-  useEffect(() => {
-    safeStorageSet(SAVED_ROUTES_STORAGE_KEY, savedRoutes);
-  }, [savedRoutes]);
-
-  useEffect(() => {
-    safeStorageSet(SAVED_MULTI_ROUTES_STORAGE_KEY, savedMultiRoutes);
-  }, [savedMultiRoutes]);
-
-  // Tracks last-known distance-to-dest (metres). Updated by a later effect that
-  // has access to navPoints/navigationRoute. Read here only via ref to avoid a
-  // forward-reference TypeScript error.
-  const lastDistToDestMRef = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    // When GPS is the start, persist its last-known coordinates as navCustomStart.
-    // On the next page load navStartId will be converted to 'custom-nav-start' so
-    // the route is immediately visible even before the GPS lock is reacquired.
-    const persistedCustomStart =
-      navStartId === 'live-location' && liveLocation
-        ? { lat: liveLocation.lat, lon: liveLocation.lon, label: 'מיקום GPS שנשמר' }
-        : navCustomStart;
-    safeStorageSet(NAV_SESSION_KEY, {
-      navStartId,
-      navEndId,
-      navStartQuery,
-      navEndQuery,
-      routeName,
-      roadRoute,
-      footRoute,
-      activeSavedRoute,
-      liveActive: locationStatus === 'watching',
-      voiceGuidance,
-      voiceLanguage,
-      navCustomStart: persistedCustomStart,
-      navCustomEnd,
-      activeRouteId,
-      routeDisplayMode,
-      savedAt: Date.now(),
-      lastDistToDestM: lastDistToDestMRef.current,
-    } satisfies LocalNavSession);
-  }, [
-    navStartId, navEndId, navStartQuery, navEndQuery, routeName,
-    roadRoute, footRoute, activeSavedRoute, locationStatus,
-    voiceGuidance, voiceLanguage,
-    navCustomStart, navCustomEnd, activeRouteId, routeDisplayMode,
+  // Persistence wired via usePersistence hook
+  const { lastDistToDestMRef } = usePersistence({
+    customPois,
+    themeMode,
+    visible,
+    largeLabels,
+    allLabels,
+    panelsCollapsed,
+    panelHeightPct,
+    userMapRotation,
+    yearFrom,
+    yearTo,
+    typeFilter,
+    sevFilter,
+    savedRoutes,
+    savedMultiRoutes,
+    navStartId,
+    navEndId,
+    navStartQuery,
+    navEndQuery,
+    routeName,
+    roadRoute,
+    footRoute,
+    activeSavedRoute,
+    locationStatus,
+    voiceGuidance,
+    voiceLanguage,
+    navCustomStart,
+    navCustomEnd,
+    activeRouteId,
+    routeDisplayMode,
     liveLocation,
-  ]);
-
-  useEffect(() => {
-    recordedTrackRef.current = recordedTrack;
-    safeStorageSet(RECORDING_STORAGE_KEY, {
-      recordingName,
-      recordedTrack,
-      recordingActive: recordingStatus === 'recording',
-    } satisfies LocalRecordingSession);
-  }, [recordingName, recordedTrack, recordingStatus]);
+    recordingName,
+    recordedTrack,
+    recordingStatus,
+    setAutoDay,
+  });
 
   useEffect(() => {
     return () => {
@@ -1131,7 +1075,7 @@ export default function App() {
 
   const beginLiveLocationWatch = useCallback(() => {
     if (!('geolocation' in navigator)) {
-      setLocationStatus('unsupported');
+      setLocationStatus('error');
       showToast('הדפדפן אינו תומך במיקום חי');
       return null;
     }
@@ -2322,8 +2266,7 @@ export default function App() {
                     <span>מיקום חי פעיל · המפה עוקבת אחרי הסמן בזום קרוב · אחרי גרירה יופיע כפתור “מרכז אותי” · דיוק משוער: {Math.round(liveLocation.accuracy ?? 0)} מ׳</span>
                   )}
                   {locationStatus === 'watching' && !liveLocation && <span>ממתין להרשאת מיקום מהמכשיר…</span>}
-                  {locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן.</span>}
-                  {locationStatus === 'unsupported' && <span>הדפדפן אינו תומך במיקום חי.</span>}
+                  {locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן או שהדפדפן אינו תומך במיקום חי.</span>}
                 </div>
               )}
               <div className="voice-guidance-box" data-testid="voice-guidance-box">

@@ -91,7 +91,7 @@ export const usePersistence = ({
   liveLocation: any;
   recordingName: string;
   recordedTrack: [number, number][];
-  recordingStatus: 'idle' | 'recording' | 'paused';
+  recordingStatus: 'idle' | 'recording' | 'paused' | 'error';
   setAutoDay: (isDaytime: boolean) => void;
 }) => {
   const lastDistToDestMRef = useRef<number | undefined>(undefined);
