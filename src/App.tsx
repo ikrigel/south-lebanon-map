@@ -50,6 +50,7 @@ import { HelpDrawer } from './components/drawers/HelpDrawer';
 import { FilterPanel } from './components/panels/left/FilterPanel';
 import { IncidentFiltersPanel } from './components/panels/left/IncidentFiltersPanel';
 import { LabelPreferencesPanel } from './components/panels/left/LabelPreferencesPanel';
+import { SearchPanel } from './components/panels/left/SearchPanel';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -2753,34 +2754,15 @@ export default function App() {
             setSevFilter={setSevFilter}
           />
 
-          <div className="panel-section">
-            <h3>חיפוש חופשי</h3>
-            <input
-              className="search"
-              placeholder="חיפוש יישוב, אירוע, יוניפי״ל, מקור או אזור…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              data-testid="input-search"
-            />
-            {searchResults.length > 0 && (
-              <div className="search-results" data-testid="search-results">
-                {searchResults.map(result => (
-                  <button
-                    key={result.id}
-                    className="search-result"
-                    onClick={() => {
-                      setFocusTarget({ lat: result.lat, lon: result.lon, zoom: result.zoom, id: `${result.id}-${Date.now()}` });
-                      if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
-                    }}
-                    data-testid={`button-search-result-${result.id}`}
-                  >
-                    <span>{result.title}</span>
-                    <small>{result.subtitle}</small>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <SearchPanel
+            query={query}
+            searchResults={searchResults}
+            setQuery={setQuery}
+            onResultClick={result => {
+              setFocusTarget({ lat: result.lat, lon: result.lon, zoom: result.zoom, id: `${result.id}-${Date.now()}` });
+              if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
+            }}
+          />
 
           <LabelPreferencesPanel
             allLabels={allLabels}
