@@ -51,6 +51,7 @@ import { FilterPanel } from './components/panels/left/FilterPanel';
 import { IncidentFiltersPanel } from './components/panels/left/IncidentFiltersPanel';
 import { LabelPreferencesPanel } from './components/panels/left/LabelPreferencesPanel';
 import { SearchPanel } from './components/panels/left/SearchPanel';
+import { RecordingPanel } from './components/panels/left/RecordingPanel';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -2298,64 +2299,21 @@ export default function App() {
             </div>
           </div>
 
-          <div className="panel-section">
-            <h3>הקלטת מסלול נסיעה</h3>
-            <div className="recording-box" data-testid="recording-box">
-              <div className="route-actions">
-                <button
-                  className="btn"
-                  onClick={recordingStatus === 'recording' ? stopRecording : startRecording}
-                  aria-pressed={recordingStatus === 'recording'}
-                  data-testid="button-record-route"
-                >
-                  {recordingStatus === 'recording' ? 'עצור הקלטה' : 'התחל הקלטה'}
-                </button>
-                <button
-                  className="btn ghost"
-                  disabled={recordedTrack.length === 0}
-                  onClick={() => {
-                    setRecordedTrack([]);
-                    showToast('ההקלטה המקומית נוקתה');
-                  }}
-                  data-testid="button-clear-recording"
-                >
-                  נקה הקלטה
-                </button>
-              </div>
-              <div className="route-summary compact" data-testid="text-recording-status">
-                {recordingStatus === 'recording' && <span>הקלטה פעילה · {recordedTrack.length} נקודות · {fmtKm(recordedKm)}</span>}
-                {recordingStatus === 'idle' && recordedTrack.length > 0 && <span>הקלטה מוכנה לשמירה · {recordedTrack.length} נקודות · {fmtKm(recordedKm)}</span>}
-                {recordingStatus === 'idle' && recordedTrack.length === 0 && <span>לחץ “התחל הקלטה” כדי לשמור מסלול GPS תוך כדי נסיעה.</span>}
-                {recordingStatus === 'error' && <span>לא ניתן להקליט מיקום. בדוק הרשאת מיקום בדפדפן או שהדפדפן אינו תומך בהקלטת מיקום.</span>}
-              </div>
-              <input
-                className="search"
-                value={recordingName}
-                onChange={e => setRecordingName(e.target.value)}
-                placeholder="שם להקלטת המסלול…"
-                data-testid="input-recording-name"
-              />
-              <div className="route-actions">
-                <button className="btn" disabled={recordedTrack.length < 2} onClick={saveRecording} data-testid="button-save-recording">
-                  שמור הקלטה
-                </button>
-                <button
-                  className="btn ghost"
-                  disabled={recordedTrack.length < 2}
-                  onClick={() => {
-                    const route = recordingToRoute();
-                    if (route) downloadJson('recorded-route.json', route);
-                  }}
-                  data-testid="button-export-recording"
-                >
-                  שתף כקובץ
-                </button>
-              </div>
-              <p className="legend-note">
-                ההקלטה נשמרת מקומית בדפדפן תוך כדי עבודה. אם הדפדפן מאפשר GPS ברקע, ההקלטה תמשיך; אם לא, המסלול שנצבר עד כה יישמר וניתן להמשיך אחרי החזרה לאפליקציה.
-              </p>
-            </div>
-          </div>
+          <RecordingPanel
+            recordingStatus={recordingStatus}
+            recordedTrack={recordedTrack}
+            recordedKm={recordedKm}
+            recordingName={recordingName}
+            setRecordingName={setRecordingName}
+            onStartStop={recordingStatus === 'recording' ? stopRecording : startRecording}
+            onClear={() => setRecordedTrack([])}
+            onSave={saveRecording}
+            onExport={() => {
+              const route = recordingToRoute();
+              if (route) downloadJson('recorded-route.json', route);
+            }}
+            showToast={showToast}
+          />
 
           <div className="panel-section">
             <h3>בנייה ידנית של מסלול נקודות</h3>
