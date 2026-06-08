@@ -47,6 +47,9 @@ import { useRouteCalculation } from './hooks/useRouteCalculation';
 import { usePersistence } from './hooks/usePersistence';
 import { useVoiceGuidance } from './hooks/useVoiceGuidance';
 import { HelpDrawer } from './components/drawers/HelpDrawer';
+import { FilterPanel } from './components/panels/left/FilterPanel';
+import { IncidentFiltersPanel } from './components/panels/left/IncidentFiltersPanel';
+import { LabelPreferencesPanel } from './components/panels/left/LabelPreferencesPanel';
 
 export default function App() {
   const initialNavSessionRef = useRef<LocalNavSession | null>(null);
@@ -2735,69 +2738,20 @@ export default function App() {
             </div>
           </div>
 
-          <div className="panel-section">
-            <h3>טווח שנים</h3>
-            <div className="year-range" data-testid="filter-year-range">
-              <label>
-                <span>משנה</span>
-                <select
-                  value={yearFrom}
-                  onChange={e => setYearFrom(Math.min(+e.target.value, yearTo))}
-                  data-testid="select-year-from"
-                >
-                  {years.map(year => <option key={`from-${year}`} value={year}>{year}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>עד שנה</span>
-                <select
-                  value={yearTo}
-                  onChange={e => setYearTo(Math.max(+e.target.value, yearFrom))}
-                  data-testid="select-year-to"
-                >
-                  {years.map(year => <option key={`to-${year}`} value={year}>{year}</option>)}
-                </select>
-              </label>
-            </div>
-            <p className="year-summary" data-testid="text-year-summary">
-              מוצגים אירועים מהשנים <bdi>{yearFrom}</bdi>–<bdi>{yearTo}</bdi>
-            </p>
-          </div>
+          <FilterPanel
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+            years={years}
+            setYearFrom={setYearFrom}
+            setYearTo={setYearTo}
+          />
 
-          <div className="panel-section">
-            <h3>סוגי אירועים</h3>
-            <div className="chips" data-testid="chips-type">
-              {TYPES.map(t => (
-                <button
-                  key={t}
-                  className="chip"
-                  aria-pressed={typeFilter.has(t)}
-                  onClick={() => setTypeFilter(s => toggleSet(s, t))}
-                  data-testid={`chip-type-${t}`}
-                  style={typeFilter.has(t) ? { background: TYPE_COLOR[t], borderColor: TYPE_COLOR[t], color: '#0b0d10' } : {}}
-                >
-                  {TYPE_LABEL[t]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel-section">
-            <h3>חומרה</h3>
-            <div className="chips" data-testid="chips-severity">
-              {SEVS.map(s => (
-                <button
-                  key={s}
-                  className="chip"
-                  aria-pressed={sevFilter.has(s)}
-                  onClick={() => setSevFilter(set => toggleSet(set, s))}
-                  data-testid={`chip-sev-${s}`}
-                >
-                  {SEV_LABEL[s]}
-                </button>
-              ))}
-            </div>
-          </div>
+          <IncidentFiltersPanel
+            typeFilter={typeFilter}
+            sevFilter={sevFilter}
+            setTypeFilter={setTypeFilter}
+            setSevFilter={setSevFilter}
+          />
 
           <div className="panel-section">
             <h3>חיפוש חופשי</h3>
@@ -2828,43 +2782,13 @@ export default function App() {
             )}
           </div>
 
-          <div className="panel-section">
-            <h3>נראות שמות במפה</h3>
-            <div
-              className="toggle-row"
-              data-active={allLabels}
-              onClick={() => {
-                setAllLabels(v => !v);
-                setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
-              }}
-              role="switch"
-              aria-checked={allLabels}
-              data-testid="toggle-all-labels"
-            >
-              <div className="toggle-label">
-                <span className="toggle-swatch label-swatch">כ</span>
-                הצג את כל השמות תמיד
-              </div>
-              <span className="toggle-switch" />
-            </div>
-            <div
-              className="toggle-row"
-              data-active={largeLabels}
-              onClick={() => setLargeLabels(v => !v)}
-              role="switch"
-              aria-checked={largeLabels}
-              data-testid="toggle-large-labels"
-            >
-              <div className="toggle-label">
-                <span className="toggle-swatch label-swatch">א</span>
-                טקסט גדול לשמות יישובים ונקודות
-              </div>
-              <span className="toggle-switch" />
-            </div>
-              <p className="legend-note">
-                “כל השמות” מציג את כל שמות המקומות והכפרים בלי להגדיל טקסט. “טקסט גדול” מגדיל את התוויות ומוסיף תעתיק באנגלית.
-              </p>
-          </div>
+          <LabelPreferencesPanel
+            allLabels={allLabels}
+            largeLabels={largeLabels}
+            setAllLabels={setAllLabels}
+            setLargeLabels={setLargeLabels}
+            setVisible={setVisible}
+          />
         </div>
       </aside>
 
