@@ -11,6 +11,7 @@ import { POP_RADIUS, TILESETS, SECT_COLORS, NAVIGATION_FOLLOW_MIN_ZOOM, labelHtm
 import { useMapInit } from './hooks/useMapInit';
 import { useMapRotation } from './hooks/useMapRotation';
 import { useMapRoute } from './hooks/useMapRoute';
+import { useMapLabels } from './hooks/useMapLabels';
 import { useMapRecording } from './hooks/useMapRecording';
 import { useMapPois } from './hooks/useMapPois';
 import { useMapMultiRoute } from './hooks/useMapMultiRoute';
@@ -55,6 +56,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     props.liveLocation,
     props.visible.navLabels,
   );
+
+  useMapLabels(layersRef, props.largeLabels, props.allLabels, props.visible);
 
   useImperativeHandle(ref, () => ({
     snapshotCenter: () => {
@@ -381,117 +384,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (wasVisible && props.visible.pop) popGroup.addTo(map);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.visible.sectColors]);
-
-  // ---- Hebrew map labels with controlled density ----
-  useEffect(() => {
-    const group = layersRef.current.labels;
-    if (!group) return;
-    group.clearLayers();
-    if (!props.visible.cityLabels) return;
-
-    const compactTownIds = new Set([
-      'tyre',
-      'sidon',
-      'nabat',
-      'naqoura',
-      'alma',
-      'dhayra',
-      'aitaa',
-      'rmeish',
-      'yater',
-      'bintj',
-      'tibnin',
-      'braachit',
-      'haris',
-      'hadatha',
-      'beit-yahoun',
-      'rachaf',
-      'kafra',
-      'khirbet-selm',
-      'deir-ntar',
-      'majdal-selm',
-      'tulin',
-      'souaneh',
-      'froun',
-      'ghandouriyeh',
-      'burj-el-shemali',
-      'rashidiyeh',
-      'sarafand',
-      'zahrani-area',
-      'ghaziyeh',
-      'marjay',
-      'khiam',
-      'kfark',
-      'mais',
-      'kawkaba',
-      'mari',
-      'hasbaya',
-      'shebaa',
-      'metula',
-      'kiryat',
-      'shlomi',
-    ]);
-    if (props.visible.settlementLabels) {
-      // When sect-coloring is active, show ALL LB settlements so every settlement
-      // gets a colored border + dot. IL settlements stay compact-only (no sect data).
-      const townsToLabel = props.largeLabels || props.allLabels
-        ? towns
-        : towns.filter(t => compactTownIds.has(t.id) || (props.visible.sectColors && t.side === 'LB'));
-      townsToLabel.forEach(t => {
-        const icon = L.divIcon({
-          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} settlement-label ${t.side === 'IL' ? 'il-label' : 'lb-label'}${(props.visible.sectColors && t.sect) ? ` sect-${t.sect}` : ''}`,
-          html: labelHtml(t.name_he, props.largeLabels ? t.name_en : undefined, props.visible.sectColors ? t.sect : undefined),
-          iconSize: undefined,
-          iconAnchor: [0, 10],
-        });
-        L.marker([t.lat, t.lon], { icon, interactive: false }).addTo(group);
-      });
-    }
-
-    if (props.visible.unifil) {
-      const unifilToLabel = props.largeLabels
-        ? unifilPoints.filter(u => u.kind !== 'reference')
-        : unifilPoints.filter(u => u.kind === 'hq');
-      unifilToLabel.forEach(u => {
-        const icon = L.divIcon({
-          className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} unifil-label`,
-          html: labelHtml(u.name_he, props.largeLabels ? u.name_en : undefined),
-          iconSize: undefined,
-          iconAnchor: [0, 12],
-        });
-        L.marker([u.lat, u.lon], { icon, interactive: false }).addTo(group);
-      });
-    }
-
-    const isRidgeLike = (type: string) => type === 'ridge' || type === 'mountain' || type === 'valley';
-    const isWaterLike = (type: string) => type === 'river' || type === 'wadi' || type === 'water';
-    const compactRidgeIds = new Set(['jabal-amel', 'bint-jbeil-ridge', 'nabatieh-plateau', 'silvester-ridge']);
-    const compactWaterIds = new Set(['litani', 'awali', 'zahrani', 'hasbani']);
-    const terrainToLabel = terrainFeatures.filter(f => {
-      if (isRidgeLike(f.type) && !props.visible.ridgeLabels) return false;
-      if (isWaterLike(f.type) && !props.visible.waterLabels) return false;
-      if (props.largeLabels || props.allLabels) return true;
-      return compactRidgeIds.has(f.id) || compactWaterIds.has(f.id);
-    });
-    terrainToLabel.forEach(f => {
-      const icon = L.divIcon({
-        className: `map-label-icon ${props.largeLabels ? 'label-expanded' : 'label-compact'} terrain-label terrain-${f.type}`,
-        html: labelHtml(f.name_he, props.largeLabels ? f.name_en : undefined),
-        iconSize: undefined,
-        iconAnchor: [0, 12],
-      });
-      L.marker([f.lat, f.lon], { icon, interactive: false }).addTo(group);
-    });
-  }, [
-    props.largeLabels,
-    props.allLabels,
-    props.visible.cityLabels,
-    props.visible.settlementLabels,
-    props.visible.ridgeLabels,
-    props.visible.waterLabels,
-    props.visible.unifil,
-    props.visible.sectColors,  // צביעת עדה משפיעה על תגיות בעברית
-  ]);
 
   // ---- render incidents + highlight ----
   useMapIncidents(layersRef, mapRef, props.filteredIncidents, props.selectedIncident, props.onSelectIncident);
