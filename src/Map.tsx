@@ -10,6 +10,7 @@ import type { MapHandle, LayerVis, MapProps } from './mapTypes';
 import { POP_RADIUS, TILESETS, SECT_COLORS, NAVIGATION_FOLLOW_MIN_ZOOM, labelHtml, poiSizePx, poiShapeClass, poiSymbol, poiIconHtml, buildTownInfoHtml, townPopup, navBtn } from './mapHtml';
 import { useMapInit } from './hooks/useMapInit';
 import { useMapRotation } from './hooks/useMapRotation';
+import { useMapRoute } from './hooks/useMapRoute';
 import { useMapRecording } from './hooks/useMapRecording';
 import { useMapPois } from './hooks/useMapPois';
 import { useMapMultiRoute } from './hooks/useMapMultiRoute';
@@ -42,6 +43,17 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     userRotationRef,
     userOnlyRotationRef,
     props.rotationLocked,
+  );
+
+  useMapRoute(
+    mapRef,
+    layersRef,
+    routePolylineRefs,
+    props.routeOverlays,
+    props.navigationRoute,
+    props.routeDisplayMode,
+    props.liveLocation,
+    props.visible.navLabels,
   );
 
   useImperativeHandle(ref, () => ({
@@ -532,204 +544,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }).addTo(group);
   }, [props.distanceLine]);
 
-  // ---- multi-route overlays — Effect A: PATH DRAW -------------------------
-  // Redraws all route polylines from scratch ONLY when actual path data changes.
-  // isActive styling is handled by Effect B — no clearLayers on card selection.
-  useEffect(() => {
-    const group = layersRef.current.route;
-    const map = mapRef.current;
-    if (!group || !map) return;
-    group.clearLayers();
-    routePolylineRefs.current.clear();
-
-    if (!props.navigationRoute) return;
-
-    const { start, end } = props.navigationRoute;
-    const a: [number, number] = [start.lat, start.lon];
-    const b: [number, number] = [end.lat, end.lon];
-    const overlays = props.routeOverlays ?? [];
-    const mode = props.routeDisplayMode ?? 'road';
-
-    // In 'road' mode show drive+foot. But if both have no path yet
-    // (still loading or fetch failed) also include aerial so the user
-    // sees the geodesic arc immediately and the map pans to the right area.
-    const drivePathLen = overlays.find(o => o.id === 'drive')?.path.length ?? 0;
-    const footPathLen  = overlays.find(o => o.id === 'foot')?.path.length  ?? 0;
-    const aerialFallback = mode === 'road' && drivePathLen < 2 && footPathLen < 2;
-    const visibleIds: Set<string> = new Set(
-      mode === 'aerial'                    ? ['aerial'] :
-      mode === 'road' && !aerialFallback   ? ['drive', 'foot'] :
-                                             ['drive', 'foot', 'aerial']
-    );
-
-    let allRenderedPoints: [number, number][] = [];
-
-    // Draw inactive overlays first (z-order), then active on top
-    const sortedOverlays = [
-      ...overlays.filter(o => visibleIds.has(o.id) && !o.isActive),
-      ...overlays.filter(o => visibleIds.has(o.id) &&  o.isActive),
-    ];
-
-    sortedOverlays.forEach(o => {
-      if (o.path.length < 2) return;
-      // When aerial is shown as a fallback (drive+foot still loading),
-      // render it as active so it's clearly visible, not faded.
-      const isActive = aerialFallback && o.id === 'aerial' ? true : o.isActive;
-      // CSS class encodes both lineStyle and active state.
-      // stroke-dasharray is set ONLY in CSS (not as Leaflet dashArray option)
-      // because CSS animation of stroke-dashoffset requires CSS stroke-dasharray,
-      // not the SVG attribute that Leaflet normally writes via setAttribute.
-      const lineClass = isActive
-        ? `route-line route-line-${o.lineStyle}`
-        : `route-line-inactive route-line-inactive-${o.lineStyle}`;
-      const pl = L.polyline(o.path, {
-        color: o.color,
-        weight: isActive ? 6 : 2.5,
-        opacity: isActive ? 0.95 : 0.40,
-        // NO dashArray here — handled entirely by CSS class
-        className: lineClass,
-      }).addTo(group);
-      // Leaflet writes stroke-dasharray + stroke-width as SVG *attributes*.
-      // CSS animation of stroke-dashoffset only works when stroke-dasharray is a
-      // CSS *property*. Remove the SVG attrs so the CSS class is the sole source.
-      const svgEl = (pl as any)._path as SVGPathElement | undefined;
-      if (svgEl) {
-        svgEl.removeAttribute('stroke-dasharray');
-        svgEl.removeAttribute('stroke-width');
-      }
-      routePolylineRefs.current.set(o.id, pl);
-      allRenderedPoints = [...allRenderedPoints, ...o.path];
-
-      if (isActive && o.path.length >= 2) {
-        const midIdx = Math.floor(o.path.length / 2);
-        const mid = o.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
-        // Compute progress (0-100%) based on how far the live position is along the path.
-        const lp = props.liveLocation;
-        let progressPct = 0;
-        if (lp && o.path.length >= 2) {
-          // Find closest path point to live location.
-          let minDist = Infinity;
-          let closestIdx = 0;
-          o.path.forEach((pt, i) => {
-            const d = Math.abs(pt[0] - lp.lat) + Math.abs(pt[1] - lp.lon);
-            if (d < minDist) { minDist = d; closestIdx = i; }
-          });
-          progressPct = Math.round((closestIdx / (o.path.length - 1)) * 100);
-        }
-        const distStr = o.km < 10 ? o.km.toFixed(2) : o.km.toFixed(1);
-        const etaStr  = o.durationMin ? ` · ~${Math.round(o.durationMin)} דק\'` : '';
-        const progStr = lp && progressPct > 0 ? ` · ${progressPct}% הושלם` : '';
-        if (props.visible.navLabels) {
-          L.marker(mid, {
-            icon: L.divIcon({
-              className: 'route-distance-label',
-              html: `${distStr} ק״מ${etaStr}${progStr}`,
-              iconSize: undefined,
-            }),
-            interactive: false,
-          }).addTo(group);
-        }
-      }
-    });
-
-    // Start and destination pin labels — only when navLabels is on.
-    // • Start pin: shown only when not navigating live (GPS covers it).
-    // • Destination pin: always useful — shows name + total route distance.
-    const isNavigatingLive = !!props.liveLocation;
-    [
-      {
-        point: a,
-        color: '#6ed1c2',
-        show: !isNavigatingLive,  // hide start when GPS arrow is on the map
-        tooltip: escapeHtml(start.label),
-        permanent: true,
-        offset: [0, -10] as [number, number],
-      },
-      {
-        point: b,
-        color: '#d49a3a',
-        show: true,
-        tooltip: `🎯 ${escapeHtml(end.label)}`,
-        permanent: true,
-        offset: [0, -10] as [number, number],
-      },
-    ].forEach(({ point, color, show, tooltip, permanent, offset }) => {
-      const cm = L.circleMarker(point, {
-        radius: 7,
-        color,
-        weight: 2,
-        fillColor: '#0b0d10',
-        fillOpacity: 1,
-      });
-      if (show && props.visible.navLabels) {
-        cm.bindTooltip(tooltip, {
-          permanent,
-          direction: 'top',
-          offset,
-          className: 'route-tooltip',
-        });
-      }
-      cm.addTo(group);
-    });
-
-    if (!props.liveLocation && allRenderedPoints.length >= 2) {
-      // Always include the user-chosen start+end in the bounds so the map
-      // pans to the correct area (OSRM may snap to a road far from the click).
-      const boundsPoints: [number, number][] = [
-        ...allRenderedPoints,
-        [start.lat, start.lon],
-        [end.lat,   end.lon],
-      ];
-      map.fitBounds(boundsPoints, { padding: [60, 60], maxZoom: 16, animate: true });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    // Stable fingerprint: only re-draw when path data actually changes
-    (props.routeOverlays ?? []).map(o => `${o.id}:${o.path.length}`).join(','),
-    props.navigationRoute?.start.lat,
-    props.navigationRoute?.start.lon,
-    props.navigationRoute?.end.lat,
-    props.navigationRoute?.end.lon,
-    props.routeDisplayMode,
-    Boolean(props.liveLocation),
-    props.visible.navLabels,
-  ]);
-
-  // ---- multi-route overlays — Effect B: ACTIVE STYLE UPDATE ---------------
-  // Switches weight/opacity on existing polylines when user selects a route card.
-  // No clearLayers — animation continues uninterrupted.
-  useEffect(() => {
-    const overlays = props.routeOverlays ?? [];
-    const mode = props.routeDisplayMode ?? 'road';
-    const visibleIds: Set<string> = new Set(
-      mode === 'road'   ? ['drive', 'foot'] :
-      mode === 'aerial' ? ['aerial'] :
-      ['drive', 'foot', 'aerial']
-    );
-    overlays.forEach(o => {
-      const pl = routePolylineRefs.current.get(o.id);
-      if (!pl) return;
-      const visible = visibleIds.has(o.id);
-      const isActive = o.isActive && visible;
-      // Update style without dashArray — that stays in CSS
-      pl.setStyle({
-        weight:  isActive ? 6 : 2.5,
-        opacity: visible ? (isActive ? 0.95 : 0.40) : 0,
-      });
-      // Update CSS class directly on SVG path (Leaflet ignores className in setStyle)
-      const lineClass = isActive
-        ? `route-line route-line-${o.lineStyle}`
-        : `route-line-inactive route-line-inactive-${o.lineStyle}`;
-      const el = (pl as any)._path as SVGPathElement | undefined;
-      if (el) {
-        el.className.baseVal = lineClass;
-        // setStyle re-writes stroke-width as an SVG attr — remove it so CSS wins
-        el.removeAttribute('stroke-dasharray');
-        el.removeAttribute('stroke-width');
-      }
-      if (isActive) pl.bringToFront();
-    });
-  }, [props.routeOverlays]);
 
   // ---- live device location and automatic follow zoom ----
   useEffect(() => {
