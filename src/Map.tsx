@@ -9,6 +9,7 @@ import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm, haversineKm } from 
 import type { MapHandle, LayerVis, MapProps } from './mapTypes';
 import { POP_RADIUS, TILESETS, SECT_COLORS, NAVIGATION_FOLLOW_MIN_ZOOM, labelHtml, poiSizePx, poiShapeClass, poiSymbol, poiIconHtml, buildTownInfoHtml, townPopup, navBtn } from './mapHtml';
 import { useMapInit } from './hooks/useMapInit';
+import { useMapRotation } from './hooks/useMapRotation';
 import { useMapRecording } from './hooks/useMapRecording';
 import { useMapPois } from './hooks/useMapPois';
 import { useMapMultiRoute } from './hooks/useMapMultiRoute';
@@ -29,6 +30,18 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     props.visible.sectColors,
     props.initialCenter,
     props.onMapViewChange,
+  );
+
+  useMapRotation(
+    containerRef,
+    mapRef,
+    props.compassMode,
+    props.mapBearing,
+    props.userRotation,
+    props.onUserRotationChange,
+    userRotationRef,
+    userOnlyRotationRef,
+    props.rotationLocked,
   );
 
   useImperativeHandle(ref, () => ({
@@ -93,161 +106,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       base.getAttribution = () => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
     }
   }, [props.theme, props.visible.topo]);
-
-  // ---- visual compass rotation (compass mode) + user rotation (manual) ----
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const compassDeg = props.compassMode ? -props.mapBearing : 0;
-    // User rotation is additive on top of compass mode
-    const totalDeg = compassDeg + props.userRotation;
-    el.style.setProperty('--map-rotation', `${totalDeg}deg`);
-    el.classList.toggle('compass-follow', props.compassMode);
-    el.classList.toggle('map-rotated', props.userRotation !== 0 || props.compassMode);
-    // Keep refs in sync
-    userRotationRef.current = totalDeg;        // total (compass+user) — for predrag
-    userOnlyRotationRef.current = props.userRotation; // user only — for touch rotate
-  }, [props.compassMode, props.mapBearing, props.userRotation]);
-
-  // ---- Two-finger rotate (touch) + Right-click drag (desktop) ----
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    // --- touch two-finger rotation ---
-    // Strategy: let Leaflet handle pinch-zoom freely.
-    // We detect TWIST (angle change without significant distance change) and
-    // apply rotation on top. Both can happen simultaneously.
-    let prevAngle = 0;
-    let prevDist = 0;
-    let tracking = false;
-    // Accumulated rotation delta — updated incrementally each touchmove
-    // so large cumulative rotation works even if each step is small.
-    let accumulatedDelta = 0;
-    // Whether we have "committed" to a rotate gesture (past the dead-zone).
-    // Once committed, we keep tracking until touchend.
-    let committed = false;
-
-    const getTouchAngle = (t1: Touch, t2: Touch) =>
-      Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
-
-    const getTouchDist = (t1: Touch, t2: Touch) => {
-      const dx = t2.clientX - t1.clientX;
-      const dy = t2.clientY - t1.clientY;
-      return Math.sqrt(dx * dx + dy * dy);
-    };
-
-    // Normalise angle difference to [-180, 180]
-    const angleDiff = (a: number, b: number) => {
-      let d = a - b;
-      while (d > 180) d -= 360;
-      while (d < -180) d += 360;
-      return d;
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 2) { tracking = false; committed = false; accumulatedDelta = 0; return; }
-      // Do NOT preventDefault — let Leaflet handle pinch-zoom normally
-      prevAngle = getTouchAngle(e.touches[0], e.touches[1]);
-      prevDist  = getTouchDist(e.touches[0], e.touches[1]);
-      accumulatedDelta = 0;
-      committed = false;
-      tracking = true;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!tracking || e.touches.length !== 2) return;
-      const currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
-      const currentDist  = getTouchDist(e.touches[0], e.touches[1]);
-
-      // Incremental step for this frame
-      const stepAngle = angleDiff(currentAngle, prevAngle);
-      const distChange = Math.abs(currentDist - prevDist) / Math.max(prevDist, 1);
-
-      // Accept rotation step when angle dominates over zoom change.
-      // distChange < 0.4 allows realistic two-finger twists that also
-      // change spread slightly. stepAngle threshold 1° prevents drift noise.
-      if (Math.abs(stepAngle) > 1 && distChange < 0.4) {
-        accumulatedDelta += stepAngle;
-      }
-
-      // Commit to rotate gesture once accumulated delta exceeds 3° dead-zone
-      if (!committed && Math.abs(accumulatedDelta) > 3) {
-        committed = true;
-      }
-
-      if (committed && !props.rotationLocked) {
-        // Use ref (not props.userRotation) so this handler doesn't need
-        // props.userRotation in the deps array — which would cause the
-        // effect (and its local state) to reset on every rotation update.
-        props.onUserRotationChange(userOnlyRotationRef.current + stepAngle);
-      }
-
-      // Update baseline for next frame (incremental tracking)
-      prevAngle = currentAngle;
-      prevDist  = currentDist;
-      // Let Leaflet handle pinch-zoom — no preventDefault
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        tracking = false;
-        committed = false;
-        accumulatedDelta = 0;
-      }
-    };
-
-    // --- right-click drag rotation (desktop) ---
-    let dragStartX = 0;
-    let dragStartRotation = 0;
-    let dragging = false;
-
-    const onContextMenuDown = (e: MouseEvent) => {
-      if (e.button !== 2) return;
-      // Stop Leaflet from getting this right-click
-      e.preventDefault();
-      e.stopPropagation();
-      dragStartX = e.clientX;
-      dragStartRotation = userOnlyRotationRef.current;
-      dragging = true;
-    };
-
-    const onContextMenuMove = (e: MouseEvent) => {
-      if (!dragging || props.rotationLocked) return;
-      const delta = (e.clientX - dragStartX) * 0.5; // 0.5 deg per pixel
-      props.onUserRotationChange(dragStartRotation + delta);
-    };
-
-    const onContextMenuUp = () => { dragging = false; };
-
-    const suppressContextMenu = (e: Event) => {
-      if (dragging || Math.abs((userOnlyRotationRef.current - dragStartRotation)) > 2) e.preventDefault();
-    };
-
-    // Touch: passive listeners — we never call preventDefault, so Leaflet
-    // pinch-zoom works normally. We just read coordinates on top of it.
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    // Right-click drag: capture phase so we beat Leaflet's context-menu handler
-    el.addEventListener('mousedown', onContextMenuDown, { capture: true });
-    window.addEventListener('mousemove', onContextMenuMove);
-    window.addEventListener('mouseup', onContextMenuUp);
-    el.addEventListener('contextmenu', suppressContextMenu, { capture: true });
-
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-      el.removeEventListener('mousedown', onContextMenuDown, { capture: true } as EventListenerOptions);
-      window.removeEventListener('mousemove', onContextMenuMove);
-      window.removeEventListener('mouseup', onContextMenuUp);
-      el.removeEventListener('contextmenu', suppressContextMenu, { capture: true } as EventListenerOptions);
-    };
-  // props.userRotation intentionally omitted — we read it via userOnlyRotationRef
-  // so the effect (and its local gesture state) is NOT reset on every rotation update.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.onUserRotationChange]);
 
   // ---- focus map from search results ----
   useEffect(() => {
