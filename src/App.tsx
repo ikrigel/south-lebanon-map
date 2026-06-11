@@ -70,6 +70,9 @@ import { HeaderBar } from './components/layout/HeaderBar';
 import { MapOverlays } from './components/layout/MapOverlays';
 import { AnalyticsPanel } from './components/panels/AnalyticsPanel';
 import { LeftPanel } from './components/layout/LeftPanel';
+import { useMiniWindow } from './hooks/useMiniWindow';
+import { useSearchResults } from './hooks/useSearchResults';
+import { useCurrentTurnInstruction } from './hooks/useCurrentTurnInstruction';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -216,76 +219,10 @@ export default function App() {
     });
   }, [yearFrom, yearTo, typeFilter, sevFilter, query]);
 
-  const searchResults = useMemo(() => {
-    const q = clean(query);
-    if (!q) return [];
-    const townMatches = towns
-      .filter(t => clean(`${t.name_he} ${t.name_en} ${t.note ?? ''} ${t.side === 'LB' ? 'לבנון' : 'ישראל'}`).includes(q))
-      .map(t => ({
-        id: `town-${t.id}`,
-        title: t.name_he,
-        subtitle: `${t.name_en} · ${t.side === 'LB' ? 'יישוב בלבנון' : 'יישוב ייחוס בישראל'}`,
-        lat: t.lat,
-        lon: t.lon,
-        zoom: 13,
-      }));
-    const unifilMatches = unifilPoints
-      .filter(u => clean(`${u.name_he} ${u.name_en} ${u.note_he} יוניפיל unifil`).includes(q))
-      .map(u => ({
-        id: `unifil-${u.id}`,
-        title: u.name_he,
-        subtitle: `${u.name_en} · נקודת יוניפי״ל ציבורית/מקורבת`,
-        lat: u.lat,
-        lon: u.lon,
-        zoom: 13,
-      }));
-    const terrainMatches = terrainFeatures
-      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים הר הרים נחל נחלים נהר נהרות ואדי עמק תוואי שטח`).includes(q))
-      .map(f => ({
-        id: `terrain-${f.id}`,
-        title: f.name_he,
-        subtitle: `${f.name_en} · תוואי שטח / הידרוגרפיה`,
-        lat: f.lat,
-        lon: f.lon,
-        zoom: f.type === 'river' || f.type === 'wadi' ? 12 : 13,
-      }));
-    const zoneMatches = influenceZones
-      .filter(z => clean(`${z.name_he} ${z.note_he} חזבאללה השפעה אזור`).includes(q))
-      .map(z => {
-        const center = z.polygon.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]] as [number, number], [0, 0]);
-        return {
-          id: `zone-${z.id}`,
-          title: z.name_he,
-          subtitle: 'אזור השפעה איכותי ומקורב',
-          lat: center[0] / z.polygon.length,
-          lon: center[1] / z.polygon.length,
-          zoom: 11,
-        };
-      });
-    const incidentMatches = incidents
-      .filter(i => clean(`${i.title_he} ${i.desc_he} ${i.source_label} ${TYPE_LABEL[i.type]}`).includes(q))
-      .slice(0, 8)
-      .map(i => ({
-        id: `incident-${i.id}`,
-        incidentId: i.id,
-        title: i.title_he,
-        subtitle: `${fmtDate(i.date)} · ${TYPE_LABEL[i.type]} · ${i.approx ? 'מיקום מקורב' : 'מיקום מדווח'}`,
-        lat: i.lat,
-        lon: i.lon,
-        zoom: 13,
-      }));
-    const poiMatches = customPois
-      .filter(p => clean(`${p.name} ${p.description} נקודת עניין`).includes(q))
-      .map(p => ({
-        id: `poi-${p.id}`,
-        title: p.name,
-        subtitle: `נקודת עניין אישית · ${p.description || 'ללא תיאור'}`,
-        lat: p.lat,
-        lon: p.lon,
-        zoom: 14,
-      }));
-    return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...zoneMatches, ...incidentMatches].slice(0, 12);
-  }, [query, customPois]);
+  const { searchResults, mapSearchResults } = useSearchResults({
+    query, mapSearchQuery, customPois, towns, incidents,
+    unifilPoints, terrainFeatures, influenceZones,
+  });
 
   const mapSearchResults = useMemo(() => {
     const q = clean(mapSearchQuery);
@@ -598,90 +535,9 @@ export default function App() {
     return 0;
   }, [liveLocation, recordedTrack, navigationRoute]);
 
-  const currentTurnInstruction = useMemo<TurnInstruction | null>(() => {
-    if (!navigationRoute) return null;
-    const path: [number, number][] = navigationRoute.path && navigationRoute.path.length >= 2
-      ? navigationRoute.path
-      : [
-          [navigationRoute.start.lat, navigationRoute.start.lon],
-          [navigationRoute.end.lat, navigationRoute.end.lon],
-        ];
-    if (path.length < 2) return null;
-
-    // Use throttled navPosition (updates every 15 m) not raw liveLocation
-    const current: [number, number] = navPosition
-      ? [navPosition.lat, navPosition.lon]
-      : path[0];
-    const remainingToEndKm = haversineKm(current, [navigationRoute.end.lat, navigationRoute.end.lon]);
-    const confidence: TurnInstruction['confidence'] = navigationRoute.path && navigationRoute.path.length >= 3 ? 'route' : 'estimated';
-    if (remainingToEndKm < 0.15) {
-      return composeTurnInstruction('arrive', Math.max(0, remainingToEndKm * 1000), mapBearing, confidence);
-    }
-
-    const routeInstructions = navigationRoute.instructions?.filter(instruction => instruction.action !== 'none') ?? [];
-    if (routeInstructions.length && navigationRoute.path && navigationRoute.path.length >= 2) {
-      const cumulativeMeters = navigationRoute.path.reduce<number[]>((acc, point, index) => {
-        if (index === 0) return [0];
-        const previous = navigationRoute.path![index - 1];
-        acc.push(acc[index - 1] + haversineKm(previous, point) * 1000);
-        return acc;
-      }, []);
-      let nearestIndex = 0;
-      let nearestKm = Infinity;
-      navigationRoute.path.forEach((point, index) => {
-        const km = haversineKm(current, point);
-        if (km < nearestKm) {
-          nearestKm = km;
-          nearestIndex = index;
-        }
-      });
-      const currentDistanceM = navPosition ? cumulativeMeters[nearestIndex] ?? 0 : 0;
-      const aheadInstructions = routeInstructions
-        .filter(instruction => instruction.distanceM >= currentDistanceM + 15)
-        .sort((a, b) => a.distanceM - b.distanceM);
-      const nextMeaningful = aheadInstructions.find(instruction => instruction.action !== 'straight') ?? aheadInstructions[0];
-      if (nextMeaningful) {
-        return composeTurnInstruction(
-          nextMeaningful.action,
-          Math.max(0, nextMeaningful.distanceM - currentDistanceM),
-          nextMeaningful.bearing,
-          'route',
-          nextMeaningful.roadName,
-          nextMeaningful.lat,
-          nextMeaningful.lon
-        );
-      }
-    }
-
-    let nearestIndex = 0;
-    let nearestKm = Infinity;
-    path.forEach((point, index) => {
-      const km = haversineKm(current, point);
-      if (km < nearestKm) {
-        nearestKm = km;
-        nearestIndex = index;
-      }
-    });
-
-    const baseIndex = Math.max(0, Math.min(path.length - 2, nearestIndex));
-    let targetIndex = Math.min(path.length - 1, baseIndex + 1);
-    let accumulatedKm = 0;
-    for (let i = baseIndex; i < path.length - 1; i += 1) {
-      accumulatedKm += haversineKm(path[i], path[i + 1]);
-      targetIndex = i + 1;
-      if (accumulatedKm >= 0.28) break;
-    }
-
-    const previousPoint = path[Math.max(0, baseIndex - 1)];
-    const basePoint = path[baseIndex];
-    const nextPoint = path[targetIndex] ?? path[Math.min(path.length - 1, baseIndex + 1)];
-    const previousBearing = baseIndex > 0 ? bearingDegrees(previousPoint, basePoint) : bearingDegrees(current, nextPoint);
-    const nextBearing = bearingDegrees(basePoint, nextPoint);
-    const delta = normalizeTurnDelta(nextBearing - previousBearing);
-    const action = turnActionFromDelta(delta);
-    const distanceM = Math.max(0, haversineKm(current, nextPoint) * 1000);
-    return composeTurnInstruction(action, distanceM, nextBearing, confidence);
-  }, [navigationRoute, navPosition, mapBearing]);
+  const currentTurnInstruction = useCurrentTurnInstruction({
+    navigationRoute, navPosition, mapBearing,
+  });
 
   const { setVoiceMode, testVoiceGuidance } = useVoiceGuidance({
     voiceGuidance,
