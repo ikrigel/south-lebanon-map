@@ -82,6 +82,7 @@ import { useToastNotification } from './hooks/useToastNotification';
 import { useAppUtilities } from './hooks/useAppUtilities';
 import { useQrImportHandlers } from './hooks/useQrImportHandlers';
 import { usePanelCallbacks } from './hooks/usePanelCallbacks';
+import { useViewReset } from './hooks/useViewReset';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -935,22 +936,20 @@ export default function App() {
   const visibleKey = (k: keyof LayerVis) => () =>
     setVisible(v => ({ ...v, [k]: !v[k] }));
 
-  const resetView = useCallback(() => {
-    setVisible({ ...DEFAULT_LAYER_VISIBILITY });
-    setThemeMode(DEFAULT_THEME_MODE);
-    setLargeLabels(false);
-    setAllLabels(false);
-    setCompassMode(false);
-    setMeasureMode(false);
-    setManualMeasure([]);
-    setSelectedId(null);
-    setLiveFollowDetached(false);
+  const { resetView } = useViewReset({
+    setVisible, setThemeMode, setLargeLabels, setAllLabels, setCompassMode,
+    setMeasureMode, setManualMeasure, setSelectedId, setLiveFollowDetached,
+    setRotationLocked, setUserMapRotation,
+  });
+
+  const handleResetView = useCallback(() => {
+    resetView();
     setFocusTarget({
       ...DEFAULT_MAP_VIEW,
       id: `reset-view-${Date.now()}`,
     });
     showToast('התצוגה אופסה לברירת המחדל');
-  }, [showToast]);
+  }, [resetView, showToast]);
 
   const miniNavSvgMarkup = () => {
     const routePoints = navigationRoute?.path && navigationRoute.path.length >= 2
@@ -1179,7 +1178,7 @@ export default function App() {
         setMiniOverlayOpen={setMiniOverlayOpen}
         themeMode={themeMode}
         setThemeMode={setThemeMode}
-        resetView={resetView}
+        resetView={handleResetView}
         setHelpOpen={setHelpOpen}
         setSupportOpen={setSupportOpen}
         setAboutOpen={setAboutOpen}
