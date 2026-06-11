@@ -69,6 +69,7 @@ import { PoiPanel } from './components/panels/left/PoiPanel';
 import { HeaderBar } from './components/layout/HeaderBar';
 import { MapOverlays } from './components/layout/MapOverlays';
 import { AnalyticsPanel } from './components/panels/AnalyticsPanel';
+import { LeftPanel } from './components/layout/LeftPanel';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
