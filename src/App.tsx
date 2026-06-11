@@ -61,6 +61,7 @@ import { RecordingPanel } from './components/panels/left/RecordingPanel';
 import { NavigationPanel } from './components/panels/left/NavigationPanel';
 import { MultiRoutePanel } from './components/panels/left/MultiRoutePanel';
 import { PoiPanel } from './components/panels/left/PoiPanel';
+import { HeaderBar } from './components/layout/HeaderBar';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -1414,91 +1415,23 @@ export default function App() {
       style={{ '--panel-height-pct': `${panelHeightPct}vh` } as React.CSSProperties}
     >
       {/* ============ Header ============ */}
-      <header className="header">
-        <div className="brand">
-          <svg className="brand-logo" viewBox="0 0 32 32" fill="none" aria-label="לוגו">
-            <path d="M4 24 L12 8 L16 16 L20 12 L28 24" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
-            <circle cx="16" cy="20" r="2" fill="currentColor" />
-          </svg>
-          <div>
-            <div className="brand-title">מרחב דרום לבנון — מפת מצב</div>
-            <div className="brand-sub">פותח ע״י יגאל קריגל - קה״ד גדס״מ 5679 - גדוד סיור מיוחד</div>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn menu-toggle"
-            onClick={handlePanelToggle}
-            aria-pressed={panelsCollapsed}
-            data-testid="button-toggle-menu"
-          >
-            {panelsCollapsed ? 'פתח תפריט' : 'סגור תפריט'}
-          </button>
-          <button className="btn" onClick={() => openMiniWindow().catch(() => setMiniOverlayOpen(true))} data-testid="button-mini-window">
-            חלון מוקטן
-          </button>
-          <div className="theme-switch" role="group" aria-label="מצב בהירות" data-testid="theme-switch">
-            {([
-              ['dark', 'כהה'],
-              ['light', 'בהיר'],
-              ['auto', 'אוטומטי'],
-            ] as const).map(([mode, label]) => (
-              <button
-                key={mode}
-                className="theme-btn"
-                aria-pressed={themeMode === mode}
-                onClick={() => setThemeMode(mode)}
-                data-testid={`button-theme-${mode}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button
-            className="btn ghost"
-            onClick={resetView}
-            data-testid="button-reset-view"
-            title="איפוס שכבות, בהירות, מצפן ומיקוד המפה"
-          >
-            איפוס תצוגה
-          </button>
-          <a
-            className="btn portfolio-link"
-            href="https://portfolio-dusky-eight-77.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="link-portfolio"
-          >
-            הפורטפוליו שלי
-          </a>
-          <button className="btn" onClick={() => setHelpOpen(true)} data-testid="button-help">
-            עזרה והדרכה
-          </button>
-          <button className="btn" onClick={() => setSupportOpen(true)} data-testid="button-support">
-            תמיכה בפיתוח
-          </button>
-          <button className="btn" onClick={() => setAboutOpen(true)} data-testid="button-about">
-            About
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              setMeasureMode(m => !m);
-              setManualMeasure([]);
-            }}
-            aria-pressed={measureMode}
-            data-testid="button-measure"
-          >
-            {measureMode ? 'יציאה ממצב מדידה' : 'מדידה ידנית'}
-          </button>
-          <button className="btn ghost" onClick={() => setDrawerOpen(true)} data-testid="button-sources">
-            מקורות ועל אודות
-          </button>
-          <button className="btn" onClick={() => setTransferOpen(true)} data-testid="button-transfer">
-            העברת מרשמים
-          </button>
-        </div>
-      </header>
+      <HeaderBar
+        panelsCollapsed={panelsCollapsed}
+        handlePanelToggle={handlePanelToggle}
+        openMiniWindow={openMiniWindow}
+        setMiniOverlayOpen={setMiniOverlayOpen}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        resetView={resetView}
+        setHelpOpen={setHelpOpen}
+        setSupportOpen={setSupportOpen}
+        setAboutOpen={setAboutOpen}
+        measureMode={measureMode}
+        setMeasureMode={setMeasureMode}
+        setManualMeasure={setManualMeasure}
+        setDrawerOpen={setDrawerOpen}
+        setTransferOpen={setTransferOpen}
+      />
 
       {/* ============ Left panel: layers + filters ============ */}
       <aside
