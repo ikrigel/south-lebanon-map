@@ -61,6 +61,7 @@ export const useNavState = () => {
   const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
 
   return {
+    initialNavSessionRef,
     navStartId, setNavStartId, navEndId, setNavEndId,
     navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery,
     roadRoute, setRoadRoute, footRoute, setFootRoute,

@@ -88,6 +88,9 @@ export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
   if (initialRecordingSessionRef.current === null) initialRecordingSessionRef.current = loadLocalRecordingSession();
 
+  const initialMapViewRef = useRef<LocalMapView | null>(null);
+  if (initialMapViewRef.current === null) initialMapViewRef.current = loadLocalMapView();
+
   const filterState = useFilterState();
   const poiState = usePoiState();
   const multiRouteState = useMultiRouteState();
@@ -100,7 +103,7 @@ export default function App() {
   const { multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints, multiRouteName, setMultiRouteName, multiRouteDescription, setMultiRouteDescription, multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability, savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute } = multiRouteState;
   const { visible, setVisible, largeLabels, setLargeLabels, allLabels, setAllLabels, focusTarget, setFocusTarget, liveFollowDetached, setLiveFollowDetached, liveCenterRequestId, setLiveCenterRequestId, mapSearchQuery, setMapSearchQuery } = mapDisplayState;
   const { themeMode, setThemeMode, autoDay, setAutoDay, panelsCollapsed, setPanelsCollapsed, panelHeightPct, setPanelHeightPct, panelDragRef, panelRef, miniOverlayOpen, setMiniOverlayOpen, miniStatus, setMiniStatus, drawerOpen, setDrawerOpen, helpOpen, setHelpOpen, aboutOpen, setAboutOpen, transferOpen, setTransferOpen, supportOpen, setSupportOpen, donationCopied, setDonationCopied, toastMessage, setToastMessage, resumeNavDialog, setResumeNavDialog, measureMode, setMeasureMode, manualMeasure, setManualMeasure, miniExternalWindowRef } = uiState;
-  const { navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel } = navState;
+  const { initialNavSessionRef, navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel } = navState;
 
   const mapViewRef = useRef<MapHandle>(null);
   const panelsCollapseIsFirstMount = useRef(true);
@@ -165,53 +168,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    const appProps = {
-    // Panel refs
-    panelRef, panelDragRef,
-    // Drag handlers
-    handlePanelDragStart, handlePanelDragMove, handlePanelDragEnd,
-    // Map search
-    mapSearchQuery, setMapSearchQuery, mapSearchResults,
-    setFocusTarget, setSelectedId, navigateFromCurrentPosition, openExternalNav, liveLocation,
-    // Layers
-    visible, visibleKey, setVisible,
-    // Labels
-    largeLabels, setLargeLabels, allLabels, setAllLabels,
-    // Navigation
-    navStartId, setNavStartId, navEndId, setNavEndId,
-    navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery,
-    navStart, navEnd, startMatches, endMatches,
-    locationStatus, watchId, navigationRoute, routeOptions, routeDisplayMode, setRouteDisplayMode,
-    routeName, setRouteName, savedRoutes, setSavedRoutes,
-    navScaleLabel, setNavScaleLabel, activeRouteId, setActiveRouteId,
-    roadRoute, footRoute, navCustomStart, setNavCustomStart, navCustomEnd, setNavCustomEnd,
-    voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
-    currentTurnInstruction, navPoints, beginLiveLocationWatch, toggleLiveLocation,
-    loadSavedRoute, saveCurrentRoute, importRoutes, testVoiceGuidance,
-    setLiveFollowDetached, liveToastShownRef, showToast,
-    // Recording
-    recordingStatus, recordedTrack, recordedKm, recordingName, setRecordingName,
-    stopRecording, startRecording, saveRecording, recordingToRoute,
-    // MultiRoute
-    multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints,
-    multiRouteTotalKm, multiRouteName, setMultiRouteName,
-    multiRouteDescription, setMultiRouteDescription,
-    multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability,
-    savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute,
-    measureMode, setMeasureMode, saveMultiRoute, loadMultiRoute, exportMultiRoute, addPoiMode, setAddPoiMode,
-    // POI
-    poiDraft, setPoiDraft, poiName, setPoiName, poiDescription, setPoiDescription,
-    poiMarkerSize, setPoiMarkerSize, poiMarkerShape, setPoiMarkerShape, poiMarkerColor, setPoiMarkerColor,
-    customPois, setCustomPois, savePoi, importPois, setManualMeasure,
-    // Filters
-    yearFrom, yearTo, years, setYearFrom, setYearTo,
-    typeFilter, sevFilter, setTypeFilter, setSevFilter,
-    query, searchResults, setQuery,
-    // Download
-    downloadJson,
-  };
-
-  return () => {
+    return () => {
       if (watchId !== null && 'geolocation' in navigator) {
         navigator.geolocation.clearWatch(watchId);
       }
