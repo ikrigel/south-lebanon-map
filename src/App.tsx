@@ -62,6 +62,7 @@ import { NavigationPanel } from './components/panels/left/NavigationPanel';
 import { MultiRoutePanel } from './components/panels/left/MultiRoutePanel';
 import { PoiPanel } from './components/panels/left/PoiPanel';
 import { HeaderBar } from './components/layout/HeaderBar';
+import { MapOverlays } from './components/layout/MapOverlays';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -1839,112 +1840,28 @@ export default function App() {
       </div>
 
       {/* ============ Map overlay buttons (outside map-wrap to avoid stacking-context conflict with header) ============ */}
-      <div className="map-overlays">
-        <button
-          className="compass-button"
-          onClick={() => setCompassMode(v => !v)}
-          aria-pressed={compassMode}
-          data-testid="button-compass"
-          title={compassMode ? 'חזרה לצפון למעלה' : 'סובב לפי כיוון הנסיעה'}
-        >
-          <span
-            className="compass-needle"
-            style={{ transform: `rotate(${mapBearing + userMapRotation}deg)` }}
-          >▲</span>
-          <span>{compassMode ? 'כיוון נסיעה' : 'צפון'}</span>
-          <small>אזימוט {Math.round(mapBearing)}°</small>
-        </button>
-        {userMapRotation !== 0 && (
-          <button
-            className="compass-button reset-north-btn"
-            onClick={resetMapRotation}
-            data-testid="button-reset-north"
-            title={`הצפן מחדש (סבב ${Math.round(userMapRotation)}°)`}
-          >
-            <span
-              className="compass-needle"
-              style={{ transform: `rotate(${userMapRotation}deg)`, color: 'var(--accent-warm, #f6c453)' }}
-            >▲</span>
-            <span>הצפן</span>
-            <small>{Math.round(userMapRotation)}° מסובב</small>
-          </button>
-        )}
-        {/* Rotation lock button + snap picker */}
-        <button
-          className={`rotation-lock-btn${rotationLocked ? ' active' : ''}`}
-          onClick={toggleRotationLock}
-          aria-pressed={rotationLocked}
-          data-testid="button-rotation-lock"
-          title={rotationLocked ? 'בטל נעילת סיבוב' : 'נעל סיבוב — סיבוב חופשי באצבעות מבוטל'}
-        >
-          <span className="lock-icon">{rotationLocked ? '🔒' : '🔓'}</span>
-          <span>{rotationLocked ? 'נעול' : 'חופשי'}</span>
-          <small>סיבוב</small>
-        </button>
-        {snapPickerOpen && (
-          <div className="snap-rotation-picker" data-testid="snap-rotation-picker">
-            <div className="snap-picker-title">בחר זוית סיבוב</div>
-            <div className="snap-picker-grid">
-              {SNAP_ANGLES.map(deg => (
-                <button
-                  key={deg}
-                  className={`snap-angle-btn${userMapRotation === deg ? ' selected' : ''}`}
-                  onClick={() => handleSnapRotation(deg)}
-                  title={`סבב ${deg}°`}
-                >
-                  <span style={{ display: 'inline-block', transform: `rotate(${deg}deg)` }}>↑</span>
-                  <span>{SNAP_LABELS[deg]}</span>
-                </button>
-              ))}
-            </div>
-            <button className="snap-picker-close" onClick={() => setSnapPickerOpen(false)}>סגור</button>
-          </div>
-        )}
-        <button
-          className="map-menu-fab"
-          onClick={handlePanelToggle}
-          aria-pressed={panelsCollapsed}
-          data-testid="button-map-toggle-menu"
-        >
-          {panelsCollapsed ? 'פתח תפריט' : 'סגור תפריט'}
-        </button>
-        {panelsCollapsed && (
-          <button
-            className="mini-map-fab"
-            onClick={() => openMiniWindow().catch(() => setMiniOverlayOpen(true))}
-            data-testid="button-map-mini-window"
-          >
-            חלון מוקטן
-          </button>
-        )}
-        {liveLocation && liveFollowDetached && (
-          <button
-            className={`center-live-fab ${panelsCollapsed ? 'below-mini' : ''}`}
-            onClick={centerLiveLocation}
-            data-testid="button-center-live"
-            title="מרכז את המפה חזרה למיקום המכשיר"
-          >
-            מרכז אותי
-            <small>חזרה לסמן</small>
-          </button>
-        )}
-        {measureMode && (
-          <div className="measure-hud" data-testid="hud-measure">
-            <div className="row"><span>מצב מדידה ידנית</span></div>
-            <div className="row">
-              <span>נקודות שנבחרו</span>
-              <span className="km">{manualMeasure.length} / 2</span>
-            </div>
-            {manualKm !== null && (
-              <div className="row">
-                <span>מרחק (Haversine)</span>
-                <span className="km" data-testid="text-manual-distance">{fmtKm(manualKm)}</span>
-              </div>
-            )}
-            <div className="hint">לחיצה ראשונה — נקודה א׳, שנייה — נקודה ב׳. לחיצה שלישית מאפסת.</div>
-          </div>
-        )}
-      </div>
+      <MapOverlays
+        compassMode={compassMode}
+        setCompassMode={setCompassMode}
+        mapBearing={mapBearing}
+        userMapRotation={userMapRotation}
+        rotationLocked={rotationLocked}
+        toggleRotationLock={toggleRotationLock}
+        snapPickerOpen={snapPickerOpen}
+        setSnapPickerOpen={setSnapPickerOpen}
+        handleSnapRotation={handleSnapRotation}
+        resetMapRotation={resetMapRotation}
+        panelsCollapsed={panelsCollapsed}
+        handlePanelToggle={handlePanelToggle}
+        liveLocation={liveLocation}
+        liveFollowDetached={liveFollowDetached}
+        centerLiveLocation={centerLiveLocation}
+        openMiniWindow={openMiniWindow}
+        setMiniOverlayOpen={setMiniOverlayOpen}
+        measureMode={measureMode}
+        manualMeasure={manualMeasure}
+        manualKm={manualKm}
+      />
 
       {toastMessage && (
         <div className="app-toast" role="status" aria-live="polite" data-testid="toast-message">
