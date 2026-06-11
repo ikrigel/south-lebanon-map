@@ -183,7 +183,53 @@ export default function App() {
   });
 
   useEffect(() => {
-    return () => {
+    const appProps = {
+    // Panel refs
+    panelRef, panelDragRef,
+    // Drag handlers
+    handlePanelDragStart, handlePanelDragMove, handlePanelDragEnd,
+    // Map search
+    mapSearchQuery, setMapSearchQuery, mapSearchResults,
+    setFocusTarget, setSelectedId, navigateFromCurrentPosition, openExternalNav, liveLocation,
+    // Layers
+    visible, visibleKey, setVisible,
+    // Labels
+    largeLabels, setLargeLabels, allLabels, setAllLabels,
+    // Navigation
+    navStartId, setNavStartId, navEndId, setNavEndId,
+    navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery,
+    navStart, navEnd, startMatches, endMatches,
+    locationStatus, watchId, navigationRoute, routeOptions, routeDisplayMode, setRouteDisplayMode,
+    routeName, setRouteName, savedRoutes, setSavedRoutes,
+    navScaleLabel, setNavScaleLabel, activeRouteId, setActiveRouteId,
+    roadRoute, footRoute, navCustomStart, setNavCustomStart, navCustomEnd, setNavCustomEnd,
+    voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
+    currentTurnInstruction, navPoints, beginLiveLocationWatch, toggleLiveLocation,
+    loadSavedRoute, saveCurrentRoute, importRoutes, testVoiceGuidance,
+    setLiveFollowDetached, liveToastShownRef, showToast,
+    // Recording
+    recordingStatus, recordedTrack, recordedKm, recordingName, setRecordingName,
+    stopRecording, startRecording, saveRecording, recordingToRoute,
+    // MultiRoute
+    multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints,
+    multiRouteTotalKm, multiRouteName, setMultiRouteName,
+    multiRouteDescription, setMultiRouteDescription,
+    multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability,
+    savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute,
+    measureMode, setMeasureMode, saveMultiRoute, loadMultiRoute, exportMultiRoute, addPoiMode, setAddPoiMode,
+    // POI
+    poiDraft, setPoiDraft, poiName, setPoiName, poiDescription, setPoiDescription,
+    poiMarkerSize, setPoiMarkerSize, poiMarkerShape, setPoiMarkerShape, poiMarkerColor, setPoiMarkerColor,
+    customPois, setCustomPois, savePoi, importPois, setManualMeasure,
+    // Filters
+    yearFrom, yearTo, years, setYearFrom, setYearTo,
+    typeFilter, sevFilter, setTypeFilter, setSevFilter,
+    query, searchResults, setQuery,
+    // Download
+    downloadJson,
+  };
+
+  return () => {
       if (watchId !== null && 'geolocation' in navigator) {
         navigator.geolocation.clearWatch(watchId);
       }
@@ -1291,363 +1337,7 @@ export default function App() {
       />
 
       {/* ============ Left panel: layers + filters ============ */}
-      <aside
-        className="panel left"
-        data-testid="panel-layers"
-        ref={panelRef}
-      >
-        {/* Drag handle — visible only on mobile */}
-        <div
-          className="panel-drag-handle"
-          data-testid="panel-drag-handle"
-          aria-label="גרור לשינוי גובה התפריט"
-          onMouseDown={e => { e.preventDefault(); handlePanelDragStart(e.clientY); }}
-          onTouchStart={e => handlePanelDragStart(e.touches[0].clientY)}
-          onMouseMove={e => { if (panelDragRef.current) { e.preventDefault(); handlePanelDragMove(e.clientY); } }}
-          onTouchMove={e => { e.preventDefault(); handlePanelDragMove(e.touches[0].clientY); }}
-          onMouseUp={handlePanelDragEnd}
-          onMouseLeave={handlePanelDragEnd}
-          onTouchEnd={handlePanelDragEnd}
-        >
-          <span className="panel-drag-pill" />
-        </div>
-        <div className="panel-scroll">
-          <div className="panel-section map-search-section">
-            <h3>חיפוש במפה</h3>
-            <input
-              className="search"
-              placeholder="חפש כפר, עיר, רכס, הר, נחל או נקודת עניין…"
-              value={mapSearchQuery}
-              onChange={e => setMapSearchQuery(e.target.value)}
-              data-testid="input-map-search"
-            />
-            <p className="legend-note">
-              בחירה בתוצאה ממקמת את הנקודה במרכז המפה, פותחת זום קרוב ומציגה סמן מיקוד.
-            </p>
-            {mapSearchResults.length > 0 && (
-              <div className="search-results map-search-results" data-testid="map-search-results">
-                {mapSearchResults.map(result => (
-                  <div key={result.id} className="search-result-row" data-testid={`result-row-${result.id}`}>
-                    <button
-                      className="search-result"
-                      onClick={() => {
-                        setFocusTarget({
-                          lat: result.lat,
-                          lon: result.lon,
-                          zoom: result.zoom,
-                          label: result.title,
-                          id: `${result.id}-${Date.now()}`,
-                        });
-                        setVisible(v => ({ ...v, cityLabels: true, settlementLabels: true, ridgeLabels: true, waterLabels: true }));
-                        if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
-                      }}
-                      data-testid={`button-map-search-result-${result.id}`}
-                    >
-                      <span>{result.title}</span>
-                      <small>{result.subtitle}</small>
-                    </button>
-                    <div className="navigate-btn-group">
-                      <button
-                        className="btn navigate-here-btn navigate-here-primary"
-                        onClick={() => navigateFromCurrentPosition(result.lat, result.lon, result.title)}
-                        title="הגע מיישור ממיקום הנוכחי"
-                        data-testid={`button-navigate-from-here-${result.id}`}
-                      >
-                        ▶ נווט מיכאן
-                      </button>
-                      <button
-                        className="btn navigate-here-btn navigate-here-external"
-                        onClick={() => openExternalNav(result.lat, result.lon, result.title,
-                          liveLocation?.lat, liveLocation?.lon)}
-                        title="פתח Waze / Google Maps"
-                        data-testid={`button-open-external-nav-${result.id}`}
-                      >
-                        פתח Waze/Maps
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {mapSearchQuery.trim().length > 1 && mapSearchResults.length === 0 && (
-              <p className="legend-note" data-testid="map-search-empty">לא נמצאו תוצאות. נסה כתיב עברי/אנגלי אחר או שם סמוך.</p>
-            )}
-          </div>
-
-          <div className="panel-section">
-            <h3>שכבות מידע</h3>
-            <div className="layer-group-title">שכבות בסיס, ביטחון ותבליט</div>
-            {[
-              { key: 'pop' as const, label: 'תפוצת אוכלוסיה אזרחית', color: '#d0b58a' },
-              { key: 'unifil' as const, label: 'יוניפי״ל — מטה ומגזרים', color: '#6da7d1' },
-              { key: 'hez' as const, label: 'אזורי השפעת חזבאללה (איכותי)', color: '#b56466' },
-              { key: 'blueLine' as const, label: 'הקו הכחול (מקורב)', color: '#5a8fbf' },
-              { key: 'litani' as const, label: 'נהר הליטני וגבול אזור החיץ', color: '#4e7fb0' },
-              { key: 'rivers' as const, label: 'נהרות — זהרני, אוואלי', color: '#4a90c4' },
-              { key: 'topo' as const, label: 'טופוגרפיה — ניתוח תבליט וקרקע', color: '#88c37a' },
-            ].map(l => (
-              <div
-                key={l.key}
-                className="toggle-row"
-                data-active={visible[l.key]}
-                onClick={visibleKey(l.key)}
-                role="switch"
-                aria-checked={visible[l.key]}
-                data-testid={`toggle-layer-${l.key}`}
-              >
-                <div className="toggle-label">
-                  <span className="toggle-swatch" style={{ background: l.color }} />
-                  {l.label}
-                </div>
-                <span className="toggle-switch" />
-              </div>
-            ))}
-            <div className="layer-group-title layer-group-title-labels">שכבות שמות בעברית</div>
-            {[
-              { key: 'cityLabels' as const, label: 'שמות בעברית — הפעלה כללית', color: '#f6c453' },
-              { key: 'settlementLabels' as const, label: 'שמות יישובים וכפרים', color: '#f6c453' },
-              { key: 'ridgeLabels' as const, label: 'רכסים, הרים ועמקים', color: '#d49a3a' },
-              { key: 'waterLabels' as const, label: 'נחלים, ואדיות ונהרות', color: '#4e7fb0' },
-            ].map(l => (
-              <div
-                key={l.key}
-                className="toggle-row"
-                data-active={visible[l.key]}
-                onClick={visibleKey(l.key)}
-                role="switch"
-                aria-checked={visible[l.key]}
-                data-testid={`toggle-layer-${l.key}`}
-              >
-                <div className="toggle-label">
-                  <span className="toggle-swatch" style={{ background: l.color }} />
-                  {l.label}
-                </div>
-                <span className="toggle-switch" />
-              </div>
-            ))}
-            <p className="legend-note">
-              שכבת חזבאללה היא איכותית בלבד — מבוססת דיווחי תקשורת ומחקר ציבוריים, אינה מציינת מתקנים מבצעיים או יעדים תקיפים.
-            </p>
-            <div
-              className="toggle-row"
-              data-active={visible.sectColors}
-              onClick={visibleKey('sectColors')}
-              role="switch"
-              aria-checked={visible.sectColors}
-              data-testid="toggle-layer-sectColors"
-            >
-              <div className="toggle-label">
-                <span className="toggle-swatch" style={{ background: 'linear-gradient(90deg,#2a8a6e,#b03030,#7b3fa0,#c97d2a)' }} />
-                צביעת ישובים לפי השתייכות דתית
-              </div>
-              <span className="toggle-switch" />
-            </div>
-            {visible.sectColors && (
-              <>
-                <div className="sect-legend">
-                  {([
-                    { sect: 'shia',      label: 'שיעים',    color: '#2a8a6e' },
-                    { sect: 'sunni',     label: 'סונים',    color: '#c97d2a' },
-                    { sect: 'christian', label: 'נוצרים',   color: '#b03030' },
-                    { sect: 'druze',     label: 'דרוזים',   color: '#7b3fa0' },
-                    { sect: 'mixed',     label: 'מעורב',    color: '#6b7280' },
-                  ] as const).map(s => (
-                    <div key={s.sect} className="sect-legend-row">
-                      <span className="sect-legend-dot" style={{ background: s.color }} />
-                      <span>{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="legend-note">צבע הגבול והנקודה על תווית הישוב מציינים את ההשתייכות הדתית הדומיננטית.</p>
-              </>
-            )}
-
-            {/* ---- navigation overlay labels toggle ---- */}
-            <div className="layer-group-title layer-group-title-labels" style={{ marginTop: 12 }}>תוויות ניווט</div>
-            <div
-              className="toggle-row"
-              data-active={visible.navLabels}
-              onClick={visibleKey('navLabels')}
-              role="switch"
-              aria-checked={visible.navLabels}
-              data-testid="toggle-layer-navLabels"
-            >
-              <div className="toggle-label">
-                <span className="toggle-swatch" style={{ background: 'linear-gradient(90deg,#6ed1c2,#d49a3a)' }} />
-                תוויות מסלול: יעד, מרחק, זמן צפוי והתקדמות
-              </div>
-              <span className="toggle-switch" />
-            </div>
-            {visible.navLabels && (
-              <p className="legend-note">
-                בזמן ניווט פעיל: תוצג תווית יעד (שם), מרחק כולל וזמן משוער על הנתיב,
-                אחוז השלמת המסלול (כשיש GPS), ומרחק נותר ליעד על החץ המסמן מיקומך.
-                כיבוי מנקה עבור מפה נקייה יותר.
-              </p>
-            )}
-          </div>
-
-          <NavigationPanel
-            navStartId={navStartId}
-            setNavStartId={setNavStartId}
-            navEndId={navEndId}
-            setNavEndId={setNavEndId}
-            navStartQuery={navStartQuery}
-            setNavStartQuery={setNavStartQuery}
-            navEndQuery={navEndQuery}
-            setNavEndQuery={setNavEndQuery}
-            navStart={navStart}
-            navEnd={navEnd}
-            startMatches={startMatches}
-            endMatches={endMatches}
-            liveLocation={liveLocation}
-            locationStatus={locationStatus}
-            watchId={watchId}
-            navigationRoute={navigationRoute}
-            routeOptions={routeOptions}
-            routeDisplayMode={routeDisplayMode}
-            setRouteDisplayMode={setRouteDisplayMode}
-            routeName={routeName}
-            setRouteName={setRouteName}
-            savedRoutes={savedRoutes}
-            setSavedRoutes={setSavedRoutes}
-            navScaleLabel={navScaleLabel}
-            setNavScaleLabel={setNavScaleLabel}
-            activeRouteId={activeRouteId}
-            setActiveRouteId={setActiveRouteId}
-            roadRoute={roadRoute}
-            footRoute={footRoute}
-            navCustomStart={navCustomStart}
-            setNavCustomStart={setNavCustomStart}
-            navCustomEnd={navCustomEnd}
-            setNavCustomEnd={setNavCustomEnd}
-            voiceGuidance={voiceGuidance}
-            setVoiceGuidance={setVoiceGuidance}
-            setVoiceMode={setVoiceMode}
-            voiceLanguage={voiceLanguage}
-            setVoiceLanguage={setVoiceLanguage}
-            voiceStatus={voiceStatus}
-            currentTurnInstruction={currentTurnInstruction}
-            navPoints={navPoints}
-            showToast={showToast}
-            beginLiveLocationWatch={beginLiveLocationWatch}
-            toggleLiveLocation={toggleLiveLocation}
-            loadSavedRoute={loadSavedRoute}
-            saveCurrentRoute={saveCurrentRoute}
-            importRoutes={importRoutes}
-            downloadJson={downloadJson}
-            openExternalNav={openExternalNav}
-            testVoiceGuidance={testVoiceGuidance}
-            setFocusTarget={setFocusTarget}
-            liveToastShownRef={liveToastShownRef}
-            setLiveFollowDetached={setLiveFollowDetached}
-          />
-
-          <RecordingPanel
-            recordingStatus={recordingStatus}
-            recordedTrack={recordedTrack}
-            recordedKm={recordedKm}
-            recordingName={recordingName}
-            setRecordingName={setRecordingName}
-            onStartStop={recordingStatus === 'recording' ? stopRecording : startRecording}
-            onClear={() => setRecordedTrack([])}
-            onSave={saveRecording}
-            onExport={() => {
-              const route = recordingToRoute();
-              if (route) downloadJson('recorded-route.json', route);
-            }}
-            showToast={showToast}
-          />
-
-          <MultiRoutePanel
-            multiRouteBuildMode={multiRouteBuildMode}
-            setMultiRouteBuildMode={setMultiRouteBuildMode}
-            multiRouteDraftPoints={multiRouteDraftPoints}
-            setMultiRouteDraftPoints={setMultiRouteDraftPoints}
-            multiRouteTotalKm={multiRouteTotalKm}
-            multiRouteName={multiRouteName}
-            setMultiRouteName={setMultiRouteName}
-            multiRouteDescription={multiRouteDescription}
-            setMultiRouteDescription={setMultiRouteDescription}
-            multiRouteDifficulty={multiRouteDifficulty}
-            setMultiRouteDifficulty={setMultiRouteDifficulty}
-            multiRoutePassability={multiRoutePassability}
-            setMultiRoutePassability={setMultiRoutePassability}
-            savedMultiRoutes={savedMultiRoutes}
-            setSavedMultiRoutes={setSavedMultiRoutes}
-            activeMultiRoute={activeMultiRoute}
-            setActiveMultiRoute={setActiveMultiRoute}
-            measureMode={measureMode}
-            setMeasureMode={setMeasureMode}
-            addPoiMode={addPoiMode}
-            setAddPoiMode={setAddPoiMode}
-            saveMultiRoute={saveMultiRoute}
-            loadMultiRoute={loadMultiRoute}
-            exportMultiRoute={exportMultiRoute}
-            showToast={showToast}
-          />
-
-          <PoiPanel
-            addPoiMode={addPoiMode}
-            setAddPoiMode={setAddPoiMode}
-            poiDraft={poiDraft}
-            setPoiDraft={setPoiDraft}
-            poiName={poiName}
-            setPoiName={setPoiName}
-            poiDescription={poiDescription}
-            setPoiDescription={setPoiDescription}
-            poiMarkerSize={poiMarkerSize}
-            setPoiMarkerSize={setPoiMarkerSize}
-            poiMarkerShape={poiMarkerShape}
-            setPoiMarkerShape={setPoiMarkerShape}
-            poiMarkerColor={poiMarkerColor}
-            setPoiMarkerColor={setPoiMarkerColor}
-            customPois={customPois}
-            setCustomPois={setCustomPois}
-            savePoi={savePoi}
-            importPois={importPois}
-            downloadJson={downloadJson}
-            setFocusTarget={setFocusTarget}
-            measureMode={measureMode}
-            setMeasureMode={setMeasureMode}
-            setManualMeasure={setManualMeasure}
-            showToast={showToast}
-          />
-
-          <FilterPanel
-            yearFrom={yearFrom}
-            yearTo={yearTo}
-            years={years}
-            setYearFrom={setYearFrom}
-            setYearTo={setYearTo}
-          />
-
-          <IncidentFiltersPanel
-            typeFilter={typeFilter}
-            sevFilter={sevFilter}
-            setTypeFilter={setTypeFilter}
-            setSevFilter={setSevFilter}
-          />
-
-          <SearchPanel
-            query={query}
-            searchResults={searchResults}
-            setQuery={setQuery}
-            onResultClick={result => {
-              setFocusTarget({ lat: result.lat, lon: result.lon, zoom: result.zoom, id: `${result.id}-${Date.now()}` });
-              if ('incidentId' in result && typeof result.incidentId === 'string') setSelectedId(result.incidentId);
-            }}
-          />
-
-          <LabelPreferencesPanel
-            allLabels={allLabels}
-            largeLabels={largeLabels}
-            setAllLabels={setAllLabels}
-            setLargeLabels={setLargeLabels}
-            setVisible={setVisible}
-          />
-        </div>
-      </aside>
+      <LeftPanel {...appProps} />
 
       {/* ============ Map ============ */}
       <div className="map-wrap">
