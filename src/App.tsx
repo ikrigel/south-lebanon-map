@@ -62,213 +62,42 @@ import { MultiRoutePanel } from './components/panels/left/MultiRoutePanel';
 import { PoiPanel } from './components/panels/left/PoiPanel';
 
 export default function App() {
-  const initialNavSessionRef = useRef<LocalNavSession | null>(null);
-  if (initialNavSessionRef.current === null) initialNavSessionRef.current = loadLocalNavSession();
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
   if (initialRecordingSessionRef.current === null) initialRecordingSessionRef.current = loadLocalRecordingSession();
-  const initialMapViewRef = useRef<LocalMapView | null>(null);
-  if (initialMapViewRef.current === null) initialMapViewRef.current = loadLocalMapView();
-  const initialLabelPrefsRef = useRef<Required<LocalLabelPreferences> | null>(null);
-  if (initialLabelPrefsRef.current === null) initialLabelPrefsRef.current = loadLocalLabelPreferences();
-  const initialUiStateRef = useRef<LocalUiState | null>(null);
-  if (initialUiStateRef.current === null) initialUiStateRef.current = loadLocalUiState();
-  const initialFilterStateRef = useRef<LocalFilterState | null>(null);
-  if (initialFilterStateRef.current === null) initialFilterStateRef.current = loadLocalFilterState();
 
-  // -------- layer toggles --------
-  const [visible, setVisible] = useState<LayerVis>(() => loadLocalLayerVisibility());
+  const filterState = useFilterState();
+  const poiState = usePoiState();
+  const multiRouteState = useMultiRouteState();
+  const mapDisplayState = useMapDisplayState();
+  const uiState = useUiState();
+  const navState = useNavState();
 
-  // -------- filters --------
-  const minYear = Math.min(...incidents.map(i => i.year));
-  const maxYear = Math.max(...incidents.map(i => i.year));
-  const years = Array.from({ length: maxYear - minYear + 1 }, (_, idx) => minYear + idx);
-  const [yearFrom, setYearFrom] = useState(() => {
-    const saved = initialFilterStateRef.current?.yearFrom;
-    return saved !== undefined && saved >= minYear && saved <= maxYear ? saved : minYear;
-  });
-  const [yearTo, setYearTo] = useState(() => {
-    const saved = initialFilterStateRef.current?.yearTo;
-    return saved !== undefined && saved >= minYear && saved <= maxYear ? saved : maxYear;
-  });
-  const [typeFilter, setTypeFilter] = useState<Set<string>>(() => {
-    const saved = initialFilterStateRef.current?.typeFilter;
-    if (saved && saved.length > 0) return new Set(saved.filter(t => (TYPES as string[]).includes(t)));
-    return new Set(TYPES);
-  });
-  const [sevFilter, setSevFilter] = useState<Set<string>>(() => {
-    const saved = initialFilterStateRef.current?.sevFilter;
-    if (saved && saved.length > 0) return new Set(saved.filter(s => (SEVS as string[]).includes(s)));
-    return new Set(SEVS);
-  });
-  const [query, setQuery] = useState('');
-  const [mapSearchQuery, setMapSearchQuery] = useState('');
+  const { yearFrom, setYearFrom, yearTo, setYearTo, typeFilter, setTypeFilter, sevFilter, setSevFilter, query, setQuery, selectedId, setSelectedId } = filterState;
+  const { addPoiMode, setAddPoiMode, poiDraft, setPoiDraft, poiName, setPoiName, poiDescription, setPoiDescription, poiMarkerColor, setPoiMarkerColor, poiMarkerShape, setPoiMarkerShape, poiMarkerSize, setPoiMarkerSize, customPois, setCustomPois } = poiState;
+  const { multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints, multiRouteName, setMultiRouteName, multiRouteDescription, setMultiRouteDescription, multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability, savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute } = multiRouteState;
+  const { visible, setVisible, largeLabels, setLargeLabels, allLabels, setAllLabels, focusTarget, setFocusTarget, liveFollowDetached, setLiveFollowDetached, liveCenterRequestId, setLiveCenterRequestId, mapSearchQuery, setMapSearchQuery } = mapDisplayState;
+  const { themeMode, setThemeMode, autoDay, setAutoDay, panelsCollapsed, setPanelsCollapsed, panelHeightPct, setPanelHeightPct, panelDragRef, panelRef, miniOverlayOpen, setMiniOverlayOpen, miniStatus, setMiniStatus, drawerOpen, setDrawerOpen, helpOpen, setHelpOpen, aboutOpen, setAboutOpen, transferOpen, setTransferOpen, supportOpen, setSupportOpen, donationCopied, setDonationCopied, toastMessage, setToastMessage, toastTimeoutRef, resumeNavDialog, setResumeNavDialog, measureMode, setMeasureMode, manualMeasure, setManualMeasure, miniExternalWindowRef, showToast } = uiState;
+  const { navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel } = navState;
 
-  // -------- selection / measure --------
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [measureMode, setMeasureMode] = useState(false);
-  const [manualMeasure, setManualMeasure] = useState<[number, number][]>([]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadLocalThemeMode());
-  const [autoDay, setAutoDay] = useState(isDaytime());
-  const [largeLabels, setLargeLabels] = useState(() => initialLabelPrefsRef.current?.largeLabels ?? false);
-  const [allLabels, setAllLabels] = useState(() => initialLabelPrefsRef.current?.allLabels ?? false);
-  const [panelsCollapsed, setPanelsCollapsed] = useState(
-    () => initialUiStateRef.current?.panelsCollapsed ?? false,
-  );
   const mapViewRef = useRef<MapHandle>(null);
-  // Skip snapshotCenter on the initial mount — map is still setting up.
   const panelsCollapseIsFirstMount = useRef(true);
-  // Draggable panel height (mobile only) — percentage of viewport height
-  const [panelHeightPct, setPanelHeightPct] = useState(
-    () => initialUiStateRef.current?.panelHeightPct ?? 35,
-  );
-  const panelDragRef = useRef<{ startY: number; startPct: number } | null>(null);
-  const panelRef = useRef<HTMLElement | null>(null);
-  const [miniOverlayOpen, setMiniOverlayOpen] = useState(false);
-  const [miniStatus, setMiniStatus] = useState<'idle' | 'pip' | 'fallback' | 'popup' | 'mobile'>('idle');
-  // focusTarget: used only for user-triggered focus (search results, incidents).
-  // Initial map view is handled by the initialCenter prop passed to MapView directly.
-  const [focusTarget, setFocusTarget] = useState<{ lat: number; lon: number; zoom?: number; id: string; label?: string } | null>(null);
-  const [liveFollowDetached, setLiveFollowDetached] = useState(false);
-  const [liveCenterRequestId, setLiveCenterRequestId] = useState(0);
-  const [navStartId, setNavStartId] = useState(() => {
-    const saved = initialNavSessionRef.current?.navStartId ?? '';
-    // 'live-location' cannot be resolved on load (GPS not yet acquired).
-    // If coordinates were saved as navCustomStart, switch to that point so
-    // the route is immediately visible.  GPS will resume via liveActive.
-    if (saved === 'live-location') {
-      return initialNavSessionRef.current?.navCustomStart ? 'custom-nav-start' : '';
-    }
-    return saved;
-  });
-  const [navEndId, setNavEndId] = useState(() => initialNavSessionRef.current?.navEndId ?? '');
-  const [navStartQuery, setNavStartQuery] = useState(() => initialNavSessionRef.current?.navStartQuery ?? '');
-  const [navEndQuery, setNavEndQuery] = useState(() => initialNavSessionRef.current?.navEndQuery ?? '');
-  const [roadRoute, setRoadRoute] = useState<RoadRoute | null>(() => initialNavSessionRef.current?.roadRoute ?? null);
-  const [alternativeRoute, setAlternativeRoute] = useState<{ km: number; durationMin: number; path: [number, number][] } | null>(null);
-  const [activeRouteIndex, setActiveRouteIndex] = useState<number>(0);
-  const [routeStatus, setRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    // If a road route was restored from localStorage, mark it ready immediately
-    // so the polyline renders on first paint without waiting for a re-fetch.
-    () => (initialNavSessionRef.current?.roadRoute ? 'ready' : 'idle'),
-  );
-  const [routeName, setRouteName] = useState(() => initialNavSessionRef.current?.routeName ?? '');
-  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => loadLocalSavedRoutes());
-  const [activeSavedRoute, setActiveSavedRoute] = useState<SavedRoute | null>(() => initialNavSessionRef.current?.activeSavedRoute ?? null);
-  const [liveLocation, setLiveLocation] = useState<{ lat: number; lon: number; accuracy?: number; heading?: number | null } | null>(null);
-  // navPosition is a throttled version of liveLocation — updated only when the
-  // device moves ≥ 15 m. Used for turn-instruction recalc and voice guidance,
-  // so those expensive O(n) path scans don't run on every GPS wobble.
-  const [navPosition, setNavPosition] = useState<{ lat: number; lon: number } | null>(null);
-  const navPositionRef = useRef<{ lat: number; lon: number } | null>(null);
-  useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'watching' | 'error'>('idle');
-  const [watchId, setWatchId] = useState<number | null>(null);
-  const [compassMode, setCompassMode] = useState(false);
-  const [userMapRotation, setUserMapRotation] = useState(
-    () => initialUiStateRef.current?.userMapRotation ?? 0,
-  );
-  const handleUserRotationChange = useCallback((deg: number) => {
-    setUserMapRotation(((deg % 360) + 360) % 360);
-  }, []);
-  const resetMapRotation = useCallback(() => setUserMapRotation(0), []);
-  // Rotation lock: when true, pinch/drag cannot rotate the map;
-  // user picks snap angles (0/45/90/135/180/225/270/315) via a picker.
-  const [rotationLocked, setRotationLocked] = useState(false);
-  const [snapPickerOpen, setSnapPickerOpen] = useState(false);
-  const handleSnapRotation = useCallback((deg: number) => {
-    setUserMapRotation(deg);
-    setSnapPickerOpen(false);
-  }, []);
-  const toggleRotationLock = useCallback(() => {
-    setRotationLocked(v => {
-      const next = !v;
-      if (next) setSnapPickerOpen(true); // open picker when locking
-      return next;
-    });
-  }, []);
-  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'error'>('idle');
-  const [recordingWatchId, setRecordingWatchId] = useState<number | null>(null);
-  const [recordedTrack, setRecordedTrack] = useState<[number, number][]>(() => initialRecordingSessionRef.current?.recordedTrack ?? []);
-  const [recordingName, setRecordingName] = useState(() => initialRecordingSessionRef.current?.recordingName ?? '');
-  const [voiceGuidance, setVoiceGuidance] = useState<VoiceGuidanceMode>(() => initialNavSessionRef.current?.voiceGuidance ?? 'off');
-  const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>(() => initialNavSessionRef.current?.voiceLanguage ?? 'he');
-  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'speaking' | 'unsupported'>('idle');
   const recordedTrackRef = useRef<[number, number][]>([]);
-  const miniExternalWindowRef = useRef<Window | null>(null);
   const lastVoiceRouteRef = useRef('');
   const lastVoiceProgressRef = useRef<{ at: number; bucket: number | null }>({ at: 0, bucket: null });
   const lastTurnVoiceRef = useRef<{ key: string; at: number }>({ key: '', at: 0 });
   const resumedLiveRef = useRef(false);
   const resumedRecordingRef = useRef(false);
   const liveToastShownRef = useRef(false);
-  const toastTimeoutRef = useRef<number | null>(null);
-  const [supportOpen, setSupportOpen] = useState(false);
-  const [donationCopied, setDonationCopied] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  // Resume-navigation dialog: shown once on load when a saved nav session exists
-  // and the user hasn’t arrived at the destination yet.
-  const [resumeNavDialog, setResumeNavDialog] = useState<{
-    endLabel: string;
-    startLabel: string;
-    km: number;
-  } | null>(() => {
-    const s = initialNavSessionRef.current;
-    if (!s) return null;
-    // Need both endpoints defined to show resume dialog
-    const hasRoute = !!(s.navEndId && s.navStartId &&
-      (s.roadRoute || s.activeSavedRoute || s.footRoute));
-    if (!hasRoute) return null;
-    // Skip if already arrived (last known distance ≤ 150m)
-    if (s.lastDistToDestM !== undefined && s.lastDistToDestM <= 150) return null;
-    // Skip if session is older than 48 h
-    if (s.savedAt !== undefined && Date.now() - s.savedAt > 48 * 3600 * 1000) return null;
-    // Determine labels from available data
-    const endLabel   = s.navEndQuery   || s.activeSavedRoute?.end?.label   || s.navCustomEnd?.label   || 'יעד שנשמר';
-    const startLabel = s.navStartQuery || s.activeSavedRoute?.start?.label || s.navCustomStart?.label || 'נקודת מוצא שנשמרה';
-    const km = s.roadRoute?.km ?? s.activeSavedRoute?.km ?? s.footRoute?.km ?? 0;
-    return { endLabel, startLabel, km };
-  });
-  const [addPoiMode, setAddPoiMode] = useState(false);
-  const [poiDraft, setPoiDraft] = useState<{ lat: number; lon: number } | null>(null);
-  const [poiName, setPoiName] = useState('');
-  const [poiDescription, setPoiDescription] = useState('');
-  const [poiMarkerColor, setPoiMarkerColor] = useState<PoiColor>('#f6c453');
-  const [poiMarkerShape, setPoiMarkerShape] = useState<PoiShape>('circle');
-  const [poiMarkerSize, setPoiMarkerSize] = useState<PoiSize>('md');
-  const [customPois, setCustomPois] = useState<CustomPoi[]>(() => loadLocalPois());
-  const [multiRouteBuildMode, setMultiRouteBuildMode] = useState(false);
-  const [multiRouteDraftPoints, setMultiRouteDraftPoints] = useState<{lat: number; lon: number; label: string; order: number}[]>([]);
-  const [multiRouteName, setMultiRouteName] = useState('');
-  const [multiRouteDescription, setMultiRouteDescription] = useState('');
-  const [multiRouteDifficulty, setMultiRouteDifficulty] = useState<DifficultyLevel>('medium');
-  const [multiRoutePassability, setMultiRoutePassability] = useState<PassabilityLevel>('dirt');
-  const [savedMultiRoutes, setSavedMultiRoutes] = useState<MultiPointRoute[]>(() => loadLocalSavedMultiRoutes());
-  const [activeMultiRoute, setActiveMultiRoute] = useState<MultiPointRoute | null>(null);
-  const [navCustomEnd, setNavCustomEnd] = useState<{lat: number; lon: number; label: string} | null>(
-    () => initialNavSessionRef.current?.navCustomEnd ?? null,
-  );
-  const [navCustomStart, setNavCustomStart] = useState<{lat: number; lon: number; label: string} | null>(
-    () => initialNavSessionRef.current?.navCustomStart ?? null,
-  );
-  const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
-  // ── Multi-route display mode ──
-  const [routeDisplayMode, setRouteDisplayMode] = useState<RouteDisplayMode>(
-    () => initialNavSessionRef.current?.routeDisplayMode ?? 'road',
-  );
-  const [footRoute, setFootRoute] = useState<RoadRoute | null>(
-    () => initialNavSessionRef.current?.footRoute ?? null,
-  );
-  const [footRouteStatus, setFootRouteStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    () => (initialNavSessionRef.current?.footRoute ? 'ready' : 'idle'),
-  );
-  // aerialRoute is derived (no state needed — computed from navStart/navEnd)
-  const [activeRouteId, setActiveRouteId] = useState<'drive' | 'foot' | 'aerial'>(
-    () => initialNavSessionRef.current?.activeRouteId ?? 'drive',
-  );
+
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'recording' | 'paused' | 'error'>('idle');
+  const [recordingWatchId, setRecordingWatchId] = useState<number | null>(null);
+  const [recordedTrack, setRecordedTrack] = useState<[number, number][]>(() => initialRecordingSessionRef.current?.recordedTrack ?? []);
+  const [recordingName, setRecordingName] = useState(() => initialRecordingSessionRef.current?.recordingName ?? '');
+  const [voiceGuidance, setVoiceGuidance] = useState<VoiceGuidanceMode>(() => loadLocalNavSession()?.voiceGuidance ?? 'off');
+  const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>(() => loadLocalNavSession()?.voiceLanguage ?? 'he');
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'speaking' | 'unsupported'>('idle');
+
+  useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
 
   const showToast = useCallback((message: string, timeoutMs = 2600) => {
     setToastMessage(message);
