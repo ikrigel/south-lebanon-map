@@ -77,6 +77,9 @@ import { useIncidentStats } from './hooks/useIncidentStats';
 import { useIncidentDistances } from './hooks/useIncidentDistances';
 import { useNavPoints } from './hooks/useNavPoints';
 import { Footer } from './components/layout/Footer';
+import { useMapCallbacks } from './hooks/useMapCallbacks';
+import { useToastNotification } from './hooks/useToastNotification';
+import { useAppUtilities } from './hooks/useAppUtilities';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -93,7 +96,7 @@ export default function App() {
   const { addPoiMode, setAddPoiMode, poiDraft, setPoiDraft, poiName, setPoiName, poiDescription, setPoiDescription, poiMarkerColor, setPoiMarkerColor, poiMarkerShape, setPoiMarkerShape, poiMarkerSize, setPoiMarkerSize, customPois, setCustomPois } = poiState;
   const { multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints, multiRouteName, setMultiRouteName, multiRouteDescription, setMultiRouteDescription, multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability, savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute } = multiRouteState;
   const { visible, setVisible, largeLabels, setLargeLabels, allLabels, setAllLabels, focusTarget, setFocusTarget, liveFollowDetached, setLiveFollowDetached, liveCenterRequestId, setLiveCenterRequestId, mapSearchQuery, setMapSearchQuery } = mapDisplayState;
-  const { themeMode, setThemeMode, autoDay, setAutoDay, panelsCollapsed, setPanelsCollapsed, panelHeightPct, setPanelHeightPct, panelDragRef, panelRef, miniOverlayOpen, setMiniOverlayOpen, miniStatus, setMiniStatus, drawerOpen, setDrawerOpen, helpOpen, setHelpOpen, aboutOpen, setAboutOpen, transferOpen, setTransferOpen, supportOpen, setSupportOpen, donationCopied, setDonationCopied, toastMessage, setToastMessage, toastTimeoutRef, resumeNavDialog, setResumeNavDialog, measureMode, setMeasureMode, manualMeasure, setManualMeasure, miniExternalWindowRef, showToast } = uiState;
+  const { themeMode, setThemeMode, autoDay, setAutoDay, panelsCollapsed, setPanelsCollapsed, panelHeightPct, setPanelHeightPct, panelDragRef, panelRef, miniOverlayOpen, setMiniOverlayOpen, miniStatus, setMiniStatus, drawerOpen, setDrawerOpen, helpOpen, setHelpOpen, aboutOpen, setAboutOpen, transferOpen, setTransferOpen, supportOpen, setSupportOpen, donationCopied, setDonationCopied, toastMessage, setToastMessage, resumeNavDialog, setResumeNavDialog, measureMode, setMeasureMode, manualMeasure, setManualMeasure, miniExternalWindowRef } = uiState;
   const { navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel } = navState;
 
   const mapViewRef = useRef<MapHandle>(null);
@@ -116,33 +119,9 @@ export default function App() {
 
   useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
 
-  const showToast = useCallback((message: string, timeoutMs = 2600) => {
-    setToastMessage(message);
-    if (toastTimeoutRef.current !== null) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastMessage('');
-      toastTimeoutRef.current = null;
-    }, timeoutMs);
-  }, []);
+  const { showToast, toastTimeoutRef } = useToastNotification({ setToastMessage });
 
-  const handleMapViewChange = useCallback((view: LocalMapView) => {
-    if (
-      !isFinite(view.lat) ||
-      !isFinite(view.lon) ||
-      !isFinite(view.zoom) ||
-      Math.abs(view.lat) > 90 ||
-      Math.abs(view.lon) > 180
-    ) {
-      return;
-    }
-    safeStorageSet(MAP_VIEW_STORAGE_KEY, {
-      lat: Math.round(view.lat * 1000000) / 1000000,
-      lon: Math.round(view.lon * 1000000) / 1000000,
-      zoom: Math.min(19, Math.max(9, Math.round(view.zoom * 100) / 100)),
-    } satisfies LocalMapView);
-  }, []);
+  const { handleMapViewChange } = useMapCallbacks({});
 
   // Persistence wired via usePersistence hook
   const { lastDistToDestMRef } = usePersistence({
@@ -273,64 +252,6 @@ export default function App() {
     query, mapSearchQuery, customPois, towns, incidents,
     unifilPoints, terrainFeatures, influenceZones,
   });
-
-  const mapSearchResults = useMemo(() => {
-    const q = clean(mapSearchQuery);
-    if (!q) return [];
-    const townMatches = towns
-      .filter(t => clean(`${t.name_he} ${t.name_en} ${t.note ?? ''} ${t.side === 'LB' ? 'לבנון כפר ישוב יישוב' : 'ישראל ישוב יישוב'}`).includes(q))
-      .map(t => ({
-        id: `map-town-${t.id}`,
-        title: t.name_he,
-        subtitle: `${t.name_en} · ${t.side === 'LB' ? 'יישוב/כפר בלבנון' : 'יישוב ייחוס בישראל'}`,
-        lat: t.lat,
-        lon: t.lon,
-        zoom: t.pop_band === 'xl' ? 13 : 15,
-      }));
-    const terrainMatches = terrainFeatures
-      .filter(f => clean(`${f.name_he} ${f.name_en} ${f.note_he ?? ''} רכס רכסים הר הרים נחל נחלים נהר נהרות ואדי עמק תוואי שטח זהרני זהראני סילבסטר`).includes(q))
-      .map(f => ({
-        id: `map-terrain-${f.id}`,
-        title: f.name_he,
-        subtitle: `${f.name_en} · ${f.type === 'mountain' ? 'הר' : f.type === 'ridge' ? 'רכס' : f.type === 'river' ? 'נהר' : f.type === 'wadi' ? 'ואדי/נחל' : 'תוואי שטח'}`,
-        lat: f.lat,
-        lon: f.lon,
-        zoom: f.type === 'river' || f.type === 'wadi' ? 13 : 15,
-      }));
-    const unifilMatches = unifilPoints
-      .filter(u => clean(`${u.name_he} ${u.name_en} ${u.note_he} יוניפיל unifil`).includes(q))
-      .map(u => ({
-        id: `map-unifil-${u.id}`,
-        title: u.name_he,
-        subtitle: `${u.name_en} · נקודת יוניפי״ל ציבורית/מקורבת`,
-        lat: u.lat,
-        lon: u.lon,
-        zoom: 14,
-      }));
-    const poiMatches = customPois
-      .filter(p => clean(`${p.name} ${p.description} נקודת עניין`).includes(q))
-      .map(p => ({
-        id: `map-poi-${p.id}`,
-        title: p.name,
-        subtitle: `נקודת עניין אישית · ${p.description || 'ללא תיאור'}`,
-        lat: p.lat,
-        lon: p.lon,
-        zoom: 16,
-      }));
-    const incidentMatches = incidents
-      .filter(i => clean(`${i.title_he} ${i.desc_he} ${i.source_label} ${TYPE_LABEL[i.type]} אירוע`).includes(q))
-      .slice(0, 8)
-      .map(i => ({
-        id: `map-incident-${i.id}`,
-        incidentId: i.id,
-        title: i.title_he,
-        subtitle: `${fmtDate(i.date)} · ${TYPE_LABEL[i.type]} · ${i.approx ? 'מיקום מקורב' : 'מיקום מדווח'}`,
-        lat: i.lat,
-        lon: i.lon,
-        zoom: 14,
-      }));
-    return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...incidentMatches].slice(0, 18);
-  }, [mapSearchQuery, customPois]);
 
   const selected = useMemo(
     () => filtered.find(i => i.id === selectedId) || incidents.find(i => i.id === selectedId) || null,
@@ -593,18 +514,7 @@ export default function App() {
 
   // Voice guidance wired via useVoiceGuidance hook above
 
-  const downloadJson = (filename: string, data: unknown) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showToast('קובץ JSON מוכן לשיתוף או הורדה');
-  };
+  const { downloadJson } = useAppUtilities({ showToast });
 
   const multiRouteTotalKm = useMemo(() => {
     if (multiRouteDraftPoints.length < 2) return 0;
