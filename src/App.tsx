@@ -73,6 +73,10 @@ import { LeftPanel } from './components/layout/LeftPanel';
 import { useMiniWindow } from './hooks/useMiniWindow';
 import { useSearchResults } from './hooks/useSearchResults';
 import { useCurrentTurnInstruction } from './hooks/useCurrentTurnInstruction';
+import { useIncidentStats } from './hooks/useIncidentStats';
+import { useIncidentDistances } from './hooks/useIncidentDistances';
+import { useNavPoints } from './hooks/useNavPoints';
+import { Footer } from './components/layout/Footer';
 
 export default function App() {
   const initialRecordingSessionRef = useRef<LocalRecordingSession | null>(null);
@@ -288,18 +292,7 @@ export default function App() {
   );
 
   // distance from each filtered incident to the Blue Line
-  const distances = useMemo(() => {
-    return filtered.map(i => ({
-      id: i.id,
-      ...distanceToPolyline([i.lat, i.lon], blueLine),
-    }));
-  }, [filtered]);
-
-  const distanceById = useMemo(() => {
-    const m = new Map<string, { km: number; nearest: [number, number] }>();
-    distances.forEach(d => m.set(d.id, { km: d.km, nearest: d.nearest }));
-    return m;
-  }, [distances]);
+  const { distances, distanceById } = useIncidentDistances({ filtered, blueLine });
 
   // selected incident → distance line on map
   const distanceLine = useMemo<[[number, number], [number, number]] | null>(() => {
@@ -1749,12 +1742,7 @@ export default function App() {
       />
 
       {/* ============ Footer ============ */}
-      <div className="footer">
-        <span className="disclaimer-pill">הצהרה</span>
-        <span>
-          הדמיה חינוכית בלבד ממקורות פתוחים. המיקומים מקורבים. אין במידע המוצג נתוני מודיעין מבצעי, מטרות, מצבורים או נקודות שיגור.
-        </span>
-      </div>
+      <Footer />
 
       {/* ============ Drawer: sources & about ============ */}
       <SourcesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} sources={sources} />
