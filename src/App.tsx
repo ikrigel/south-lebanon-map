@@ -56,6 +56,8 @@ import { HelpDrawer } from './components/drawers/HelpDrawer';
 import { SourcesDrawer } from './components/drawers/SourcesDrawer';
 import { SupportDrawer } from './components/drawers/SupportDrawer';
 import { AboutDrawer } from './components/drawers/AboutDrawer';
+import { ResumeNavDialog } from './components/modals/ResumeNavDialog';
+import { MiniOverlay } from './components/modals/MiniOverlay';
 import { FilterPanel } from './components/panels/left/FilterPanel';
 import { IncidentFiltersPanel } from './components/panels/left/IncidentFiltersPanel';
 import { LabelPreferencesPanel } from './components/panels/left/LabelPreferencesPanel';
@@ -1874,107 +1876,9 @@ export default function App() {
       )}
 
       {/* ===== Resume-navigation dialog ===== */}
-      {resumeNavDialog && (
-        <div className="resume-nav-overlay" role="dialog" aria-modal="true" aria-label="המשך בניווט">
-          <div className="resume-nav-card">
-            <div className="resume-nav-icon">🗯️</div>
-            <h3 className="resume-nav-title">המשך בניווט?</h3>
-            <p className="resume-nav-body">
-              נמצא ניווט שמור אל{' '}
-              <strong>{resumeNavDialog.endLabel}</strong>
-              {resumeNavDialog.km > 0 && (
-                <span className="resume-nav-km"> · {resumeNavDialog.km.toFixed(1)} ק״מ</span>
-              )}
-            </p>
-            <p className="resume-nav-from">מ: {resumeNavDialog.startLabel}</p>
-            <div className="resume-nav-buttons">
-              <button
-                className="resume-nav-btn resume-nav-btn-yes"
-                onClick={() => {
-                  setResumeNavDialog(null);
-                  document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                ▶ המשך בניווט
-              </button>
-              <button
-                className="resume-nav-btn resume-nav-btn-no"
-                onClick={() => {
-                  setResumeNavDialog(null);
-                  // Clear nav state so the user starts fresh
-                  setNavStartId('');
-                  setNavEndId('');
-                  setNavStartQuery('');
-                  setNavEndQuery('');
-                  setNavCustomStart(null);
-                  setNavCustomEnd(null);
-                  setRoadRoute(null);
-                  setFootRoute(null);
-                  setActiveRouteId('drive');
-                  setRouteDisplayMode('road');
-                }}
-              >
-                ✕ בטל ניווט
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ResumeNavDialog resumeNavDialog={resumeNavDialog} onClose={() => setResumeNavDialog(null)} onContinue={() => { setResumeNavDialog(null); document.getElementById("nav-section")?.scrollIntoView({ behavior: "smooth" }); }} onDiscard={() => { setResumeNavDialog(null); setNavStartId(""); setNavEndId(""); setNavStartQuery(""); setNavEndQuery(""); setNavCustomStart(null); setNavCustomEnd(null); setRoadRoute(null); setFootRoute(null); setActiveRouteId("drive"); setRouteDisplayMode("road"); }} />
 
-      {miniOverlayOpen && (
-        <div className="mini-overlay" data-testid="mini-overlay" role="dialog" aria-live="polite" aria-label="חלון מוקטן למצב ניווט">
-          <div className="mini-overlay-head">
-            <strong>חלון מוקטן — מצב ניווט</strong>
-            <button
-              className="mini-close"
-              onClick={() => setMiniOverlayOpen(false)}
-              data-testid="button-close-mini-overlay"
-              aria-label="סגירת חלון מוקטן"
-            >
-              ×
-            </button>
-          </div>
-          <div className="mini-route" data-testid="text-mini-route">
-            {navigationRoute ? `${navigationRoute.start.label} ← ${navigationRoute.end.label}` : 'אין מסלול פעיל'}
-          </div>
-          <div
-            className="mini-nav-panel"
-            data-testid="mini-nav-map"
-            aria-label="מפת מיני ניווט"
-            dangerouslySetInnerHTML={{ __html: miniNavSvgMarkup() }}
-          />
-          <div className="mini-turn" data-testid="mini-turn-instruction">
-            <small>הוראת פנייה במסלול</small>
-            <b>{currentTurnInstruction?.text ?? 'אין הוראת פנייה זמינה'}</b>
-          </div>
-          <div className="mini-grid">
-            <span>
-              <small>מרחק</small>
-              <b>{navigationRoute ? fmtKm(navigationRoute.km) : '—'}</b>
-            </span>
-            <span>
-              <small>זמן</small>
-              <b>{navigationRoute?.durationMin ? `${Math.round(navigationRoute.durationMin)} דק׳` : '—'}</b>
-            </span>
-            <span>
-              <small>מיקום חי</small>
-              <b>{liveLocation ? `${liveLocation.lat.toFixed(5)}, ${liveLocation.lon.toFixed(5)}` : 'לא פעיל'}</b>
-            </span>
-            <span>
-              <small>הקלטה</small>
-              <b>{recordedTrack.length ? `${recordedTrack.length} נק׳ · ${fmtKm(recordedKm)}` : 'לא פעילה'}</b>
-            </span>
-          </div>
-          <p>
-            {miniStatus === 'mobile'
-              ? 'בנייד מוצג מיני־ניווט פנימי כדי למנוע פתיחת חלון חיצוני שעלולה להעביר את הדפדפן לרקע או לסגור את התצוגה.'
-              : miniStatus === 'fallback'
-              ? 'Picture-in-Picture או Popup נחסמו, לכן מוצג חלון צף בתוך האפליקציה.'
-              : 'החלון המוקטן מציג תמונת מצב של הניווט וההקלטה.'}
-            {' '}דפדפן ווב אינו יכול להבטיח z-order מעל כל האפליקציות בכל מכשיר.
-          </p>
-        </div>
-      )}
+      <MiniOverlay miniOverlayOpen={miniOverlayOpen} onClose={() => setMiniOverlayOpen(false)} navigationRoute={navigationRoute} currentTurnInstruction={currentTurnInstruction} liveLocation={liveLocation} recordedTrack={recordedTrack} recordedKm={recordedKm} miniStatus={miniStatus} miniNavSvgMarkup={miniNavSvgMarkup} />
 
       {/* ============ Right panel: analytics + selected ============ */}
       <AnalyticsPanel
