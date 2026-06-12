@@ -5,7 +5,6 @@ import {
   towns, unifilPoints, influenceZones,
 } from '../data/geo';
 import { TILESETS, SECT_COLORS, POP_RADIUS, buildTownInfoHtml, townPopup, navBtn } from '../mapHtml';
-
 interface MapInitReturn {
   mapRef: React.MutableRefObject<L.Map | null>;
   layersRef: React.MutableRefObject<any>;
@@ -14,7 +13,6 @@ interface MapInitReturn {
   liveFollowDetachedRef: React.MutableRefObject<boolean>;
   lastLiveFollowRef: React.MutableRefObject<{ lat: number; lon: number; at: number } | null>;
 }
-
 export const useMapInit = (
   containerRef: React.MutableRefObject<HTMLDivElement | null>,
   userRotationRef: React.MutableRefObject<number>,
@@ -41,10 +39,8 @@ export const useMapInit = (
       attributionControl: true,
     });
     mapRef.current = map;
-
     map.createPane('popPane');
     map.getPane('popPane')!.style.zIndex = '650';
-
     map.whenReady(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const draggable = (map.dragging as any)?._draggable;
@@ -61,7 +57,6 @@ export const useMapInit = (
         draggable._newPos.y = draggable._startPos.y + (dx * sin + dy * cos);
       });
     });
-
     const base = L.tileLayer(TILESETS[theme], {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -210,7 +205,6 @@ export const useMapInit = (
       }).addTo(hezGroup);
     });
     layersRef.current.hez = hezGroup;
-
     layersRef.current.incidents = L.layerGroup();
     layersRef.current.selectedHL = L.layerGroup();
     layersRef.current.measure = L.layerGroup();
@@ -231,7 +225,6 @@ export const useMapInit = (
     layersRef.current.recording.addTo(map);
     layersRef.current.pois.addTo(map);
     layersRef.current.multiRoute.addTo(map);
-
     const reportView = () => {
       const center = map.getCenter();
       const zoom = map.getZoom();
