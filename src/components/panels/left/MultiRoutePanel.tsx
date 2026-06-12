@@ -2,6 +2,7 @@ import React from 'react';
 import { fmtKm, safeText } from '../../../util';
 import { DIFFICULTY_LABELS, PASSABILITY_LABELS, MAX_MULTI_ROUTE_POINTS } from '../../../constants';
 import type { DifficultyLevel, PassabilityLevel, MultiPointRoute } from '../../../types';
+import { SavedMultiRoutesList } from './SavedMultiRoutesList';
 
 interface MultiRoutePanelProps {
   multiRouteBuildMode: boolean;
@@ -171,44 +172,15 @@ export const MultiRoutePanel: React.FC<MultiRoutePanelProps> = ({
             שמור מסלול
           </button>
         </div>
-        {savedMultiRoutes.length > 0 && (
-          <div className="saved-routes" data-testid="saved-multi-routes">
-            {savedMultiRoutes.map(route => (
-              <div className="saved-route" key={route.id}>
-                <button
-                  onClick={() => loadMultiRoute(route)}
-                  data-testid={`button-load-multi-route-${route.id}`}
-                >
-                  <strong>{route.name}</strong>
-                  <small>
-                    {route.points.length} נק׳ · {fmtKm(route.totalKm)} · {DIFFICULTY_LABELS[route.difficulty]} · {PASSABILITY_LABELS[route.passability]}
-                  </small>
-                </button>
-                <button
-                  className="btn ghost"
-                  onClick={() => exportMultiRoute(route)}
-                  style={{ fontSize: 11, padding: '3px 8px', marginInlineEnd: 4 }}
-                  title="ייצוא לקובץ"
-                  data-testid={`button-export-multi-route-${route.id}`}
-                >
-                  ייצוא
-                </button>
-                <button
-                  className="mini-delete"
-                  onClick={() => {
-                    setSavedMultiRoutes(savedMultiRoutes.filter(r => r.id !== route.id));
-                    if (activeMultiRoute?.id === route.id) setActiveMultiRoute(null);
-                    showToast(`המסלול "${route.name}" נמחק`);
-                  }}
-                  data-testid={`button-delete-multi-route-${route.id}`}
-                  aria-label={`מחיקת ${route.name}`}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <SavedMultiRoutesList
+          savedMultiRoutes={savedMultiRoutes}
+          activeMultiRoute={activeMultiRoute}
+          setSavedMultiRoutes={setSavedMultiRoutes}
+          setActiveMultiRoute={setActiveMultiRoute}
+          loadMultiRoute={loadMultiRoute}
+          exportMultiRoute={exportMultiRoute}
+          showToast={showToast}
+        />
         <div className="route-actions" style={{ marginTop: 8 }}>
           <label className="file-import">
             ייבוא מסלול קובץ
