@@ -6,7 +6,7 @@
 **Progress:** Phases 1–3 complete. Phases 4–6 remain.  
 **Tests:** 289/289 passing throughout all changes.
 
-## Completed (Phases 1–3)
+## Completed (Phases 1–4)
 
 ### Phase 1: TypeScript Fixes ✅
 - Fixed `initialNavSessionRef` not exported from useNavState
@@ -27,81 +27,53 @@ Created 5 extraction hooks consolidating ~415 lines:
 - **Result:** Call site shrinks from 36 → 7 lines
 - usePersistence.ts: 186 → 206 lines (still ≤250) ✅
 
+### Phase 4: Create useAppOrchestration Hook ✅
+**File:** `src/hooks/useAppOrchestration.ts` (80 lines)
+
+Consolidates state setup and orchestration:
+- Calls 6 feature state hooks (filterState, poiState, multiRouteState, mapDisplayState, uiState, navState)
+- Initializes recording state (3 useState + object)
+- Wires core utilities (useLiveLocation, useToastNotification, useMapCallbacks, usePersistence)
+- Handles cleanup effects (geolocation watch clearance, toast timeout)
+- Returns all initialized state for JSX
+
+**Impact:** Single import point for all core state — enables App.tsx rewrite
+
 ### App.tsx Reduction
 - **Original:** 1,315 lines
 - **Current:** 1,247 lines (68 lines removed)
-- **Target:** ≤250 lines via Phase 4
+- **Target:** ≤250 lines via Phase 5 (wire useAppOrchestration into App.tsx)
 
 ---
 
-## Remaining (Phases 4–6)
+## Remaining (Phases 5–6)
 
-### Phase 4: Create Orchestration Wrapper
-**File:** `src/hooks/useAppOrchestration.ts` (~220 lines)
-
-Consolidate all hook calls and return everything JSX needs:
-```ts
-export function useAppOrchestration() {
-  // 1. Feature state hooks (6 calls)
-  const filterState = useFilterState();
-  const poiState = usePoiState();
-  // ... etc (all 6)
-
-  // 2. Core utilities
-  const { showToast } = useToastNotification({ ... });
-  
-  // 3. Domain hooks (5 calls)
-  const navigationDerived = useNavigationDerived({ ... });
-  const incidentDerived = useIncidentDerived({ ... });
-  const liveLocationCbs = useLiveLocationCallbacks({ ... });
-  const poiCbs = usePoiCallbacks({ ... });
-  const routeUtilCbs = useRouteAndUtilCallbacks({ ... });
-
-  // 4. Return flat object for JSX
-  return {
-    panelsCollapsed: uiState.panelsCollapsed,
-    // ... ~100 properties
-    appProps: { /* for LeftPanel */ },
-    mapProps: { /* for Map */ },
-    // ...
-  };
-}
-```
-
-**Impact:** Reduces App.tsx hook calls from 40+ lines → 1 line
-
-### Phase 5: Rewrite App.tsx
+### Phase 5: Wire useAppOrchestration into App.tsx
 **Target:** ≤250 lines
 
-```tsx
-import { useAppOrchestration } from './hooks/useAppOrchestration';
+**Strategy:**
+1. Import `useAppOrchestration` at top of App.tsx
+2. Replace lines 88–143 (all feature state hook calls + refs + recording state) with:
+   ```tsx
+   const {
+     initialRecordingSessionRef, initialMapViewRef,
+     recordingStatus, setRecordingStatus, recordingWatchId, setRecordingWatchId,
+     recordedTrack, setRecordedTrack, recordingName, setRecordingName,
+     recordingState, showToast, toastTimeoutRef, handleMapViewChange, lastDistToDestMRef,
+     filterState, poiState, multiRouteState, mapDisplayState, uiState, navState,
+   } = useAppOrchestration();
+   ```
+3. Keep all remaining App.tsx logic unchanged (callbacks, effects, JSX)
+4. Result: 8 lines instead of 56 lines → 48 line savings
 
-export default function App() {
-  const {
-    panelsCollapsed, effectiveTheme, appProps,
-    // Map props (30)
-    initialMapViewRef, visible, filtered, selected, distanceLine,
-    // ... all needed JSX props
-  } = useAppOrchestration();
+**Impact:**
+- App.tsx: 1,247 → ~1,199 lines
+- Hook calls moved to single orchestration point
+- Dependencies clear and ordered
 
-  return (
-    <div className="app">
-      <HeaderBar {...headerProps} />
-      <LeftPanel {...appProps} />
-      <div className="map-wrap">
-        <MapView {...mapProps} />
-      </div>
-      {/* ... rest of JSX */}
-    </div>
-  );
-}
-```
-
-**Structure:**
-- ~40 lines: imports
-- ~8 lines: destructuring from useAppOrchestration
-- ~190 lines: JSX return (unchanged)
-- **Total: ~238 lines** ✅
+**Remaining work:**
+- Lines 145–1247 remain unchanged (callbacks, domain hooks, JSX)
+- No behavioral changes — pure refactoring
 
 ### Phase 6: Split Oversized Components
 
@@ -141,25 +113,24 @@ export default function App() {
 
 ---
 
-## Execution Guide for Phases 4–6
+## Execution Guide for Phases 5–6
 
-### Phase 4 Steps
-1. Create `src/hooks/useAppOrchestration.ts` (~220 lines)
-   - Call all 40+ hooks
-   - Merge into flat return object
-   - Test: `npm test -- --run` (289/289 must pass)
-
-2. Wire into App.tsx
-   - Replace all individual hook calls with one `useAppOrchestration` call
-   - Update JSX prop passing to use destructured result
-
-### Phase 5 Steps
-1. Delete all intermediate hook calls from App.tsx
-2. Keep only:
-   - Imports (~40 lines)
-   - `const { ... } = useAppOrchestration();`
-   - JSX return (unchanged)
-3. Test: `npm test -- --run`
+### Phase 5 Steps (Wire useAppOrchestration into App.tsx)
+1. Open `src/App.tsx`
+2. Add import at top: `import { useAppOrchestration } from './hooks/useAppOrchestration';`
+3. Replace lines 88–143 with:
+   ```ts
+   const {
+     initialRecordingSessionRef, initialMapViewRef, recordingStatus, setRecordingStatus,
+     recordingWatchId, setRecordingWatchId, recordedTrack, setRecordedTrack,
+     recordingName, setRecordingName, recordingState, showToast, toastTimeoutRef,
+     handleMapViewChange, lastDistToDestMRef, filterState, poiState, multiRouteState,
+     mapDisplayState, uiState, navState,
+   } = useAppOrchestration();
+   ```
+4. Keep all other logic (lines 145+: callbacks, effects, JSX) unchanged
+5. Test: `npm test -- --run` (289/289 must pass)
+6. Result: 1,247 → ~1,199 lines
 
 ### Phase 6 Steps
 1. **NavigationPanel.tsx** → extract `SavedRoutesSection.tsx`
@@ -217,6 +188,6 @@ wc -l src/App.tsx src/components/panels/left/*.tsx src/Map.tsx src/TransferModal
 ---
 
 **Updated:** 2026-06-12  
-**Status:** Phase 4 ready to begin  
+**Status:** Phase 4 complete, Phase 5 ready to begin  
 **Blocker:** None — all dependencies met  
-**Est. Effort:** ~4 hours (Phase 4) + ~2 hours (Phase 5) + ~3 hours (Phase 6)
+**Est. Effort:** ~2 hours (Phase 5) + ~3 hours (Phase 6)
