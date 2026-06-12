@@ -1,16 +1,6 @@
 import { QRCodeCanvas } from 'qrcode.react';
 import type { CustomPoi, SavedRoute, MultiPointRoute, RecordingPayload } from '../../TransferModal';
-
-const QR_SIZE = 280;
-const QR_LEVEL = 'L';
-const MAX_QR_BYTES = 2950;
-
-interface Selection {
-  pois: boolean;
-  routes: boolean;
-  multiRoutes: boolean;
-  recording: boolean;
-}
+import { QR_CONFIG, type Selection } from '../../utils/transferPayload';
 
 interface TransferSendTabProps {
   customPois: CustomPoi[];
@@ -91,8 +81,8 @@ export function TransferSendTab(props: TransferSendTabProps) {
             <div className="transfer-qr-wrap">
               <QRCodeCanvas
                 value={props.encoded}
-                size={QR_SIZE}
-                level={QR_LEVEL}
+                size={QR_CONFIG.SIZE}
+                level={QR_CONFIG.LEVEL as any}
                 marginSize={2}
                 bgColor="#ffffff"
                 fgColor="#111111"
@@ -102,7 +92,7 @@ export function TransferSendTab(props: TransferSendTabProps) {
                 הצג ברקוד זה למכשיר המקבל ← לחץ "קבל במכשיר זה" שם ← כוון מצלמה לברקוד
               </p>
               <p className="transfer-qr-size">
-                גודל מטען: {props.encoded.length} / {MAX_QR_BYTES} תווים
+                גודל מטען: {props.encoded.length} / {QR_CONFIG.MAX_BYTES} תווים
               </p>
             </div>
           )}
