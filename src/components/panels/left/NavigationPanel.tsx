@@ -2,6 +2,7 @@ import type { RouteDisplayMode, SavedRoute, TurnInstruction } from '../../../typ
 import { NAV_SCALES, DEFAULT_NAV_SCALE_LABEL } from '../../../constants';
 import { fmtKm, safeText } from '../../../util';
 import type { RouteOption } from '../../../hooks/useRouteOptions';
+import { VoiceGuidanceBox } from './VoiceGuidanceBox';
 
 interface NavigationPanelProps {
   navStartId: string;
@@ -308,61 +309,15 @@ export function NavigationPanel(props: NavigationPanelProps) {
             {props.locationStatus === 'error' && <span>לא ניתן לקרוא את מיקום המכשיר. בדוק הרשאות דפדפן או שהדפדפן אינו תומך במיקום חי.</span>}
           </div>
         )}
-        <div className="voice-guidance-box" data-testid="voice-guidance-box">
-          <div className="voice-guidance-head">
-            <strong>הנחיות קוליות</strong>
-            <span data-testid="text-voice-status">
-              {props.voiceStatus === 'speaking' ? 'משמיע כעת' : props.voiceStatus === 'unsupported' ? 'לא נתמך בדפדפן' : 'מוכן'}
-            </span>
-          </div>
-          <div className="voice-language-grid" role="group" aria-label="בחירת שפת הנחיות קוליות">
-            {([['he', 'עברית', 'בדיקה והנחיות בעברית.'], ['en', 'English', 'Test and guidance in English.']] as const).map(([lang, label, desc]) => (
-              <button
-                key={lang}
-                className="voice-language-btn"
-                onClick={() => {
-                  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-                  props.setVoiceLanguage(lang);
-                }}
-                aria-pressed={props.voiceLanguage === lang}
-                data-testid={`button-voice-lang-${lang}`}
-              >
-                <span>{label}</span>
-                <small>{desc}</small>
-              </button>
-            ))}
-          </div>
-          <div className="voice-mode-grid" role="group" aria-label="בחירת מצב הנחיות קוליות">
-            {([['off', 'ללא קול', 'לא יושמעו הנחיות.'], ['basic', 'בסיסיות', 'הכרזת מסלול ועדכוני מרחק מעטים.'], ['detailed', 'מפורטות', 'מסלול, זמן, מרחק, כיוון ודיוק מיקום.']] as const).map(([mode, label, desc]) => (
-              <button
-                key={mode}
-                className="voice-mode-btn"
-                onClick={() => props.setVoiceMode(mode)}
-                aria-pressed={props.voiceGuidance === mode}
-                data-testid={`button-voice-${mode}`}
-              >
-                <span>{label}</span>
-                <small>{desc}</small>
-              </button>
-            ))}
-          </div>
-          <div className="route-actions">
-            <button className="btn ghost" disabled={props.voiceGuidance === 'off'} onClick={props.testVoiceGuidance} data-testid="button-voice-test">
-              בדיקת קול
-            </button>
-          </div>
-          <div className="turn-instruction-card" data-testid="turn-instruction-card">
-            <span>הוראת פנייה במסלול</span>
-            <strong data-testid="text-turn-instruction">{props.currentTurnInstruction?.text ?? 'בחר מסלול כדי לקבל הוראת פנייה.'}</strong>
-            <small>
-              {props.currentTurnInstruction
-                ? props.currentTurnInstruction.confidence === 'route'
-                  ? 'מבוסס על הוראות OSRM כאשר זמינות, או על מסלול מיובא/שמור.'
-                  : 'אומדן לפי קו מוצא ויעד בלבד, ללא פירוט פניות כביש.'
-                : 'ההוראה תתעדכן כאשר ייבחר מסלול פעיל.'}
-            </small>
-          </div>
-        </div>
+        <VoiceGuidanceBox
+          voiceStatus={props.voiceStatus}
+          voiceLanguage={props.voiceLanguage}
+          setVoiceLanguage={props.setVoiceLanguage}
+          voiceGuidance={props.voiceGuidance}
+          setVoiceMode={props.setVoiceMode}
+          testVoiceGuidance={props.testVoiceGuidance}
+          currentTurnInstruction={props.currentTurnInstruction}
+        />
         <div className="save-route-box">
           <input className="search" value={props.routeName} onChange={e => props.setRouteName(e.target.value)} placeholder="שם למסלול לשמירה…" data-testid="input-route-name" />
           <div className="route-actions">
