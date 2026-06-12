@@ -11,6 +11,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import jsQR from 'jsqr';
+import { TransferSendTab } from './components/modals/TransferSendTab';
+import { TransferReceiveTab } from './components/modals/TransferReceiveTab';
 
 // ─── shared types (duplicated here to avoid circular import) ────────────────
 
@@ -328,155 +330,33 @@ export default function TransferModal({
 
         {/* ── SEND ── */}
         {tab === 'send' && (
-          <div className="transfer-send" data-testid="transfer-send-panel">
-            {!hasSomething ? (
-              <p className="transfer-empty">אין מרשמים שמורים במכשיר זה להעברה.</p>
-            ) : (
-              <>
-                <p className="transfer-hint">בחר את המרשמים שברצונך להעביר:</p>
-                <div className="transfer-checkboxes">
-                  <label className={`transfer-check${customPois.length === 0 ? ' disabled' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selection.pois && customPois.length > 0}
-                      disabled={customPois.length === 0}
-                      onChange={() => toggle('pois')}
-                      data-testid="transfer-check-pois"
-                    />
-                    <span>נקודות עניין</span>
-                    <span className="transfer-count">({customPois.length})</span>
-                  </label>
-                  <label className={`transfer-check${savedRoutes.length === 0 ? ' disabled' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selection.routes && savedRoutes.length > 0}
-                      disabled={savedRoutes.length === 0}
-                      onChange={() => toggle('routes')}
-                      data-testid="transfer-check-routes"
-                    />
-                    <span>מסלולים שמורים</span>
-                    <span className="transfer-count">({savedRoutes.length})</span>
-                  </label>
-                  <label className={`transfer-check${savedMultiRoutes.length === 0 ? ' disabled' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selection.multiRoutes && savedMultiRoutes.length > 0}
-                      disabled={savedMultiRoutes.length === 0}
-                      onChange={() => toggle('multiRoutes')}
-                      data-testid="transfer-check-multi-routes"
-                    />
-                    <span>מסלולי ריבוי נקודות</span>
-                    <span className="transfer-count">({savedMultiRoutes.length})</span>
-                  </label>
-                  <label className={`transfer-check${recordedTrack.length === 0 ? ' disabled' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selection.recording && recordedTrack.length > 0}
-                      disabled={recordedTrack.length === 0}
-                      onChange={() => toggle('recording')}
-                      data-testid="transfer-check-recording"
-                    />
-                    <span>הקלטת נסיעה</span>
-                    {recordingName && <span className="transfer-count">({recordingName})</span>}
-                  </label>
-                </div>
-
-                {!payloadEmpty && tooBig && (
-                  <div className="transfer-warning">
-                    ⚠️ הנתונים גדולים מדי לברקוד יחיד. הפחת את כמות הפריטים שבחרת, או ייצא כקובץ JSON.
-                  </div>
-                )}
-
-                {!payloadEmpty && !tooBig && (
-                  <div className="transfer-qr-wrap">
-                    <QRCodeCanvas
-                      value={encoded}
-                      size={QR_SIZE}
-                      level={QR_LEVEL}
-                      marginSize={2}
-                      bgColor="#ffffff"
-                      fgColor="#111111"
-                      data-testid="transfer-qr-canvas"
-                    />
-                    <p className="transfer-qr-hint">
-                      הצג ברקוד זה למכשיר המקבל ← לחץ "קבל במכשיר זה" שם ← כוון מצלמה לברקוד
-                    </p>
-                    <p className="transfer-qr-size">
-                      גודל מטען: {encoded.length} / {MAX_QR_BYTES} תווים
-                    </p>
-                  </div>
-                )}
-
-                {payloadEmpty && (
-                  <p className="transfer-hint" style={{ marginTop: 12 }}>בחר לפחות סוג אחד.</p>
-                )}
-              </>
-            )}
-          </div>
+          <TransferSendTab
+            customPois={customPois}
+            savedRoutes={savedRoutes}
+            savedMultiRoutes={savedMultiRoutes}
+            recordedTrack={recordedTrack}
+            recordingName={recordingName}
+            selection={selection}
+            onToggle={toggle}
+            hasSomething={hasSomething}
+            encoded={encoded}
+            payloadEmpty={payloadEmpty}
+            tooBig={tooBig}
+          />
         )}
 
         {/* ── RECEIVE ── */}
         {tab === 'receive' && (
-          <div className="transfer-receive" data-testid="transfer-receive-panel">
-            {importResult ? (
-              <div className="transfer-success" data-testid="transfer-import-result">
-                <div className="transfer-success-icon">✓</div>
-                <p>{importResult}</p>
-                <button
-                  className="btn"
-                  onClick={() => { setImportResult(null); setScanError(''); }}
-                  data-testid="transfer-scan-again"
-                >
-                  סרוק שוב
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="transfer-hint">
-                  הצב את הברקוד שנוצר במכשיר השולח מול המצלמה.
-                </p>
-
-                {/* camera preview */}
-                <div className="transfer-camera-wrap">
-                  <video
-                    ref={videoRef}
-                    className="transfer-video"
-                    muted
-                    playsInline
-                    data-testid="transfer-video"
-                  />
-                  <canvas ref={canvasRef} className="transfer-canvas-hidden" />
-                  {scanning && (
-                    <div className="transfer-scan-overlay">
-                      <div className="transfer-scan-frame" />
-                    </div>
-                  )}
-                </div>
-
-                {scanError && (
-                  <p className="transfer-error" data-testid="transfer-scan-error">{scanError}</p>
-                )}
-
-                {!scanning ? (
-                  <button
-                    className="btn btn-primary"
-                    onClick={startCamera}
-                    data-testid="transfer-start-scan"
-                  >
-                    הפעל מצלמה וסרוק
-                  </button>
-                ) : (
-                  <button
-                    className="btn ghost"
-                    onClick={stopCamera}
-                    data-testid="transfer-stop-scan"
-                  >
-                    עצור סריקה
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+          <TransferReceiveTab
+            videoRef={videoRef}
+            canvasRef={canvasRef}
+            scanning={scanning}
+            scanError={scanError}
+            importResult={importResult}
+            onScanAgain={() => { setImportResult(null); setScanError(''); }}
+            onStartCamera={startCamera}
+            onStopCamera={stopCamera}
+          />
         )}
       </div>
     </div>
