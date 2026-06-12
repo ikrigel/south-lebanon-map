@@ -123,47 +123,22 @@ export default function App() {
   const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>(() => loadLocalNavSession()?.voiceLanguage ?? 'he');
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'speaking' | 'unsupported'>('idle');
 
+  const recordingState = { recordingStatus, recordingName, recordedTrack };
+
   useLiveLocation({ liveLocation, setNavPosition, navPositionRef });
 
   const { showToast, toastTimeoutRef } = useToastNotification({ setToastMessage });
 
   const { handleMapViewChange } = useMapCallbacks({});
 
-  // Persistence wired via usePersistence hook
   const { lastDistToDestMRef } = usePersistence({
-    customPois,
-    themeMode,
-    visible,
-    largeLabels,
-    allLabels,
-    panelsCollapsed,
-    panelHeightPct,
-    userMapRotation,
-    yearFrom,
-    yearTo,
-    typeFilter,
-    sevFilter,
-    savedRoutes,
-    savedMultiRoutes,
-    navStartId,
-    navEndId,
-    navStartQuery,
-    navEndQuery,
-    routeName,
-    roadRoute,
-    footRoute,
-    activeSavedRoute,
-    locationStatus,
-    voiceGuidance,
-    voiceLanguage,
-    navCustomStart,
-    navCustomEnd,
-    activeRouteId,
-    routeDisplayMode,
-    liveLocation,
-    recordingName,
-    recordedTrack,
-    recordingStatus,
+    filterState,
+    poiState,
+    multiRouteState,
+    mapDisplayState,
+    uiState,
+    navState,
+    recordingState,
     setAutoDay,
   });
 

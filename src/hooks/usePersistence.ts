@@ -24,76 +24,31 @@ import { saveLocalPois, safeStorageSet } from '../storage/storage';
 import { isDaytime } from '../navigation/turnHelpers';
 
 export const usePersistence = ({
-  customPois,
-  themeMode,
-  visible,
-  largeLabels,
-  allLabels,
-  panelsCollapsed,
-  panelHeightPct,
-  userMapRotation,
-  yearFrom,
-  yearTo,
-  typeFilter,
-  sevFilter,
-  savedRoutes,
-  savedMultiRoutes,
-  navStartId,
-  navEndId,
-  navStartQuery,
-  navEndQuery,
-  routeName,
-  roadRoute,
-  footRoute,
-  activeSavedRoute,
-  locationStatus,
-  voiceGuidance,
-  voiceLanguage,
-  navCustomStart,
-  navCustomEnd,
-  activeRouteId,
-  routeDisplayMode,
-  liveLocation,
-  recordingName,
-  recordedTrack,
-  recordingStatus,
+  filterState,
+  poiState,
+  multiRouteState,
+  mapDisplayState,
+  uiState,
+  navState,
+  recordingState,
   setAutoDay,
 }: {
-  customPois: CustomPoi[];
-  themeMode: ThemeMode;
-  visible: LayerVis;
-  largeLabels: boolean;
-  allLabels: boolean;
-  panelsCollapsed: boolean;
-  panelHeightPct: number;
-  userMapRotation: number | undefined;
-  yearFrom: number;
-  yearTo: number;
-  typeFilter: Set<string>;
-  sevFilter: Set<string>;
-  savedRoutes: any[];
-  savedMultiRoutes: any[];
-  navStartId: string;
-  navEndId: string;
-  navStartQuery: string;
-  navEndQuery: string;
-  routeName: string;
-  roadRoute: any;
-  footRoute: any;
-  activeSavedRoute: any;
-  locationStatus: 'idle' | 'watching' | 'error';
-  voiceGuidance: any;
-  voiceLanguage: any;
-  navCustomStart: any;
-  navCustomEnd: any;
-  activeRouteId: any;
-  routeDisplayMode: any;
-  liveLocation: any;
-  recordingName: string;
-  recordedTrack: [number, number][];
-  recordingStatus: 'idle' | 'recording' | 'paused' | 'error';
+  filterState: any;
+  poiState: any;
+  multiRouteState: any;
+  mapDisplayState: any;
+  uiState: any;
+  navState: any;
+  recordingState: any;
   setAutoDay: (isDaytime: boolean) => void;
 }) => {
+  const { customPois } = poiState;
+  const { themeMode, panelsCollapsed, panelHeightPct, userMapRotation } = uiState;
+  const { yearFrom, yearTo, typeFilter, sevFilter } = filterState;
+  const { savedRoutes, savedMultiRoutes } = multiRouteState;
+  const { navStartId, navEndId, navStartQuery, navEndQuery, routeName, roadRoute, footRoute, activeSavedRoute, locationStatus, voiceGuidance, voiceLanguage, navCustomStart, navCustomEnd, activeRouteId, routeDisplayMode, liveLocation } = navState;
+  const { recordingName, recordedTrack, recordingStatus } = recordingState;
+  const { visible, largeLabels, allLabels } = mapDisplayState;
   const lastDistToDestMRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
