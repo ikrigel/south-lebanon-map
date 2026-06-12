@@ -19,6 +19,7 @@ import { useMapRecording } from './hooks/useMapRecording';
 import { useMapPois } from './hooks/useMapPois';
 import { useMapMultiRoute } from './hooks/useMapMultiRoute';
 import { useMapIncidents } from './hooks/useMapIncidents';
+import { useMapMeasureAndDistance } from './hooks/useMapMeasureAndDistance';
 
 // Re-export types for use by other modules
 export type { MapHandle, LayerVis, MapProps };
@@ -244,53 +245,13 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   // ---- render incidents + highlight ----
   useMapIncidents(layersRef, mapRef, props.filteredIncidents, props.selectedIncident, props.onSelectIncident);
 
-  // ---- manual measure points ----
-  useEffect(() => {
-    const group = layersRef.current.measure;
-    if (!group) return;
-    group.clearLayers();
-    if (!props.measureMode && props.manualMeasure.length === 0) return;
-    props.manualMeasure.forEach((p, i) => {
-      L.circleMarker(p, {
-        radius: 5,
-        color: '#6ed1c2',
-        weight: 2,
-        fillColor: '#0b0d10',
-        fillOpacity: 1,
-      })
-        .bindTooltip(`${i + 1}`, { permanent: true, direction: 'top', offset: [0, -6] })
-        .addTo(group);
-    });
-    if (props.manualMeasure.length === 2) {
-      const [a, b] = props.manualMeasure;
-      L.polyline([a, b], {
-        color: '#6ed1c2',
-        weight: 2,
-        dashArray: '4 4',
-      }).addTo(group);
-    }
-  }, [props.manualMeasure, props.measureMode]);
-
-  // ---- distance from incident to border line ----
-  useEffect(() => {
-    const group = layersRef.current.distance;
-    if (!group) return;
-    group.clearLayers();
-    if (!props.distanceLine) return;
-    const [a, b] = props.distanceLine;
-    L.polyline([a, b], {
-      color: '#6ed1c2',
-      weight: 2.5,
-      dashArray: '6 3',
-    }).addTo(group);
-    L.circleMarker(b, {
-      radius: 4,
-      color: '#6ed1c2',
-      weight: 2,
-      fillColor: '#0b0d10',
-      fillOpacity: 1,
-    }).addTo(group);
-  }, [props.distanceLine]);
+  // ---- manual measure points + distance line ----
+  useMapMeasureAndDistance({
+    layersRef,
+    measureMode: props.measureMode,
+    manualMeasure: props.manualMeasure,
+    distanceLine: props.distanceLine,
+  });
 
 
   // ---- recorded GPS track ----
