@@ -95,6 +95,11 @@ export default function App() {
   } = useAppOrchestration();
 
   const { yearFrom, setYearFrom, yearTo, setYearTo, typeFilter, setTypeFilter, sevFilter, setSevFilter, query, setQuery, selectedId, setSelectedId } = filterState;
+
+  // Compute years array for FilterPanel
+  const minYear = Math.min(...incidents.map(i => i.year));
+  const maxYear = Math.max(...incidents.map(i => i.year));
+  const years = Array.from({ length: maxYear - minYear + 1 }, (_, idx) => minYear + idx);
   const { addPoiMode, setAddPoiMode, poiDraft, setPoiDraft, poiName, setPoiName, poiDescription, setPoiDescription, poiMarkerColor, setPoiMarkerColor, poiMarkerShape, setPoiMarkerShape, poiMarkerSize, setPoiMarkerSize, customPois, setCustomPois } = poiState;
   const { multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints, multiRouteName, setMultiRouteName, multiRouteDescription, setMultiRouteDescription, multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability, savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute } = multiRouteState;
   const { visible, setVisible, largeLabels, setLargeLabels, allLabels, setAllLabels, focusTarget, setFocusTarget, liveFollowDetached, setLiveFollowDetached, liveCenterRequestId, setLiveCenterRequestId, mapSearchQuery, setMapSearchQuery } = mapDisplayState;
@@ -1085,13 +1090,14 @@ export default function App() {
     },
     largeLabels: mapDisplayState.largeLabels, setLargeLabels: mapDisplayState.setLargeLabels,
     allLabels: mapDisplayState.allLabels, setAllLabels: mapDisplayState.setAllLabels,
+    years,
     recordingStatus, recordedTrack, recordedKm, recordingName,
     recordingActive: recordingStatus === 'recording', isPaused: recordingStatus === 'paused',
     startRecording: hookStartRecording, pauseRecording: () => setRecordingStatus('paused'),
     resumeRecording: () => setRecordingStatus('recording'),
     stopRecording: hookStopRecording, recordingToRoute: hookRecordingToRoute, saveRecording: hookSaveRecording,
     ...navState,
-    navigationRoute, routeOptions, currentTurnInstruction, navPoints, showToast, beginLiveLocationWatch,
+    navigationRoute, routeOptions, currentTurnInstruction, navPoints, startMatches, endMatches, showToast, beginLiveLocationWatch,
     toggleLiveLocation, downloadJson, testVoiceGuidance, liveToastShownRef, setLiveFollowDetached: mapDisplayState.setLiveFollowDetached,
     voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
     loadSavedRoute, saveCurrentRoute, importRoutes,
