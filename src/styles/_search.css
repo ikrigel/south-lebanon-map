@@ -1,0 +1,77 @@
+/* === Search Input, Results, Autocomplete === */
+@import './_variables.css';
+@import './_controls.css';
+
+.search {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  font-family: inherit;
+}
+.search:focus { outline: none; border-color: var(--accent); }
+
+/* Search results */
+.search-results {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.search-result {
+  text-align: right;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font: inherit;
+}
+.search-result:hover { border-color: var(--accent); background: var(--bg-3); }
+.search-result span { display: block; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.search-result small { display: block; color: var(--text-muted); font-size: 11px; line-height: 1.35; margin-top: 2px; }
+
+.search-result-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.search-result-row .search-result {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Navigate buttons */
+.navigate-here-btn {
+  font-size: 11px !important;
+  padding: 4px 8px !important;
+  white-space: nowrap;
+  align-self: stretch;
+  background: rgba(110, 209, 194, 0.12) !important;
+  border-color: rgba(110, 209, 194, 0.3) !important;
+  color: var(--accent-hi) !important;
+}
+.navigate-here-btn:hover {
+  background: rgba(110, 209, 194, 0.22) !important;
+}
+
+.navigate-btn-group { display: flex; flex-direction: column; gap: 4px; }
+.navigate-here-primary {
+  background: rgba(74, 144, 196, 0.18) !important;
+  border-color: rgba(74, 144, 196, 0.45) !important;
+  color: #7ec8f5 !important;
+}
+.navigate-here-primary:hover { background: rgba(74, 144, 196, 0.3) !important; }
+.navigate-here-external {
+  background: rgba(110, 209, 194, 0.12) !important;
+  border-color: rgba(110, 209, 194, 0.3) !important;
+  color: var(--accent-hi) !important;
+}
+.navigate-here-external:hover { background: rgba(110, 209, 194, 0.22) !important; }

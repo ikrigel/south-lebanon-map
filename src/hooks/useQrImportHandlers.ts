@@ -62,5 +62,15 @@ export const useQrImportHandlers = (deps: UseQrImportHandlersDeps) => {
     deps.showToast('הקלטת נסיעה יובאה מברקוד');
   }, [deps]);
 
-  return { handleQrImportRoutes, handleQrImportMultiRoutes, handleQrImportRecording };
+  const handleQrImportPois = useCallback((pois: CustomPoi[]) => {
+    deps.setCustomPois(prev => {
+      const existingIds = new Set(prev.map(p => p.id));
+      const fresh = pois.filter(p => !existingIds.has(p.id));
+      if (!fresh.length) return prev;
+      deps.showToast(`${fresh.length} נקודות עניין יובאו מברקוד`);
+      return [...fresh, ...prev];
+    });
+  }, [deps]);
+
+  return { handleQrImportRoutes, handleQrImportMultiRoutes, handleQrImportRecording, handleQrImportPois };
 };
