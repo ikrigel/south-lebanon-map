@@ -1070,6 +1070,34 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const appProps = {
+    panelRef, panelDragRef, handlePanelDragStart, handlePanelDragMove, handlePanelDragEnd,
+    mapSearchQuery: mapDisplayState.mapSearchQuery, setMapSearchQuery: mapDisplayState.setMapSearchQuery,
+    mapSearchResults: searchResults, setFocusTarget: mapDisplayState.setFocusTarget,
+    setVisible: mapDisplayState.setVisible, setSelectedId: filterState.setSelectedId,
+    navigateFromCurrentPosition, openExternalNav, visible: mapDisplayState.visible,
+    visibleKey: (k: keyof LayerVis) => () => mapDisplayState.setVisible(v => ({ ...v, [k]: !v[k] })),
+    ...filterState,
+    searchResults,
+    onResultClick: (result: any) => {
+      mapDisplayState.setFocusTarget({ lat: result.lat, lon: result.lon, zoom: 12, id: result.id, label: result.label });
+      filterState.setSelectedId(result.type === 'incident' ? result.id : null);
+    },
+    largeLabels: mapDisplayState.largeLabels, setLargeLabels: mapDisplayState.setLargeLabels,
+    allLabels: mapDisplayState.allLabels, setAllLabels: mapDisplayState.setAllLabels,
+    recordingStatus, recordedTrack, recordedKm, recordingName,
+    recordingActive: recordingStatus === 'recording', isPaused: recordingStatus === 'paused',
+    startRecording: hookStartRecording, pauseRecording: () => setRecordingStatus('paused'),
+    resumeRecording: () => setRecordingStatus('recording'),
+    stopRecording: hookStopRecording, recordingToRoute: hookRecordingToRoute, saveRecording: hookSaveRecording,
+    ...navState,
+    navigationRoute, routeOptions, currentTurnInstruction, navPoints, showToast, beginLiveLocationWatch,
+    toggleLiveLocation, downloadJson, testVoiceGuidance, liveToastShownRef, setLiveFollowDetached: mapDisplayState.setLiveFollowDetached,
+    ...multiRouteState,
+    ...poiState,
+    savePoi, importPois,
+  };
+
   return (
     <div
       className={`app ${panelsCollapsed ? 'panels-collapsed' : ''}`}
