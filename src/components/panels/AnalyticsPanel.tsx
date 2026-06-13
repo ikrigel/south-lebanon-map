@@ -1,6 +1,5 @@
-import { fmtDate, fmtKm, distanceToPolyline } from '../../util';
+import { fmtDate, fmtKm, distanceToPolyline, TYPE_COLOR, TYPE_LABEL, SEV_LABEL } from '../../util';
 import type { Incident } from '../../types';
-import { TYPE_COLOR, TYPE_LABEL, SEV_LABEL } from '../../constants';
 
 interface AnalyticsPanelProps {
   stats: any;

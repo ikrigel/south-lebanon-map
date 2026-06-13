@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { distanceToPolyline } from '../util';
-import { TYPE_LABEL, SEV_LABEL, clean } from '../util';
+import { distanceToPolyline, TYPE_LABEL, SEV_LABEL } from '../util';
+import { clean } from '../navigation/turnHelpers';
 import { TYPES, SEVS } from '../constants';
 import { incidents } from '../data/geo';
 

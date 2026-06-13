@@ -10,7 +10,8 @@ import { useToastNotification } from './useToastNotification';
 import { useMapCallbacks } from './useMapCallbacks';
 import { usePersistence } from './usePersistence';
 import type { LocalRecordingSession, LocalMapView } from '../types';
-import { loadLocalRecordingSession, loadLocalMapView } from '../storage/loaders';
+import { loadLocalRecordingSession } from '../storage/sessionLoaders';
+import { loadLocalMapView } from '../storage/loaders';
 
 export function useAppOrchestration() {
   // Initial state refs

@@ -150,3 +150,7 @@ export type LocalFilterState = {
   typeFilter?: string[];
   sevFilter?: string[];
 };
+
+// Re-exports from other modules
+export type { Incident, Town } from './data/geo';
+export type { RecordingPayload } from './TransferModal';

@@ -1,7 +1,6 @@
-import type { RouteDisplayMode } from '../../../types';
+import type { RouteDisplayMode, RouteOption } from '../../../types';
 import { NAV_SCALES } from '../../../constants';
 import { fmtKm } from '../../../util';
-import type { RouteOption } from '../../../hooks/useRouteOptions';
 import { RoutePickerAdvanced } from './RoutePickerAdvanced';
 import { RouteOptionsList } from './RouteOptionsList';
 

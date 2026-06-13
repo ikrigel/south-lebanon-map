@@ -1,5 +1,5 @@
 import { fmtKm } from '../../../util';
-import type { RouteOption } from '../../../hooks/useRouteOptions';
+import type { RouteOption } from '../../../types';
 
 interface RouteOptionsListProps {
   routeOptions: RouteOption[];

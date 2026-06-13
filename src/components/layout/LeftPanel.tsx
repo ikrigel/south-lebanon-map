@@ -6,7 +6,7 @@ import { FilterPanel } from '../panels/left/FilterPanel';
 import { IncidentFiltersPanel } from '../panels/left/IncidentFiltersPanel';
 import { SearchPanel } from '../panels/left/SearchPanel';
 import { LabelPreferencesPanel } from '../panels/left/LabelPreferencesPanel';
-import type { LayerVis } from '../../types';
+import type { LayerVis } from '../../Map';
 
 interface LeftPanelProps {
   panelRef: React.MutableRefObject<HTMLElement | null>;

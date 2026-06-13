@@ -1,7 +1,6 @@
-import type { RouteDisplayMode, SavedRoute, TurnInstruction } from '../../../types';
+import type { RouteDisplayMode, SavedRoute, TurnInstruction, RouteOption } from '../../../types';
 import { NAV_SCALES, DEFAULT_NAV_SCALE_LABEL } from '../../../constants';
 import { fmtKm } from '../../../util';
-import type { RouteOption } from '../../../hooks/useRouteOptions';
 import { VoiceGuidanceBox } from './VoiceGuidanceBox';
 import { RouteActions } from './RouteActions';
 import { RoutePickerForm } from './RoutePickerForm';
