@@ -100,14 +100,7 @@ describe('App Component Rendering', () => {
 
 describe('App Data Loading', () => {
   it('should handle missing incident data without crashing', () => {
-    // Mock fetch to return empty incident data
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve([]),
-      } as Response)
-    );
-
+    // App loads incidents from geo.ts imports, not fetch
     let renderSuccessful = false;
     try {
       render(<App />);
