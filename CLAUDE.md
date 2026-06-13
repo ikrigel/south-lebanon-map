@@ -90,6 +90,20 @@ return { ...myFeature, ... };
 const { myFeature } = useAppWiring();
 ```
 
+### v3.2 Architecture: Mobile Responsiveness & UX Improvements
+
+**Key improvements in v3.2.0:**
+- ✅ **Header scroll on mobile:** `.header-actions` now has `overflow-x: auto` for horizontal scrolling
+- ✅ **Search dropdown visibility:** z-index: 1000 ensures dropdown appears above other elements on mobile
+- ✅ **Drawer accessibility:** Close buttons always accessible on small screens (flex-shrink: 0, responsive padding)
+- ✅ **Responsive breakpoints:** Added ≤600px and ≤420px media queries for optimal mobile UX
+- ✅ **Search performance:** Added console logging for debugging onChange events
+
+CSS files affected:
+- `src/styles/_layout.css` — Header scroll support (overflow-x, flex properties)
+- `src/styles/_dialogs.css` — Drawer responsiveness on mobile (padding, font sizes, z-index)
+- `src/styles/_search.css` — Search dropdown styling for mobile (z-index, max-height, responsive buttons)
+
 ### v3.1 Architecture: Modular CSS Organization
 
 CSS has been split into **10 semantic files** organized by feature domain:
@@ -311,5 +325,6 @@ src/
 
 ---
 
+**Current Version:** v3.2.0 (2026-06-13)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
