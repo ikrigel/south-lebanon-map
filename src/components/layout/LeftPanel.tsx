@@ -24,7 +24,7 @@ interface LeftPanelProps {
   openExternalNav: (lat: number, lon: number, label: string, startLat?: number, startLon?: number) => void;
   liveLocation: any;
   visible: LayerVis;
-  visibleKey: (key: string) => void;
+  visibleKey: (key: string) => () => void;
   [key: string]: any;
 }
 
@@ -124,7 +124,7 @@ export function LeftPanel(props: LeftPanelProps) {
               key={l.key}
               className="toggle-row"
               data-active={props.visible[l.key]}
-              onClick={() => props.visibleKey(l.key)}
+              onClick={() => props.visibleKey(l.key)()}
               role="switch"
               aria-checked={props.visible[l.key]}
               data-testid={`toggle-layer-${l.key}`}
@@ -147,7 +147,7 @@ export function LeftPanel(props: LeftPanelProps) {
               key={l.key}
               className="toggle-row"
               data-active={props.visible[l.key]}
-              onClick={() => props.visibleKey(l.key)}
+              onClick={() => props.visibleKey(l.key)()}
               role="switch"
               aria-checked={props.visible[l.key]}
               data-testid={`toggle-layer-${l.key}`}
