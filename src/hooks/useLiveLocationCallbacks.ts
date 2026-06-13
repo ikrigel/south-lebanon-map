@@ -12,6 +12,7 @@ interface UseLiveLocationCallbacksProps {
   setNavStartId: (id: string) => void;
   setNavStartQuery: (q: string) => void;
   setNavCustomStart: (pt: any) => void;
+  setNavCustomEnd: (pt: any) => void;
   setFocusTarget: (target: any) => void;
   setLiveCenterRequestId: (id: string) => void;
   initialNavSessionRef: React.MutableRefObject<any>;

@@ -1,4 +1,4 @@
-import type { RouteDisplayMode, SavedRoute, TurnInstruction, RouteOption } from '../../../types';
+import type { RouteDisplayMode, SavedRoute, TurnInstruction, RouteOption, VoiceLanguage, VoiceGuidanceMode } from '../../../types';
 import { NAV_SCALES, DEFAULT_NAV_SCALE_LABEL } from '../../../constants';
 import { fmtKm } from '../../../util';
 import { VoiceGuidanceBox } from './VoiceGuidanceBox';
@@ -39,11 +39,11 @@ interface NavigationPanelProps {
   setNavCustomStart: (start: any) => void;
   navCustomEnd: any;
   setNavCustomEnd: (end: any) => void;
-  voiceGuidance: string;
-  setVoiceGuidance: (mode: string) => void;
-  setVoiceMode: (mode: string) => void;
-  voiceLanguage: string;
-  setVoiceLanguage: (lang: string) => void;
+  voiceGuidance: VoiceGuidanceMode;
+  setVoiceGuidance: (mode: VoiceGuidanceMode) => void;
+  setVoiceMode: (mode: VoiceGuidanceMode) => void;
+  voiceLanguage: VoiceLanguage;
+  setVoiceLanguage: (lang: VoiceLanguage) => void;
   voiceStatus: 'idle' | 'speaking' | 'unsupported';
   currentTurnInstruction: TurnInstruction | null;
   navPoints: any[];

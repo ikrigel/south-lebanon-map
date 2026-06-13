@@ -31,7 +31,7 @@ export const useCurrentTurnInstruction = (deps: UseCurrentTurnInstructionDeps) =
 
     const routeInstructions = deps.navigationRoute.instructions?.filter((instruction: any) => instruction.action !== 'none') ?? [];
     if (routeInstructions.length && deps.navigationRoute.path && deps.navigationRoute.path.length >= 2) {
-      const cumulativeMeters = deps.navigationRoute.path.reduce<number[]>((acc: number[], point: [number, number], index: number) => {
+      const cumulativeMeters = (deps.navigationRoute.path as [number, number][]).reduce((acc: number[], point: [number, number], index: number) => {
         if (index === 0) return [0];
         const previous = deps.navigationRoute.path![index - 1];
         acc.push(acc[index - 1] + haversineKm(previous, point) * 1000);

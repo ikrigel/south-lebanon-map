@@ -25,7 +25,7 @@ interface MainLayoutProps {
 export function MainLayout(props: MainLayoutProps) {
   return (
     <div className="app">
-      <LeftPanel {...props} />
+      <LeftPanel {...(props as any)} />
 
       {/* ============ Map ============ */}
       <div className="map-wrap">

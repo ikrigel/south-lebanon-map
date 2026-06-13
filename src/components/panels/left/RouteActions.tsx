@@ -8,7 +8,7 @@ interface RouteActionsProps {
   navStartId: string;
   navEndId: string;
   savedRoutes: SavedRoute[];
-  setSavedRoutes: (routes: SavedRoute[]) => void;
+  setSavedRoutes: (routes: SavedRoute[] | ((prev: SavedRoute[]) => SavedRoute[])) => void;
   saveCurrentRoute: () => void;
   downloadJson: (name: string, data: any) => void;
   importRoutes: (file: File | undefined) => Promise<void>;

@@ -1093,6 +1093,8 @@ export default function App() {
     ...navState,
     navigationRoute, routeOptions, currentTurnInstruction, navPoints, showToast, beginLiveLocationWatch,
     toggleLiveLocation, downloadJson, testVoiceGuidance, liveToastShownRef, setLiveFollowDetached: mapDisplayState.setLiveFollowDetached,
+    voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
+    loadSavedRoute, saveCurrentRoute, importRoutes,
     ...multiRouteState,
     ...poiState,
     savePoi, importPois,

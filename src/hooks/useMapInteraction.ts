@@ -6,7 +6,7 @@ interface UseMapInteractionProps {
   measureMode: boolean;
   multiRouteBuildMode: boolean;
   multiRouteDraftPoints: any[];
-  setMultiRouteDraftPoints: (points: any[]) => void;
+  setMultiRouteDraftPoints: (points: any[] | ((prev: any[]) => any[])) => void;
   setPoiDraft: (draft: any) => void;
   setManualMeasure: (fn: (prev: any[]) => any[]) => void;
   setSelectedId: (id: string | null) => void;

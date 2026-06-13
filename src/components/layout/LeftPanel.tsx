@@ -219,17 +219,17 @@ export function LeftPanel(props: LeftPanelProps) {
           )}
         </div>
 
-        <NavigationPanel {...props} />
-        <RecordingPanel {...props} />
-        <MultiRoutePanel {...props} />
-        <PoiPanel {...props} />
-        <FilterPanel {...props} />
-        <IncidentFiltersPanel {...props} />
-        <SearchPanel {...props} onResultClick={result => {
+        <NavigationPanel {...(props as any)} />
+        <RecordingPanel {...(props as any)} />
+        <MultiRoutePanel {...(props as any)} />
+        <PoiPanel {...(props as any)} />
+        <FilterPanel {...(props as any)} />
+        <IncidentFiltersPanel {...(props as any)} />
+        <SearchPanel {...(props as any)} onResultClick={result => {
           props.setFocusTarget({ lat: result.lat, lon: result.lon, zoom: result.zoom, id: `${result.id}-${Date.now()}` });
           if ('incidentId' in result && typeof result.incidentId === 'string') props.setSelectedId(result.incidentId);
         }} />
-        <LabelPreferencesPanel {...props} />
+        <LabelPreferencesPanel {...(props as any)} />
       </div>
     </aside>
   );

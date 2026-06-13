@@ -23,6 +23,7 @@ export type NavPoint = {
   group: string;
   lat: number;
   lon: number;
+  type?: 'town' | 'unifil' | 'poi' | 'route' | 'multi-route' | 'active-multi-route';
 };
 
 export type TurnInstruction = {

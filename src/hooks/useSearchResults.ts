@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Incident, Town } from '../types';
-import { TYPE_LABEL } from '../constants';
+import { TYPE_LABEL } from '../util';
 import { fmtDate } from '../util';
 
 interface UseSearchResultsDeps {

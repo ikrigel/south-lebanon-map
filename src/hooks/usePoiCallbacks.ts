@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { safeText, haversineKm } from '../util';
 import { normalizePoi } from '../storage/normalize';
-import type { CustomPoi } from '../types';
+import type { CustomPoi, PoiColor, PoiShape, PoiSize } from '../types';
 
 interface UsePoiCallbacksProps {
   addPoiMode: boolean;
@@ -11,15 +11,15 @@ interface UsePoiCallbacksProps {
   poiDraft: { lat: number; lon: number } | null;
   poiName: string;
   poiDescription: string;
-  poiMarkerColor: string;
-  poiMarkerShape: string;
-  poiMarkerSize: string;
+  poiMarkerColor: PoiColor;
+  poiMarkerShape: PoiShape;
+  poiMarkerSize: PoiSize;
   customPois: CustomPoi[];
   setAddPoiMode: (v: boolean) => void;
   setPoiDraft: (p: any) => void;
   setPoiName: (n: string) => void;
   setPoiDescription: (d: string) => void;
-  setMultiRouteDraftPoints: (pts: any[]) => void;
+  setMultiRouteDraftPoints: (pts: any[] | ((prev: any[]) => any[])) => void;
   setManualMeasure: (m: any) => void;
   setSelectedId: (id: any) => void;
   setCustomPois: (fn: (prev: CustomPoi[]) => CustomPoi[]) => void;
