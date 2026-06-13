@@ -52,7 +52,11 @@ export function LeftPanel(props: LeftPanelProps) {
             className="search"
             placeholder="חפש כפר, עיר, רכס, הר, נחל או נקודת עניין…"
             value={props.mapSearchQuery}
-            onChange={e => props.setMapSearchQuery(e.target.value)}
+            onChange={e => {
+              const value = e.target.value;
+              console.log('[Search] Input changed:', value, 'Results count:', props.mapSearchResults?.length || 0);
+              props.setMapSearchQuery(value);
+            }}
             data-testid="input-map-search"
           />
           <p className="legend-note">
