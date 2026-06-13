@@ -40,36 +40,6 @@
 .bar-row .bar > div { height: 100%; background: var(--accent); border-radius: 3px; }
 .bar-row .count { text-align: left; font-family: 'JetBrains Mono', monospace; color: var(--text); }
 
-/* Drawer (sources / about) */
-.drawer {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 9999;
-  display: flex;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-.drawer-panel {
-  width: min(560px, 90vw);
-  background: var(--bg-1);
-  border-inline-end: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.help-panel { width: min(640px, 92vw); }
-.support-panel { width: min(560px, 92vw); }
-.about-panel { width: min(600px, 92vw); }
-.drawer-head { padding: 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.drawer-head h2 { margin: 0; font-size: 16px; }
-.drawer-body { padding: 16px; overflow-y: auto; }
-.drawer-body h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin: 20px 0 8px; }
-.drawer-body h4:first-child { margin-top: 0; }
-.drawer-body a { color: var(--accent-hi); text-decoration: none; display: block; padding: 6px 10px; border-radius: 4px; font-size: 13px; }
-.drawer-body a:hover { background: var(--bg-2); text-decoration: underline; }
-.drawer-body p { font-size: 13px; line-height: 1.6; color: var(--text); }
-
 .help-list { font-size: 13px; line-height: 1.65; color: var(--text); padding-right: 18px; margin: 6px 0 10px; }
 .help-list li { margin-bottom: 4px; }
 .help-list li strong { color: var(--text-hi, var(--text)); }
