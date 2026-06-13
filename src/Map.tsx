@@ -113,7 +113,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
   useMapPopupButtons(mapRef, onNavigateRef, onSetNavStartRef);
 
-  // ---- switch base-map brightness/theme ----
   useEffect(() => {
     const base = layersRef.current.base;
     if (!base) return;
@@ -132,7 +131,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }
   }, [props.theme, props.visible.topo]);
 
-  // ---- focus map from search results ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.focusTarget) return;
@@ -172,7 +170,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     }
   }, [props.focusTarget]);
 
-  // ---- detach automatic live-location follow after manual map movement ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -193,7 +190,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     lastLiveFollowRef.current = null;
     props.onLiveFollowDetachedChange(false);
   }, [props.liveLocation, props.onLiveFollowDetachedChange]);
-  // ---- toggle layer visibility ----
   useEffect(() => {
     const map = mapRef.current;
     const L_ = layersRef.current;
@@ -212,7 +208,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     setVis(L_.rivers, props.visible.rivers);
   }, [props.visible]);
 
-  // ---- Rebuild pop layer when sectColors toggle changes ----
   useEffect(() => {
     const map = mapRef.current;
     const L_ = layersRef.current;
@@ -241,23 +236,16 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (wasVisible && props.visible.pop) popGroup.addTo(map);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.visible.sectColors]);
-
-  // ---- render incidents + highlight ----
   useMapIncidents(layersRef, mapRef, props.filteredIncidents, props.selectedIncident, props.onSelectIncident);
 
-  // ---- manual measure points + distance line ----
   useMapMeasureAndDistance({
     layersRef,
     measureMode: props.measureMode,
     manualMeasure: props.manualMeasure,
     distanceLine: props.distanceLine,
   });
-
-
-  // ---- recorded GPS track ----
   useMapRecording(layersRef, props.recordedTrack);
 
-  // ---- user-created points of interest ----
   useMapPois(layersRef, props.customPois, props.poiDraft, props.poiDraftStyle);
 
   useMapMultiRoute(layersRef, props.multiRouteDraft, props.activeMultiRoute);
