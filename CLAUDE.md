@@ -484,8 +484,36 @@ markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
 
 **Impact:** Direct flight route now displays reliable, smooth animation matching road and foot routes. No more invisible animation issues.
 
+### v3.3.8 Architecture: Stroke-DashArray Explicit Setting
+
+**Bug Fix:** Animation still invisible despite CSS !important. Root cause: Leaflet overwrites SVG attributes after CSS is applied.
+
+**Solution:** Explicitly set `stroke-dasharray` on SVG elements in useMapRoute.ts after polyline creation:
+- Drive route: `setAttribute('stroke-dasharray', '28 4')`
+- Foot route: `setAttribute('stroke-dasharray', '14 8')`
+- Aerial route: `setAttribute('stroke-dasharray', '8 4')`
+
+**Why this works:**
+1. Polyline created with Leaflet defaults
+2. CSS animation applied via className
+3. **NEW:** Explicitly set SVG attribute to ensure stroke-dasharray is present
+4. Animation can now flow properly with defined dash periods
+
+**Code change in useMapRoute.ts (lines 66-75):**
+```typescript
+if (svgEl && (o.id === 'drive' || o.id === 'foot' || o.id === 'aerial')) {
+  if (o.id === 'drive') svgEl.setAttribute('stroke-dasharray', '28 4');
+  else if (o.id === 'foot') svgEl.setAttribute('stroke-dasharray', '14 8');
+  else if (o.id === 'aerial') svgEl.setAttribute('stroke-dasharray', '8 4');
+}
+```
+
+**Test coverage:** Added 15 diagnostic tests in `aerial-route-animation.test.ts` to verify animation setup (420 total tests).
+
+**Impact:** All route animations now display reliably. Direct flight route shows consistent flowing dashes matching road/foot routes.
+
 ---
 
-**Current Version:** v3.3.7 (2026-06-14)  
+**Current Version:** v3.3.8 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
