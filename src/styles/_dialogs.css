@@ -113,6 +113,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  margin-top: 20px;
 }
 
 .modal-header {
@@ -662,6 +663,7 @@
   flex-direction: column;
   height: 100%;
   max-height: 100vh;
+  margin-top: 56px;
 }
 .help-panel { width: min(640px, 92vw); }
 .support-panel { width: min(560px, 92vw); }
