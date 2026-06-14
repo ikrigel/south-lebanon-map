@@ -444,8 +444,27 @@ markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
 
 **Impact:** Users can now toggle town details on/off while maintaining their precise click location for navigation.
 
+### v3.3.6 Architecture: Aerial Route Animation Fix
+
+**Bug Fix:** Direct flight route (קוו טיסה ישיר) now shows visible animation like road and foot routes.
+
+**Root cause:** Aerial route used `stroke-dasharray: 0.1px 13px` which created dots too small (0.1px) to see. Animation existed but was invisible.
+
+**Solution:** Increased dot size in routes.css:
+- **Before:** `stroke-dasharray: 0.1px 13px` (0.1px dots - nearly invisible)
+- **After:** `stroke-dasharray: 4px 6px` (4px visible dots with 6px gaps)
+- Updated keyframe period from -13px to -10px to match new period (4+6)
+- Animation speed increased to 1.0s for snappier visual feedback
+
+**Visual result:**
+- Road route: solid line flowing (28px dash)
+- Foot route: dashed line flowing (14px dash, 8px gap)
+- Aerial route: NOW VISIBLE dotted line flowing (4px dot, 6px gap) ✨
+
+**Impact:** All three route types now display clear, consistent animations. Users can easily distinguish active routes by the flowing dots/dashes pattern.
+
 ---
 
-**Current Version:** v3.3.5 (2026-06-14)  
+**Current Version:** v3.3.6 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
