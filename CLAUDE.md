@@ -349,6 +349,26 @@ src/
 
 ---
 
-**Current Version:** v3.2.0 (2026-06-13)  
+### v3.3.2 Architecture: Leaflet Click Event Fix
+
+**Bug Fix:** Map-click popup now fires immediately on single click without requiring drag interaction.
+
+**Root cause:** Using DOM's capturing phase click event fired before Leaflet finished drag detection. Popup would only appear after dragging the map because dragging triggered a re-render.
+
+**Solution:** Switched to Leaflet's native `map.on('click')` event (useMapClickHandler.ts):
+- Only fires after Leaflet determines the interaction is NOT a drag
+- Leaflet automatically converts screen coordinates to lat/lng
+- Integrates properly with Leaflet's internal event system
+- Single-click pops up immediately; drag-pan works without unwanted popups
+
+**Key change:**
+- Old: `el.addEventListener('click', handleClick, true)` (DOM capturing phase)
+- New: `map.on('click', handleMapClick)` (Leaflet native event)
+
+**Impact:** Map-click popups now appear instantly on single clicks anywhere on the map, without requiring drag interaction. Drag-panning works smoothly without triggering unwanted popups.
+
+---
+
+**Current Version:** v3.3.2 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
