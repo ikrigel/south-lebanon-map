@@ -27,12 +27,8 @@ export const useMapClickHandler = (
         const rect = el.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const rad = ((props.userRotation ?? 0) * Math.PI) / 180;
-        const cos = Math.cos(-rad);
-        const sin = Math.sin(-rad);
-        const rotX = x * cos - y * sin + rect.width / 2 * (1 - cos) + rect.height / 2 * sin;
-        const rotY = x * sin + y * cos - rect.width / 2 * sin + rect.height / 2 * (1 - cos);
-        const latlng = map.unproject([rotX, rotY], map.getZoom());
+        // Use Leaflet's containerPointToLatLng which handles rotation internally
+        const latlng = map.containerPointToLatLng(L.point(x, y));
         props.onMapClick({ lat: latlng.lat, lon: latlng.lng });
       } catch (err) {
         console.error('Map click handler error:', err);
