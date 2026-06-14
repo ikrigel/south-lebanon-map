@@ -97,10 +97,10 @@ export function HeaderBar(props: HeaderBarProps) {
         >
           {props.measureMode ? 'יציאה ממצב מדידה' : 'מדידה ידנית'}
         </button>
-        <button className="btn ghost" onClick={() => props.setDrawerOpen(true)} data-testid="button-sources">
+        <button className="btn ghost" onClick={() => { props.setDrawerOpen(true); props.setTransferOpen(false); props.setHelpOpen(false); props.setSupportOpen(false); props.setAboutOpen(false); }} data-testid="button-sources">
           מקורות ועל אודות
         </button>
-        <button className="btn" onClick={() => props.setTransferOpen(true)} data-testid="button-transfer">
+        <button className="btn" onClick={() => { props.setTransferOpen(true); props.setDrawerOpen(false); props.setHelpOpen(false); props.setSupportOpen(false); props.setAboutOpen(false); }} data-testid="button-transfer">
           העברת מרשמים
         </button>
       </div>
