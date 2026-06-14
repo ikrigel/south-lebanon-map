@@ -140,6 +140,30 @@ CSS has been split into **10 semantic files** organized by feature domain:
 - Responsive queries at bottom of main `styles.css` file
 - Import order matters: variables first, then layout/typography, then features
 
+### v3.3.1 Architecture: Map Click Popup Universal Fix
+
+**Bug Fix:** Map-click navigation popup now works everywhere on the map, not just near tagged settlements.
+
+**Root cause:** The `focusTarget` effect in `Map.tsx` was calling `flyTo()` for map-click targets, which could interfere with popup display and prevented popups from appearing in empty areas away from towns.
+
+**Solution:** Refactored focusTarget effect (Map.tsx lines 134–191):
+- **Map-click targets** (ID starts with `map-click-`): Create popup and open immediately WITHOUT `flyTo` or `setView`
+  - Popup displays at exact click coordinates: `${lat.toFixed(5)}, ${lon.toFixed(5)}`
+  - Uses current map zoom level (no animation)
+  - Includes navigation buttons (Navigate to, Set as start/end)
+  - Works anywhere on map: near towns, in empty areas, on borders, on water
+- **Search/incident targets**: Continue using `flyTo` animation with label display
+
+**Key changes:**
+- Moved `focusGroup.clearLayers()` before conditional logic (early setup)
+- Map-click popup created via `L.popup().setLatLng().setContent().openOn(map)`
+- Non-map-click targets still use conditional `setView` (restore) or `flyTo` (search/incidents)
+- Added 15 comprehensive tests in `map-click-popup-everywhere.test.ts`
+
+**Test coverage:** 405 total tests (including 15 new map-click tests)
+
+**Impact:** Users can now click anywhere on the map and get a navigation popup with coordinates, without needing nearby settlements. The popup appears immediately at the click location without map movement.
+
 ### State Management Pattern (Legacy Documentation)
 
 All component state lives in React hooks using `useState` + `useCallback`. Key patterns:
