@@ -63,6 +63,17 @@ export const useMapRoute = (
       routePolylineRefs.current.set(o.id, pl);
       allRenderedPoints = [...allRenderedPoints, ...o.path];
 
+      // For animated routes, explicitly set stroke-dasharray on SVG element
+      if (svgEl && (o.id === 'drive' || o.id === 'foot' || o.id === 'aerial')) {
+        if (o.id === 'drive') {
+          svgEl.setAttribute('stroke-dasharray', '28 4');
+        } else if (o.id === 'foot') {
+          svgEl.setAttribute('stroke-dasharray', '14 8');
+        } else if (o.id === 'aerial') {
+          svgEl.setAttribute('stroke-dasharray', '8 4');
+        }
+      }
+
       if (isActive && o.path.length >= 2) {
         const midIdx = Math.floor(o.path.length / 2);
         const mid = o.path[midIdx] ?? [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] as [number, number];
