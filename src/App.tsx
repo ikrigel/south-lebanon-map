@@ -1085,7 +1085,7 @@ export default function App() {
   const appProps = {
     panelRef, panelDragRef, handlePanelDragStart, handlePanelDragMove, handlePanelDragEnd,
     mapSearchQuery: mapDisplayState.mapSearchQuery, setMapSearchQuery: mapDisplayState.setMapSearchQuery,
-    mapSearchResults: searchResults, setFocusTarget: mapDisplayState.setFocusTarget,
+    mapSearchResults, setFocusTarget: mapDisplayState.setFocusTarget,
     setVisible: mapDisplayState.setVisible, setSelectedId: filterState.setSelectedId,
     navigateFromCurrentPosition, openExternalNav, visible: mapDisplayState.visible,
     visibleKey: (k: keyof LayerVis) => () => mapDisplayState.setVisible(v => ({ ...v, [k]: !v[k] })),
