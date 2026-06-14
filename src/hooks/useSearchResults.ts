@@ -15,7 +15,12 @@ interface UseSearchResultsDeps {
 }
 
 export const useSearchResults = (deps: UseSearchResultsDeps) => {
-  const clean = (s: string) => s.toLowerCase().replace(/[^\w֐-׿]/g, '');
+  // Clean function: normalize for search (remove spaces, punctuation, diacritics)
+  // Supports both Hebrew and English
+  const clean = (s: string) => {
+    // Lowercase, remove spaces and punctuation, keep Hebrew letters (א-ת) and English letters (a-z, 0-9)
+    return s.toLowerCase().replace(/[^א-תa-z0-9]/g, '');
+  };
 
   const searchResults = useMemo(() => {
     const q = clean(deps.query);
