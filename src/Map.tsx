@@ -134,56 +134,59 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !props.focusTarget) return;
-    // 'restore-last-map-view': use instant setView so savedViewRef is correct
-    // immediately and not subject to async flyTo moveend timing issues.
-    // For map-click, don't fly/move the map - just show popup at current view
-    // All other focus targets (search results, incidents) use animated flyTo.
-    if (props.focusTarget.id === 'restore-last-map-view') {
-      map.setView(
-        [props.focusTarget.lat, props.focusTarget.lon],
-        props.focusTarget.zoom ?? 12,
-        { animate: false, noMoveStart: true },
-      );
-    } else if (!props.focusTarget.id?.startsWith('map-click')) {
-      map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
-        animate: true,
-        duration: 0.7,
-      });
-    }
+
+    // Setup focus layer
     if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
     const focusGroup = layersRef.current.focus;
     focusGroup.clearLayers();
 
-    // For map clicks, show navigation popup
+    // For map clicks: show popup without moving map
     if (props.focusTarget.id?.startsWith('map-click')) {
       const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
       const popupContent = `<div style="text-align:right;direction:rtl"><strong>${coords}</strong>${navBtn(props.focusTarget.lat, props.focusTarget.lon, coords)}</div>`;
-      L.marker([props.focusTarget.lat, props.focusTarget.lon], {
-        icon: L.icon({
-          iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        }),
-      })
-        .bindPopup(popupContent, { maxWidth: 280 })
-        .openPopup()
+
+      // Create and open popup at exact click location
+      const popup = L.popup({ maxWidth: 280 })
+        .setLatLng([props.focusTarget.lat, props.focusTarget.lon])
+        .setContent(popupContent)
+        .openOn(map);
+
+      // Keep track of popup so it's part of focus group
+      L.marker([props.focusTarget.lat, props.focusTarget.lon])
+        .bindPopup(popup)
         .addTo(focusGroup);
-    } else if (props.focusTarget.label) {
-      // For other focus targets (search results, incidents), show label
-      L.circleMarker([props.focusTarget.lat, props.focusTarget.lon], {
-        radius: 11,
-        color: '#f6c453',
-        weight: 3,
-        fillColor: '#0f766e',
-        fillOpacity: 0.92,
-      })
-        .bindTooltip(props.focusTarget.label, {
-          direction: 'top',
-          offset: [0, -10],
-          permanent: true,
-          className: 'focus-tooltip',
+    } else {
+      // For search results, incidents: animate map and show label
+      if (props.focusTarget.id === 'restore-last-map-view') {
+        map.setView(
+          [props.focusTarget.lat, props.focusTarget.lon],
+          props.focusTarget.zoom ?? 12,
+          { animate: false, noMoveStart: true },
+        );
+      } else {
+        map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
+          animate: true,
+          duration: 0.7,
+        });
+      }
+
+      // Show label on map
+      if (props.focusTarget.label) {
+        L.circleMarker([props.focusTarget.lat, props.focusTarget.lon], {
+          radius: 11,
+          color: '#f6c453',
+          weight: 3,
+          fillColor: '#0f766e',
+          fillOpacity: 0.92,
         })
-        .addTo(focusGroup);
+          .bindTooltip(props.focusTarget.label, {
+            direction: 'top',
+            offset: [0, -10],
+            permanent: true,
+            className: 'focus-tooltip',
+          })
+          .addTo(focusGroup);
+      }
     }
   }, [props.focusTarget]);
 
