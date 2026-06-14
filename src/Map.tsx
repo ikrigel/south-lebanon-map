@@ -140,19 +140,49 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const focusGroup = layersRef.current.focus;
     focusGroup.clearLayers();
 
-    // For map clicks: show popup without moving map
+    // For map clicks: check if within 500m of a town, otherwise show coordinates
     if (props.focusTarget.id?.startsWith('map-click')) {
-      const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
-      const popupContent = `<div style="text-align:right;direction:rtl"><strong>${coords}</strong>${navBtn(props.focusTarget.lat, props.focusTarget.lon, coords)}</div>`;
+      const clickPoint: [number, number] = [props.focusTarget.lat, props.focusTarget.lon];
+      const NEARBY_RADIUS_KM = 0.5; // 500 meters
 
-      // Create marker with popup bound, then open popup
-      const marker = L.marker([props.focusTarget.lat, props.focusTarget.lon], {
-        icon: L.icon({
+      // Find nearby towns (Lebanese side only)
+      const nearbyTown = towns
+        .filter(t => t.side === 'LB')
+        .map(t => ({
+          ...t,
+          distance: haversineKm(clickPoint, [t.lat, t.lon]),
+        }))
+        .filter(t => t.distance <= NEARBY_RADIUS_KM)
+        .sort((a, b) => a.distance - b.distance)[0];
+
+      let popupContent: string;
+      let markerLatLng: [number, number];
+      let markerIcon: L.Icon;
+
+      if (nearbyTown) {
+        // Show town details popup if within 500m of a tagged place
+        const infoHtml = buildTownInfoHtml(nearbyTown, props.visible.sectColors);
+        popupContent = townPopup(nearbyTown.lat, nearbyTown.lon, nearbyTown.name_he, infoHtml);
+        markerLatLng = [nearbyTown.lat, nearbyTown.lon];
+        markerIcon = L.icon({
           iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
           iconSize: [24, 24],
           iconAnchor: [12, 12],
-        }),
-      })
+        });
+      } else {
+        // Show coordinates popup for clicks away from towns
+        const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
+        popupContent = `<div style="text-align:right;direction:rtl"><strong>${coords}</strong>${navBtn(props.focusTarget.lat, props.focusTarget.lon, coords)}</div>`;
+        markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
+        markerIcon = L.icon({
+          iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        });
+      }
+
+      // Create marker with popup bound, then open popup
+      const marker = L.marker(markerLatLng, { icon: markerIcon })
         .bindPopup(popupContent, { maxWidth: 280 })
         .addTo(focusGroup);
 
