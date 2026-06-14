@@ -70,7 +70,7 @@ export const useMapRoute = (
         } else if (o.id === 'foot') {
           svgEl.setAttribute('stroke-dasharray', '14 8');
         } else if (o.id === 'aerial') {
-          svgEl.setAttribute('stroke-dasharray', '8 4');
+          svgEl.setAttribute('stroke-dasharray', '16 8');
         }
       }
 
