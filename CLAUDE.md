@@ -399,8 +399,32 @@ const nearbyTown = towns
 
 **Impact:** Users can now discover town information by clicking anywhere on the map. Details automatically appear for nearby settlements without requiring a precise click on the town marker.
 
+### v3.3.4 Architecture: Location Selection Fix
+
+**Bug Fix:** Map-click within 500m of town now shows town details but marks and navigates to the actual clicked location, not the town.
+
+**Root cause:** Navigation buttons in town popup were using town coordinates instead of click coordinates, confusing users about their selected location.
+
+**Solution:** Hybrid popup in Map.tsx (lines 146–158):
+- Town info displayed for reference (name, population, sect)
+- But marker placed at clicked location
+- Navigation buttons use clicked coordinates
+- User can learn about nearby town while selecting their exact click point
+
+**Key change:**
+```typescript
+// Always use click coordinates for navigation
+const navBtnHtml = navBtn(props.focusTarget.lat, props.focusTarget.lon, coords);
+// Marker placed at clicked location, not town
+markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
+```
+
+**Behavior:**
+- Click 200m from Sidon → Shows "Sidon" details, marks your click spot, navigates to your location
+- Provides both contextual awareness (nearby town info) and precise location selection
+
 ---
 
-**Current Version:** v3.3.3 (2026-06-14)  
+**Current Version:** v3.3.4 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
