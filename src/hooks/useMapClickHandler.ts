@@ -15,6 +15,14 @@ export const useMapClickHandler = (
       const props = propsRef.current;
       if (!props || !props.onMapClick) return;
 
+      // Check if click is on a Leaflet element (popup, control, etc.) - skip if so
+      const target = e.target as HTMLElement;
+      if (target?.closest('.leaflet-popup') ||
+          target?.closest('.leaflet-control') ||
+          target?.closest('.leaflet-marker')) {
+        return;
+      }
+
       try {
         const rect = el.getBoundingClientRect();
         const x = e.clientX - rect.left;

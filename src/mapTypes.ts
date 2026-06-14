@@ -30,7 +30,7 @@ export type MapProps = {
   measureMode: boolean;
   pointPickMode: boolean;
   manualMeasure: [number, number][];
-  onMapClick: (lat: number, lon: number) => void;
+  onMapClick: (latlng: { lat: number; lon: number }) => void;
   distanceLine: [[number, number], [number, number]] | null;
   theme: 'light' | 'dark';
   largeLabels: boolean;

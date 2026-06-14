@@ -205,23 +205,30 @@ export default function App() {
     return next;
   };
 
-  const onMapClick = useCallback((lat: number, lon: number) => {
+  const onMapClick = useCallback((latlng: { lat: number; lon: number }) => {
     if (multiRouteBuildMode) {
-      const newPoint = { lat, lon, label: `נקודה ${multiRouteDraftPoints.length + 1}`, order: multiRouteDraftPoints.length };
+      const newPoint = { lat: latlng.lat, lon: latlng.lon, label: `נקודה ${multiRouteDraftPoints.length + 1}`, order: multiRouteDraftPoints.length };
       setMultiRouteDraftPoints(prev => prev.length >= MAX_MULTI_ROUTE_POINTS ? prev : [...prev, newPoint]);
       return;
     }
     if (addPoiMode) {
-      setPoiDraft({ lat, lon });
+      setPoiDraft({ lat: latlng.lat, lon: latlng.lon });
     } else if (measureMode) {
       setManualMeasure(prev => {
-        if (prev.length === 2) return [[lat, lon]];
-        return [...prev, [lat, lon]];
+        if (prev.length === 2) return [[latlng.lat, latlng.lon]];
+        return [...prev, [latlng.lat, latlng.lon]];
       });
     } else {
+      // Show navigation popup for regular map click
+      setFocusTarget({
+        lat: latlng.lat,
+        lon: latlng.lon,
+        zoom: 12,
+        id: `map-click-${Date.now()}`,
+      });
       setSelectedId(null);
     }
-  }, [addPoiMode, measureMode, multiRouteBuildMode, multiRouteDraftPoints.length]);
+  }, [addPoiMode, measureMode, multiRouteBuildMode, multiRouteDraftPoints.length, setFocusTarget, setSelectedId]);
 
   const manualKm = manualMeasure.length === 2 ? haversineKm(manualMeasure[0], manualMeasure[1]) : null;
   const recordedKm = useMemo(() => {
