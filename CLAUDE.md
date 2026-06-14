@@ -463,8 +463,29 @@ markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
 
 **Impact:** All three route types now display clear, consistent animations. Users can easily distinguish active routes by the flowing dots/dashes pattern.
 
+### v3.3.7 Architecture: Aerial Route Animation - Final Fix
+
+**Bug Fix:** Aerial route animation still not visible after v3.3.6. Leaflet inline styles were overriding CSS animations.
+
+**Solution:** Enhanced CSS with `!important` flags:
+- `stroke-dasharray: 8px 4px !important` - Larger dashes (8px visible, 4px gap)
+- `animation: routeFlowDotted 0.8s linear infinite !important` - Force animation
+- Updated keyframe to -12px to match new period (8+4)
+
+**Why the fix works:**
+1. **Before:** Leaflet set inline `stroke-dasharray` attribute, CSS could not override it
+2. **After:** `!important` flag forces CSS values over Leaflet's inline styles
+3. **Result:** Animation now visibly flows at 0.8s speed with 8px dashes
+
+**Visual comparison:**
+- Road route: 28px solid dashes (fastest flow)
+- Foot route: 14px dashes, 8px gaps (medium speed)
+- Aerial route: 8px dashes, 4px gaps (fast, visible animation) ✨
+
+**Impact:** Direct flight route now displays reliable, smooth animation matching road and foot routes. No more invisible animation issues.
+
 ---
 
-**Current Version:** v3.3.6 (2026-06-14)  
+**Current Version:** v3.3.7 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
