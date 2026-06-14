@@ -369,6 +369,38 @@ src/
 
 ---
 
-**Current Version:** v3.3.2 (2026-06-14)  
+### v3.3.3 Architecture: Town Details on Map Click
+
+**Feature:** Map-click popups now show full town details when clicking within 500 meters of a tagged settlement.
+
+**Implementation:** Enhanced focusTarget effect in Map.tsx (lines 143–195):
+- Calculates distance from click point to all Lebanese towns using Haversine formula
+- If within 500m radius, displays town popup with:
+  - Town name (Hebrew + English)
+  - Population estimate
+  - Sectarian affiliation (if available)
+  - Toggle for additional details (note, coordinates)
+  - Navigation buttons (Set as destination, Set as start)
+- If beyond 500m, displays simple coordinate popup with navigation buttons
+- Marker is placed at actual town location (if nearby) or click location (if standalone)
+
+**Key logic:**
+```typescript
+const nearbyTown = towns
+  .filter(t => t.side === 'LB')
+  .map(t => ({ ...t, distance: haversineKm(clickPoint, [t.lat, t.lon]) }))
+  .filter(t => t.distance <= 0.5) // 500 meters
+  .sort((a, b) => a.distance - b.distance)[0];
+```
+
+**Popup content:**
+- **Nearby town:** Full `townPopup()` with details toggle
+- **Standalone click:** Simple `navBtn()` with coordinates
+
+**Impact:** Users can now discover town information by clicking anywhere on the map. Details automatically appear for nearby settlements without requiring a precise click on the town marker.
+
+---
+
+**Current Version:** v3.3.3 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
