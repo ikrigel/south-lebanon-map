@@ -163,12 +163,14 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         // Show town details popup but with clicked location for navigation
         const infoHtml = buildTownInfoHtml(nearbyTown, props.visible.sectColors);
         const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
-        // Create hybrid popup: town info + click location navigation buttons
-        const navBtnHtml = navBtn(props.focusTarget.lat, props.focusTarget.lon, coords);
+        // Create hybrid popup: town info with toggle + click location navigation buttons
         popupContent = `<div class="town-popup" dir="rtl">
-          <h3 style="margin:4px 0;text-align:right">${nearbyTown.name_he}</h3>
-          <div style="font-size:12px;text-align:right;margin-bottom:8px">${infoHtml}</div>
-          <div style="margin-top:8px">${navBtnHtml}</div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+            <button class="popup-nav-btn popup-nav-full" data-nav-lat="${props.focusTarget.lat}" data-nav-lon="${props.focusTarget.lon}" data-nav-label="${coords.replace(/"/g, '&quot;')}" data-nav-role="end">▶ נווט לכאן — יעד</button>
+            <button class="popup-nav-btn popup-nav-btn-start popup-nav-full" data-nav-lat="${props.focusTarget.lat}" data-nav-lon="${props.focusTarget.lon}" data-nav-label="${coords.replace(/"/g, '&quot;')}" data-nav-role="start">🚦 הגדר כנקודת מוצא</button>
+          </div>
+          <button class="popup-info-toggle" data-info-toggle="1">פרטים ▼</button>
+          <div class="town-popup-info" style="display:none">${infoHtml}</div>
         </div>`;
         // Place marker at clicked location, not town location
         markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
