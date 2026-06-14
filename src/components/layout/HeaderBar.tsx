@@ -77,13 +77,13 @@ export function HeaderBar(props: HeaderBarProps) {
         >
           הפורטפוליו שלי
         </a>
-        <button className="btn" onClick={() => props.setHelpOpen(true)} data-testid="button-help">
+        <button className="btn" onClick={() => { props.setHelpOpen(true); props.setSupportOpen(false); props.setAboutOpen(false); }} data-testid="button-help">
           עזרה והדרכה
         </button>
-        <button className="btn" onClick={() => props.setSupportOpen(true)} data-testid="button-support">
+        <button className="btn" onClick={() => { props.setSupportOpen(true); props.setHelpOpen(false); props.setAboutOpen(false); }} data-testid="button-support">
           תמיכה בפיתוח
         </button>
-        <button className="btn" onClick={() => props.setAboutOpen(true)} data-testid="button-about">
+        <button className="btn" onClick={() => { props.setAboutOpen(true); props.setHelpOpen(false); props.setSupportOpen(false); }} data-testid="button-about">
           About
         </button>
         <button
