@@ -423,8 +423,29 @@ markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
 - Click 200m from Sidon → Shows "Sidon" details, marks your click spot, navigates to your location
 - Provides both contextual awareness (nearby town info) and precise location selection
 
+### v3.3.5 Architecture: Toggle Button Restoration
+
+**Bug Fix:** Town details toggle button was missing from hybrid map-click popup.
+
+**Root cause:** Hybrid popup code didn't include the toggle button and details wrapper from original `townPopup` function.
+
+**Solution:** Restored toggle UI in Map.tsx (lines 146–157):
+- Toggle button ("פרטים ▼") now visible in popup
+- Town details hidden by default, shown on toggle click
+- Navigation buttons maintain clicked location coordinates
+- Matches original town popup UX with location selection improvement
+
+**Popup structure:**
+```
+[Navigation buttons] (using clicked coordinates)
+[Toggle button]
+[Town details] (hidden by default)
+```
+
+**Impact:** Users can now toggle town details on/off while maintaining their precise click location for navigation.
+
 ---
 
-**Current Version:** v3.3.4 (2026-06-14)  
+**Current Version:** v3.3.5 (2026-06-14)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
