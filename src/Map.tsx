@@ -145,16 +145,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
       const popupContent = `<div style="text-align:right;direction:rtl"><strong>${coords}</strong>${navBtn(props.focusTarget.lat, props.focusTarget.lon, coords)}</div>`;
 
-      // Create and open popup at exact click location
-      const popup = L.popup({ maxWidth: 280 })
-        .setLatLng([props.focusTarget.lat, props.focusTarget.lon])
-        .setContent(popupContent)
-        .openOn(map);
-
-      // Keep track of popup so it's part of focus group
-      L.marker([props.focusTarget.lat, props.focusTarget.lon])
-        .bindPopup(popup)
+      // Create marker with popup bound, then open popup
+      const marker = L.marker([props.focusTarget.lat, props.focusTarget.lon], {
+        icon: L.icon({
+          iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        }),
+      })
+        .bindPopup(popupContent, { maxWidth: 280 })
         .addTo(focusGroup);
+
+      // Open popup after marker is added to map
+      marker.openPopup();
     } else {
       // For search results, incidents: animate map and show label
       if (props.focusTarget.id === 'restore-last-map-view') {
