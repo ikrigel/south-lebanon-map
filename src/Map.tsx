@@ -160,10 +160,18 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       let markerIcon: L.Icon;
 
       if (nearbyTown) {
-        // Show town details popup if within 500m of a tagged place
+        // Show town details popup but with clicked location for navigation
         const infoHtml = buildTownInfoHtml(nearbyTown, props.visible.sectColors);
-        popupContent = townPopup(nearbyTown.lat, nearbyTown.lon, nearbyTown.name_he, infoHtml);
-        markerLatLng = [nearbyTown.lat, nearbyTown.lon];
+        const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
+        // Create hybrid popup: town info + click location navigation buttons
+        const navBtnHtml = navBtn(props.focusTarget.lat, props.focusTarget.lon, coords);
+        popupContent = `<div class="town-popup" dir="rtl">
+          <h3 style="margin:4px 0;text-align:right">${nearbyTown.name_he}</h3>
+          <div style="font-size:12px;text-align:right;margin-bottom:8px">${infoHtml}</div>
+          <div style="margin-top:8px">${navBtnHtml}</div>
+        </div>`;
+        // Place marker at clicked location, not town location
+        markerLatLng = [props.focusTarget.lat, props.focusTarget.lon];
         markerIcon = L.icon({
           iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
           iconSize: [24, 24],
