@@ -45,7 +45,8 @@ export const useMapRoute = (
 
     sortedOverlays.forEach((o: any) => {
       if (o.path.length < 2) return;
-      const isActive = aerialFallback && o.id === 'aerial' ? true : o.isActive;
+      // Animate selected route + foot route always animates alongside
+      const isActive = (aerialFallback && o.id === 'aerial') || o.isActive || o.id === 'foot';
       const lineClass = isActive
         ? `route-line route-line-${o.lineStyle}`
         : `route-line-inactive route-line-inactive-${o.lineStyle}`;

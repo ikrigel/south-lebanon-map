@@ -198,10 +198,10 @@ export function RoutePickerForm(props: RoutePickerFormProps) {
                 className={`btn nav-scale-btn${props.routeDisplayMode === mode ? ' active' : ''}`}
                 onClick={() => {
                   props.setRouteDisplayMode(mode);
-                  // Sync activeRouteId to show animation
+                  // Sync activeRouteId to show animation (foot route will also animate)
                   if (mode === 'road') props.setActiveRouteId('drive');
                   else if (mode === 'aerial') props.setActiveRouteId('aerial');
-                  else if (mode === 'both') props.setActiveRouteId('drive'); // default to drive for 'both'
+                  else if (mode === 'both') props.setActiveRouteId('drive');
                 }}
                 data-testid={`button-display-mode-${mode}`}
               >
