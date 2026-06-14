@@ -149,10 +149,26 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         duration: 0.7,
       });
     }
-    if (props.focusTarget.label) {
-      if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
-      const focusGroup = layersRef.current.focus;
-      focusGroup.clearLayers();
+    if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
+    const focusGroup = layersRef.current.focus;
+    focusGroup.clearLayers();
+
+    // For map clicks, show navigation popup
+    if (props.focusTarget.id?.startsWith('map-click')) {
+      const coords = `${props.focusTarget.lat.toFixed(5)}, ${props.focusTarget.lon.toFixed(5)}`;
+      const popupContent = `<div style="text-align:right;direction:rtl"><strong>${coords}</strong>${navBtn(props.focusTarget.lat, props.focusTarget.lon, coords)}</div>`;
+      L.marker([props.focusTarget.lat, props.focusTarget.lon], {
+        icon: L.icon({
+          iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI4IiBmaWxsPSIjZjZjNDUzIiBzdHJva2U9IiMwZjc2NmUiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        }),
+      })
+        .bindPopup(popupContent, { maxWidth: 280 })
+        .openPopup()
+        .addTo(focusGroup);
+    } else if (props.focusTarget.label) {
+      // For other focus targets (search results, incidents), show label
       L.circleMarker([props.focusTarget.lat, props.focusTarget.lon], {
         radius: 11,
         color: '#f6c453',
