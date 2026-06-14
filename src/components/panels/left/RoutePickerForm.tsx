@@ -187,8 +187,7 @@ export function RoutePickerForm(props: RoutePickerFormProps) {
           איפוס
         </button>
       </div>
-      {props.navStart && props.navEnd && props.navStart.id !== props.navEnd.id && (
-        <div className="route-display-mode-row" data-testid="route-display-mode-row">
+      <div className="route-display-mode-row" data-testid="route-display-mode-row">
           <span className="nav-scale-label">תצוגה:</span>
           {(['road', 'aerial', 'both'] as RouteDisplayMode[]).map(mode => {
             const labels: Record<RouteDisplayMode, string> = { road: '🛣 כביש', aerial: '✈ אווירי', both: '⊕ שניהם' };
@@ -210,7 +209,6 @@ export function RoutePickerForm(props: RoutePickerFormProps) {
             );
           })}
         </div>
-      )}
       <RouteOptionsList
         routeOptions={props.routeOptions}
         activeRouteId={props.activeRouteId}
