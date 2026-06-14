@@ -19,11 +19,11 @@
   stroke-linecap: round;
   animation: routeFlowDashed 1.4s linear infinite;
 }
-/* Dotted â€” aerial route: period = 4+6 = 10px, round caps = visible circles */
+/* Dotted â€” aerial route: period = 8+4 = 12px, dashes with round caps */
 .route-line.route-line-dotted {
-  stroke-dasharray: 4px 6px;
+  stroke-dasharray: 8px 4px !important;
   stroke-linecap: round;
-  animation: routeFlowDotted 1.0s linear infinite;
+  animation: routeFlowDotted 0.8s linear infinite !important;
 }
 
 /* â”€â”€ Route line inactive (background) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -66,7 +66,7 @@
 /* dotted: period = 0.1+13 â‰ˆ 13px */
 @keyframes routeFlowDotted {
   from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: -10px; }
+  to   { stroke-dashoffset: -12px; }
 }
 .route-alt-label {
   opacity: 0.75;
