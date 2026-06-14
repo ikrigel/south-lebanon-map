@@ -86,7 +86,7 @@ export const useSearchResults = (deps: UseSearchResultsDeps) => {
         zoom: 14,
       }));
     return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...zoneMatches, ...incidentMatches].slice(0, 12);
-  }, [deps.query, deps.customPois]);
+  }, [deps.query, deps.customPois, deps.towns, deps.incidents, deps.unifilPoints, deps.terrainFeatures, deps.influenceZones]);
 
   const mapSearchResults = useMemo(() => {
     const q = clean(deps.mapSearchQuery);
@@ -144,7 +144,7 @@ export const useSearchResults = (deps: UseSearchResultsDeps) => {
         zoom: 14,
       }));
     return [...poiMatches, ...townMatches, ...terrainMatches, ...unifilMatches, ...incidentMatches].slice(0, 18);
-  }, [deps.mapSearchQuery, deps.customPois]);
+  }, [deps.mapSearchQuery, deps.customPois, deps.towns, deps.incidents, deps.unifilPoints, deps.terrainFeatures]);
 
   return { searchResults, mapSearchResults };
 };

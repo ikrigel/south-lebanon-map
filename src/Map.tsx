@@ -136,6 +136,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (!map || !props.focusTarget) return;
     // 'restore-last-map-view': use instant setView so savedViewRef is correct
     // immediately and not subject to async flyTo moveend timing issues.
+    // For map-click, don't fly/move the map - just show popup at current view
     // All other focus targets (search results, incidents) use animated flyTo.
     if (props.focusTarget.id === 'restore-last-map-view') {
       map.setView(
@@ -143,7 +144,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         props.focusTarget.zoom ?? 12,
         { animate: false, noMoveStart: true },
       );
-    } else {
+    } else if (!props.focusTarget.id?.startsWith('map-click')) {
       map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
         animate: true,
         duration: 0.7,
