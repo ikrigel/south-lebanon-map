@@ -31,7 +31,7 @@ export const useMapRoute = (
     const footPathLen  = overlays.find((o: any) => o.id === 'foot')?.path.length  ?? 0;
     const aerialFallback = mode === 'road' && drivePathLen < 2 && footPathLen < 2;
     const visibleIds: Set<string> = new Set(
-      mode === 'aerial'                    ? ['aerial'] :
+      mode === 'aerial'                    ? ['aerial', 'foot'] :
       mode === 'road' && !aerialFallback   ? ['drive', 'foot'] :
                                              ['drive', 'foot', 'aerial']
     );
