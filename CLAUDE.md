@@ -514,6 +514,100 @@ if (svgEl && (o.id === 'drive' || o.id === 'foot' || o.id === 'aerial')) {
 
 ---
 
-**Current Version:** v3.3.8 (2026-06-14)  
+### v3.3.9 Architecture: Faster Aerial Route Animation
+
+**Enhancement:** Aerial route animation speed optimized from 0.8s to 0.5s period for snappier visual feedback.
+
+**Change:** Updated `@keyframes routeFlowDotted` keyframe duration in styles/_routing.css to match faster 0.5s cycle time, creating more responsive animated dashes while keeping 16px dash / 8px gap proportions consistent.
+
+**Impact:** Direct flight route animates more smoothly and dynamically, matching the urgency of quick aerial navigation decisions.
+
+### v3.3.10 Architecture: Active Route Display Fix
+
+**Bug Fix:** Route display mode buttons now properly sync `activeRouteId` state when clicked, ensuring selected route animation activates immediately.
+
+**Root cause:** `setRouteDisplayMode()` was called but `setActiveRouteId()` was not synced, leaving the old route active even after switching display modes.
+
+**Solution:** Enhanced button onClick handlers in RoutePickerForm.tsx (lines 198–203):
+- Clicking 'road' mode → `setActiveRouteId('drive')`
+- Clicking 'aerial' mode → `setActiveRouteId('aerial')`
+- Clicking 'both' mode → `setActiveRouteId('drive')`
+- Also calls `setRouteDisplayMode(mode)` to show both routes in 'both' mode
+
+**Impact:** Route animations now respond immediately when user switches display modes. Selected route is always active and visible.
+
+### v3.3.11 Architecture: Foot Route Persistent Animation
+
+**Enhancement:** Foot route now animates alongside the selected primary route, providing visual context for alternative routing options.
+
+**Solution:** Modified route animation logic in useMapRoute.ts (line 49):
+```typescript
+const isActive = (aerialFallback && o.id === 'aerial') || o.isActive || o.id === 'foot';
+```
+
+This ensures foot route is marked as active (and thus animated) whenever any route is selected, giving users visual confirmation of both the primary and walking alternatives.
+
+**Impact:** Users can now see both car and walking route animations simultaneously, helping them compare options during navigation planning.
+
+### v3.3.12 Architecture: Aerial Mode Visibility Fix
+
+**Bug Fix:** Foot route now stays visible and animated when displaying aerial routes, fixing visibility filtering that was suppressing foot route in aerial mode.
+
+**Solution:** Updated visibility logic in useMapRoute.ts (lines 33–37):
+```typescript
+const visibleIds: Set<string> = new Set(
+  mode === 'aerial' ? ['aerial', 'foot'] :  // Add foot to aerial mode
+  mode === 'road' && !aerialFallback ? ['drive', 'foot'] :
+  ['drive', 'foot', 'aerial']
+);
+```
+
+**Impact:** In aerial display mode, both direct flight and walking routes are now visible, providing complete navigation context.
+
+### v3.3.13 Architecture: Route Display Buttons Always Visible
+
+**Bug Fix:** Route display mode buttons (road 🛣, aerial ✈, both ⊕) are now always visible in the route form, not hidden when navigation isn't fully set up.
+
+**Root cause:** Buttons were conditionally rendered only when `navStart && navEnd && navStart.id !== navEnd.id`, preventing access to route display controls until both nav points were selected.
+
+**Solution:** Moved route display buttons out of conditional rendering in RoutePickerForm.tsx (line 190):
+- Buttons now always visible in `route-display-mode-row`
+- No dependency on nav points being selected
+- User can preview and switch between route types before committing to navigation
+
+**Impact:** Users can now explore route display options at any time during navigation setup, not just after selecting both start and end points.
+
+### v3.3.14 Architecture: Waze-Style Navigation Marker Positioning
+
+**Enhancement:** GPS marker during navigation now stays in the lower third of the screen (66% from top), keeping more road ahead visible — matching Waze/Google Maps UX.
+
+**Solution:** Implemented offset view center calculation in useMapLiveLocation.ts:
+```typescript
+function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
+  const size = map.getSize();
+  const markerPx = map.project([lat, lon], zoom);
+  const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);  // Shift center north
+  return map.unproject(centerPx, zoom);
+}
+```
+
+**Key improvements:**
+1. **Marker position:** Shifted from screen center to lower third (height × 2/3 from top)
+2. **Smooth animation:** Replaced `flyTo` (jittery zoom+pan) with `setView` + linear easing (constant velocity)
+3. **Faster tracking:** Reduced GPS movement threshold from 100m to 15m during navigation for more responsive map updates
+4. **Zoom responsiveness:** Added independent zoom change effect (new effect on line 91–101) so zoom scale changes apply immediately even without GPS movement
+
+**Why setView over flyTo:**
+- `flyTo` does two-phase animation (zoom then pan) causing jitter
+- `setView` with `animate:true` uses pure CSS transform pan when zoom unchanged
+- `easeLinearity: 1.0` = constant velocity = steady predictable movement
+
+**Impact:** Navigation feels smooth and natural like Waze, with better road visibility ahead and instant zoom response to scale changes.
+
+**Test coverage:** All 440 tests passing; 15m threshold optimized for responsive real-time tracking.
+
+---
+
+**Current Version:** v3.3.14 (2026-06-15)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
