@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 
+function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
+  const size = map.getSize();
+  const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
+  const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
+  return map.unproject(centerPx, zoom);
+}
+
 export const useMapLiveLocation = (
   mapRef: React.MutableRefObject<any>,
   layersRef: React.MutableRefObject<any>,
@@ -47,7 +54,7 @@ export const useMapLiveLocation = (
     const now = Date.now();
     const lastFollow = lastLiveFollowRef.current;
     const minPan = 100; // ms
-    const minDist = navigationRoute ? 100 : 300; // meters, stricter during nav
+    const minDist = navigationRoute ? 15 : 300; // 15m during nav for smooth tracking
     const shouldPan =
       !liveFollowDetachedRef.current &&
       (!lastFollow || now - lastFollow.at > minPan) &&
@@ -57,11 +64,12 @@ export const useMapLiveLocation = (
     if (shouldPan) {
       const zoomLevel = navFollowZoom ?? map.getZoom();
       const clampedZoom = Math.max(zoomLevel, NAVIGATION_FOLLOW_MIN_ZOOM);
-      map.flyTo([liveLocation.lat, liveLocation.lon], clampedZoom, {
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
+      map.setView(adjusted, clampedZoom, {
         animate: true,
-        duration: 0.5,
-        easeLinearity: 0.5,
-      });
+        duration: 0.3,
+        easeLinearity: 1.0,
+      } as L.ZoomPanOptions);
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
     }
   }, [liveLocation, navigationRoute, mapBearing, navFollowZoom, navLabels]);
@@ -71,9 +79,12 @@ export const useMapLiveLocation = (
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
     liveFollowDetachedRef.current = false;
     onLiveFollowDetachedChange(false);
-    map.flyTo([liveLocation.lat, liveLocation.lon], map.getZoom(), {
+    const zoom = map.getZoom();
+    const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
+    map.setView(adjusted, zoom, {
       animate: true,
-      duration: 0.5,
-    });
+      duration: 0.3,
+      easeLinearity: 1.0,
+    } as L.ZoomPanOptions);
   }, [liveCenterRequestId]);
 };
