@@ -608,6 +608,40 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
 
 ---
 
+### v3.3.14-Hotfix: Screen Rotation Marker Position Fix
+
+**Bug Fix:** Navigation marker now repositions correctly when device screen rotates between portrait and landscape modes.
+
+**Root cause:** The `lowerThirdCenter` offset calculation only ran on GPS movement or zoom change. When the screen rotated, `map.getSize()` changed but the offset wasn't recalculated, leaving the marker centered in the old orientation.
+
+**Solution:** Added resize event listener in useMapLiveLocation.ts (lines 106–113):
+```typescript
+useEffect(() => {
+  const map = mapRef.current;
+  if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
+  const handleResize = () => {
+    const zoom = map.getZoom();
+    const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
+    map.setView(adjusted, zoom, { animate: false } as L.ZoomPanOptions);
+  };
+  map.on('resize', handleResize);
+  return () => map.off('resize', handleResize);
+}, [navigationRoute, liveLocation]);
+```
+
+**Key details:**
+- Fires immediately when Leaflet emits `resize` event (triggered by viewport dimension changes)
+- Recalculates offset center based on new `map.getSize()`
+- Uses `animate: false` for instant repositioning (no animation needed on rotate)
+- Cleanup: removes listener on unmount or dependency change
+
+**Impact:** Marker stays in correct position (lower third in portrait, middle height in landscape) during device rotation. Navigation experience is seamless.
+
+**Commits:**
+- aea5a61 — Screen rotation marker position fix
+
+---
+
 **Current Version:** v3.3.14 (2026-06-15)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
