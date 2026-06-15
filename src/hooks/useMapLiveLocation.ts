@@ -22,6 +22,7 @@ export const useMapLiveLocation = (
   liveCenterRequestId: number,
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
+  const lastAppliedZoomRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -87,4 +88,18 @@ export const useMapLiveLocation = (
       easeLinearity: 1.0,
     } as L.ZoomPanOptions);
   }, [liveCenterRequestId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
+    if (navFollowZoom === undefined || navFollowZoom === lastAppliedZoomRef.current) return;
+    lastAppliedZoomRef.current = navFollowZoom;
+    const clampedZoom = Math.max(navFollowZoom, NAVIGATION_FOLLOW_MIN_ZOOM);
+    const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
+    map.setView(adjusted, clampedZoom, {
+      animate: true,
+      duration: 0.3,
+      easeLinearity: 1.0,
+    } as L.ZoomPanOptions);
+  }, [navFollowZoom]);
 };
