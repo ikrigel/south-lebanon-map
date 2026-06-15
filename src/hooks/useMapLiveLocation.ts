@@ -102,4 +102,16 @@ export const useMapLiveLocation = (
       easeLinearity: 1.0,
     } as L.ZoomPanOptions);
   }, [navFollowZoom]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
+    const handleResize = () => {
+      const zoom = map.getZoom();
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
+      map.setView(adjusted, zoom, { animate: false } as L.ZoomPanOptions);
+    };
+    map.on('resize', handleResize);
+    return () => map.off('resize', handleResize);
+  }, [navigationRoute, liveLocation]);
 };
