@@ -640,8 +640,34 @@ useEffect(() => {
 **Commits:**
 - aea5a61 — Screen rotation marker position fix
 
+### v3.3.15-Bugfix: Navigation Marker and Zoom Scale Fixes
+
+**Bug Fix 1 — Lower-Third Positioning Inverted**
+
+The marker was appearing in the **upper** third instead of the **lower** third on mobile devices.
+
+**Root cause:** `lowerThirdCenter()` calculated `centerPx.y = markerPx.y - size.y / 6` (negative offset = UP), but needed positive offset to move center DOWN.
+
+**Solution:** Changed to `markerPx.y + size.y / 6`
+
+**Impact:** Marker now correctly appears in lower third (66% down from top), keeping road ahead visible.
+
+**Bug Fix 2 — Zoom Scales Above 1:50 Clamped**
+
+Zoom scales 1:20 (zoom 18) and above were being clamped by `NAVIGATION_FOLLOW_MIN_ZOOM = 17`.
+
+**Root cause:** Hard-coded minimum zoom prevented higher zoom levels from applying during navigation.
+
+**Solution:** Lowered `NAVIGATION_FOLLOW_MIN_ZOOM` from 17 → 11 (minimum available scale). Now all NAV_SCALES work:
+- 1:20 (zoom 18) ✅
+- 1:50 (zoom 17) ✅
+- 1:100 (zoom 16) ✅
+- ... down to 1:2000 (zoom 11) ✅
+
+**Impact:** Zoom scales now apply immediately when user clicks button during navigation, without delay.
+
 ---
 
-**Current Version:** v3.3.14 (2026-06-15)  
+**Current Version:** v3.3.15 (2026-06-16)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
