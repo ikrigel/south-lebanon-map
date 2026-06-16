@@ -642,15 +642,24 @@ useEffect(() => {
 
 ### v3.3.15-Bugfix: Navigation Marker and Zoom Scale Fixes
 
-**Bug Fix 1 — Lower-Third Positioning Inverted**
+**Bug Fix 1 — Responsive Portrait/Landscape Positioning**
 
-The marker was appearing in the **upper** third instead of the **lower** third on mobile devices.
+The marker positioning was not responsive to screen orientation changes. Needed to work correctly on:
+- Portrait mode (height > width): marker in lower third, horizontally centered
+- Landscape mode (width > height): marker in right third, vertically centered
 
-**Root cause:** `lowerThirdCenter()` calculated `centerPx.y = markerPx.y - size.y / 6` (negative offset = UP), but needed positive offset to move center DOWN.
+**Solution:** Detect screen orientation dynamically:
+```typescript
+if (size.y > size.x) {
+  // Portrait: marker at lower third (y = height × 2/3)
+  centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
+} else {
+  // Landscape: marker at right third (x = width × 2/3)
+  centerPx = L.point(markerPx.x - size.x / 6, markerPx.y);
+}
+```
 
-**Solution:** Changed to `markerPx.y + size.y / 6`
-
-**Impact:** Marker now correctly appears in lower third (66% down from top), keeping road ahead visible.
+**Impact:** Marker stays in optimal position in both orientations, maximizing road visibility ahead on any device and screen size.
 
 **Bug Fix 2 — Zoom Scales Above 1:50 Clamped**
 
