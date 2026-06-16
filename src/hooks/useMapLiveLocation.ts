@@ -11,6 +11,12 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
   // Center must be moved UP by height/6 so marker appears at height × 2/3
   const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
 
+  // Verification: log marker position on screen
+  const screenMarkerX = size.x / 2; // always at screen center horizontally
+  const screenMarkerY = size.y * (2 / 3); // always at lower third vertically
+  const isPortrait = size.y > size.x;
+  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Lower third: ${(screenMarkerY / size.y).toFixed(3)} (expect 0.667)`);
+
   return map.unproject(centerPx, zoom);
 }
 
