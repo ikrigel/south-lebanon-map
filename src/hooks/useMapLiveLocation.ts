@@ -5,7 +5,19 @@ import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
   const size = map.getSize();
   const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
-  const centerPx = L.point(markerPx.x, markerPx.y + size.y / 6);
+
+  // Responsive positioning: portrait vs landscape
+  // Portrait (height > width): marker in lower third, horizontally centered
+  // Landscape (width > height): marker in right third, vertically centered
+  let centerPx: L.Point;
+  if (size.y > size.x) {
+    // Portrait: move center UP so marker appears in lower third (y = height × 2/3)
+    centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
+  } else {
+    // Landscape: move center LEFT so marker appears in right third (x = width × 2/3)
+    centerPx = L.point(markerPx.x - size.x / 6, markerPx.y);
+  }
+
   return map.unproject(centerPx, zoom);
 }
 
