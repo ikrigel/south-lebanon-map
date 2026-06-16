@@ -642,24 +642,25 @@ useEffect(() => {
 
 ### v3.3.15-Bugfix: Navigation Marker and Zoom Scale Fixes
 
-**Bug Fix 1 — Responsive Portrait/Landscape Positioning**
+**Bug Fix 1 — Marker Always in Lower Third (All Screen Sizes)**
 
-The marker positioning was not responsive to screen orientation changes. Needed to work correctly on:
-- Portrait mode (height > width): marker in lower third, horizontally centered
-- Landscape mode (width > height): marker in right third, vertically centered
+The marker must always appear at the lower third of the screen (y = height × 2/3 from top), horizontally centered, regardless of:
+- Screen orientation (portrait or landscape)
+- Screen size (320px phone to 2560px tablet)
+- Aspect ratio (any dimension)
 
-**Solution:** Detect screen orientation dynamically:
+**Solution:** Single fixed calculation (no orientation detection):
 ```typescript
-if (size.y > size.x) {
-  // Portrait: marker at lower third (y = height × 2/3)
-  centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
-} else {
-  // Landscape: marker at right third (x = width × 2/3)
-  centerPx = L.point(markerPx.x - size.x / 6, markerPx.y);
-}
+const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
 ```
 
-**Impact:** Marker stays in optimal position in both orientations, maximizing road visibility ahead on any device and screen size.
+Why this works:
+- `markerPx.x` keeps marker horizontally centered (uses marker's actual X position)
+- `markerPx.y - size.y / 6` moves map center UP by 1/6 of screen height
+- Result: marker appears at (width/2, height × 2/3) on any screen
+- When screen rotates: `size.y` and `size.x` swap automatically via Leaflet `getSize()`
+
+**Impact:** Marker consistently in lower third on all devices, all orientations, all screen sizes. Better road visibility ahead.
 
 **Bug Fix 2 — Zoom Scales Above 1:50 Clamped**
 
