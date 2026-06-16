@@ -22,7 +22,7 @@ export const SECT_COLORS: Record<string, string> = {
   jewish: '#1a5fa8',
 };
 
-export const NAVIGATION_FOLLOW_MIN_ZOOM = 17;
+export const NAVIGATION_FOLLOW_MIN_ZOOM = 11;
 
 export const labelHtml = (he: string, en?: string, sect?: string) => {
   const dot = sect && SECT_COLORS[sect]

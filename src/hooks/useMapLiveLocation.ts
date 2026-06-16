@@ -5,7 +5,7 @@ import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
   const size = map.getSize();
   const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
-  const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
+  const centerPx = L.point(markerPx.x, markerPx.y + size.y / 6);
   return map.unproject(centerPx, zoom);
 }
 
