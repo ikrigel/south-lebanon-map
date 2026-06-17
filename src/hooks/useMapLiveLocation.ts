@@ -2,20 +2,31 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 
-function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
+function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
   const size = map.getSize();
   const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
 
-  // Always position marker in lower third of screen (y = height × 2/3)
-  // Horizontally centered, works for all screen sizes and orientations
-  // Center must be moved UP by height/6 so marker appears at height × 2/3
-  const centerPx = L.point(markerPx.x, markerPx.y - size.y / 6);
+  // Position marker ahead in direction of travel, accounting for map rotation
+  // Base offset: 1/6 of screen height (marker at 2/3 of screen)
+  // Rotate offset based on bearing so marker always stays ahead during navigation
+  const baseOffset = size.y / 6;
+  const bearingRad = (bearing * Math.PI) / 180;
+
+  // Rotate offset vector based on map bearing
+  // bearing = 0° (North): offset center South → marker ahead North
+  // bearing = 90° (East): offset center West → marker ahead East
+  // bearing = 180° (South): offset center North → marker ahead South
+  // bearing = 270° (West): offset center East → marker ahead West
+  const offsetX = baseOffset * -Math.sin(bearingRad);
+  const offsetY = baseOffset * Math.cos(bearingRad);
+
+  const centerPx = L.point(markerPx.x + offsetX, markerPx.y + offsetY);
 
   // Verification: log marker position on screen
-  const screenMarkerX = size.x / 2; // always at screen center horizontally
-  const screenMarkerY = size.y * (2 / 3); // always at lower third vertically
+  const screenMarkerX = size.x / 2;
+  const screenMarkerY = size.y * (2 / 3);
   const isPortrait = size.y > size.x;
-  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Lower third: ${(screenMarkerY / size.y).toFixed(3)} (expect 0.667)`);
+  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Ahead in travel direction`);
 
   return map.unproject(centerPx, zoom);
 }
@@ -76,7 +87,7 @@ export const useMapLiveLocation = (
     if (shouldPan) {
       const zoomLevel = navFollowZoom ?? map.getZoom();
       const clampedZoom = Math.max(zoomLevel, NAVIGATION_FOLLOW_MIN_ZOOM);
-      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
       map.setView(adjusted, clampedZoom, {
         animate: true,
         duration: 0.3,
@@ -111,7 +122,7 @@ export const useMapLiveLocation = (
     // - During navigation with live location: apply lower-third positioning
     // - Any other mode: just apply zoom without positional offset
     if (navigationRoute && liveLocation && !liveFollowDetachedRef.current) {
-      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
       map.setView(adjusted, clampedZoom, {
         animate: true,
         duration: 0.3,
