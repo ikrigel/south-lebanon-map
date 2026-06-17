@@ -676,8 +676,21 @@ Zoom scales 1:20 (zoom 18) and above were being clamped by `NAVIGATION_FOLLOW_MI
 
 **Impact:** Zoom scales now apply immediately when user clicks button during navigation, without delay.
 
+### v3.3.16-Hotfix: Zoom Works in All Modes
+
+**Bug Fix:** Zoom buttons (navigation scale selector) only worked during active navigation mode.
+
+**Root cause:** Zoom effect had `if (!navigationRoute)` check, preventing zoom changes when not actively navigating.
+
+**Solution:** Modified zoom effect to work in all modes:
+- **Active navigation** (route + GPS + not detached): apply zoom with lower-third positioning maintained
+- **Navigation setup** (route selected, no GPS): apply zoom without positioning
+- **Non-navigation mode** (browsing map): apply zoom without positioning
+
+**Impact:** All zoom scales (1:20 through 1:2000) now work everywhere in the app, not just during active navigation.
+
 ---
 
-**Current Version:** v3.3.15 (2026-06-16)  
+**Current Version:** v3.3.16 (2026-06-17)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
