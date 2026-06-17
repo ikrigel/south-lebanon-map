@@ -689,8 +689,30 @@ Zoom scales 1:20 (zoom 18) and above were being clamped by `NAVIGATION_FOLLOW_MI
 
 **Impact:** All zoom scales (1:20 through 1:2000) now work everywhere in the app, not just during active navigation.
 
+### v3.3.17-Hotfix: Marker Centering with Map Rotation
+
+**Bug Fix:** Marker centering only worked correctly when map faced north (bearing = 0°). When map rotated during navigation, marker position became incorrect.
+
+**Root cause:** Offset calculation was static (always vertical), but didn't account for map rotation angle (bearing).
+
+**Solution:** Rotated offset vector based on bearing:
+```typescript
+const bearingRad = (bearing * Math.PI) / 180;
+const offsetX = baseOffset * -Math.sin(bearingRad);
+const offsetY = baseOffset * Math.cos(bearingRad);
+```
+
+**Result:** Marker always stays ahead in direction of travel:
+- **0° (North)**: marker in lower third ↓
+- **90° (East)**: marker in right third →
+- **180° (South)**: marker in upper third ↑
+- **270° (West)**: marker in left third ←
+- **Any angle**: marker maintains correct position relative to travel direction
+
+**Impact:** Navigation marker centering now works perfectly at any compass bearing, keeping marker ahead while maximizing road visibility.
+
 ---
 
-**Current Version:** v3.3.16 (2026-06-17)  
+**Current Version:** v3.3.17 (2026-06-17)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
