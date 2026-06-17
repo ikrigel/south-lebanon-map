@@ -102,17 +102,26 @@ export const useMapLiveLocation = (
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
+    if (!map) return;
     if (navFollowZoom === undefined || navFollowZoom === lastAppliedZoomRef.current) return;
     lastAppliedZoomRef.current = navFollowZoom;
     const clampedZoom = Math.max(navFollowZoom, NAVIGATION_FOLLOW_MIN_ZOOM);
-    const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
-    map.setView(adjusted, clampedZoom, {
-      animate: true,
-      duration: 0.3,
-      easeLinearity: 1.0,
-    } as L.ZoomPanOptions);
-  }, [navFollowZoom]);
+
+    // Zoom works in BOTH modes:
+    // - During navigation with live location: apply lower-third positioning
+    // - Any other mode: just apply zoom without positional offset
+    if (navigationRoute && liveLocation && !liveFollowDetachedRef.current) {
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
+      map.setView(adjusted, clampedZoom, {
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 1.0,
+      } as L.ZoomPanOptions);
+    } else if (map.setZoom) {
+      // Not in active navigation: just zoom the map (check if setZoom exists for test compatibility)
+      map.setZoom(clampedZoom, { animate: true } as any);
+    }
+  }, [navFollowZoom, navigationRoute]);
 
   useEffect(() => {
     const map = mapRef.current;
