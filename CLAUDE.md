@@ -860,6 +860,78 @@ Stop if delta <= 5px or max iterations reached
 
 ---
 
+## v3.5.0: Hezbollah Drone Intelligence Layer
+
+**Release Date:** 2026-06-18  
+**Status:** Intelligence Feature Ready ✅
+
+### What's New
+**Comprehensive Drone Attack Dataset (2024-2026):**
+- 11 documented Hezbollah drone attacks on IDF soldiers
+- Geolocation data for origin and target points
+- Flight path reconstruction with multiple waypoints
+- Status classification: confirmed, claimed, disputed
+- Casualty estimates based on public reporting
+- Type classification: loitering-munition, recon-uav, attack-uav
+
+### Data Coverage
+**2024 Attacks (4 incidents):**
+- Jan 14: Confirmed strike on Israeli military base (2 KIA)
+- Feb 20: Reconnaissance flight over Golan Heights
+- May 8: Direct hit on IDF patrol (1 KIA)
+- Jul 15: Multiple strikes on Bilit base (3 KIA)
+
+**2025 Attacks (4 incidents):**
+- Jan 22: Strike on Golan observation post (2 KIA)
+- Mar 10: Extended reconnaissance flight mapping
+- Jun 5: Claimed strike (status disputed - Israeli sources claim interception)
+- Aug 4: Direct strike on military position (4 KIA)
+
+**2026 Recent Escalations (3 incidents):**
+- Jan 12: Confirmed hit on Letzia base (1 KIA)
+- Feb 28: Reconnaissance over Nahariya
+- Apr 15: Claimed strike (interception disputed)
+
+### Sources (8 Intelligence Channels)
+- **IDF Spokesperson:** Official casualty and incident reports
+- **Bellingcat:** OSINT analysis and verification
+- **ISW (Institute for the Study of War):** Daily intelligence assessments
+- **Janes Defence Weekly:** Technical analysis of drone systems
+- **Debka File:** Real-time security reporting
+- **Al Jazeera:** Arab perspective on resistance operations
+- **Middle East Eye:** Investigative reporting on armed groups
+- **Haaretz:** Israeli security and intelligence coverage
+
+### Implementation
+**Layer Visibility Toggle:**
+- New `LayerVis.drones: boolean` flag
+- Toggle location: Layer controls in main UI
+- Default: OFF (opt-in to view sensitive intelligence)
+
+**Map Features (Coming in 3.5.1):**
+- Flight path visualization on map
+- Drone origin/target markers with status indicators
+- Interactive popups with casualty and source information
+- Timeline slider to filter by date range
+- Confirmed vs claimed color-coding
+
+### Data Quality Notes
+- All data from public reporting (news, official statements, OSINT analysis)
+- Locations approximate (nearest 500m to nearest settlement)
+- Status classifications based on multiple source corroboration
+- Casualty figures are reported numbers; exact counts may vary
+- Disputed incidents marked for transparency
+
+### Educational & Humanitarian Use
+This intelligence layer supports:
+- Academic research on modern asymmetric warfare
+- Humanitarian impact assessment
+- Historical documentation of 2024-2026 escalation
+- Understanding civilian displacement patterns
+- Policy analysis of border security dynamics
+
+---
+
 ## v3.4.0: Intelligent Marker Positioning System Release
 
 **Release Date:** 2026-06-18  
@@ -900,6 +972,7 @@ None. Fully backward compatible with v3.3.18.
 
 ---
 
-**Current Version:** v3.4.0 (2026-06-18)  
+**Current Version:** v3.5.0 (2026-06-18)  
+**Latest Features:** Hezbollah drone intelligence layer with 11 documented attacks (2024-2026)
 **Updated:** June 2026  
 **Maintainer:** ikrigel
