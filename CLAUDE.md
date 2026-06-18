@@ -858,22 +858,48 @@ Stop if delta <= 5px or max iterations reached
 
 ---
 
-**Current Version:** v3.3.18 (2026-06-18)  
-**Implementation Complete:** All 5 phases delivered
-- ✅ Phase 1: Core hooks and UI components
-- ✅ Phase 2: Iterative adjustment algorithm  
-- ✅ Phase 3: Smart repositioning with safe zones
-- ✅ Phase 4: Comprehensive 52-test suite (492 total)
-- ✅ Phase 5: Defensive programming and edge-case handling
+---
 
-**Test Suite:** 492 tests passing (26 test files)
-**Code Metrics:**
-- 5 new hooks (≤120 lines each)
-- 1 new UI component (≤30 lines)
-- 1 utility module (≤80 lines)
-- 4 test files (≤180 lines each)
-- 100% of new code has defensive null-checks
-- All edge cases documented and handled
+## v3.4.0: Intelligent Marker Positioning System Release
 
+**Release Date:** 2026-06-18  
+**Status:** Production Ready ✅
+
+### Release Highlights
+- Complete intelligent marker positioning system (5 phases)
+- 492 passing tests (all edge cases covered)
+- Defensive programming throughout
+- Zero regressions from v3.3.18
+
+### What's New
+**Phase 1-5 Complete:**
+- ✅ Dynamic screen position verification
+- ✅ Bearing-aware target positioning (lower-third at 0°, right-third at 90°, etc.)
+- ✅ Iterative map adjustment algorithm (up to 3 iterations, 150ms delays)
+- ✅ Smart repositioning to safe zones when UI-occluded
+- ✅ Three header visibility modes (fix/manual/auto)
+- ✅ localStorage persistence
+- ✅ Comprehensive test suite (52 new tests)
+- ✅ Defensive error handling and edge-case management
+
+### Breaking Changes
+None. Fully backward compatible with v3.3.18.
+
+### Test Suite
+**492 tests passing** across 26 test files:
+- All new marker positioning hooks fully tested
+- All occlusion detection scenarios covered
+- All header visibility modes verified
+- All bearing angles tested (0°-359°)
+
+### Upcoming Features (v3.5.0+)
+- Hezbollah drone attack intelligence layer
+- Drone flight path visualization
+- Advanced terrain-based targeting analysis
+- Multi-source attribution system
+
+---
+
+**Current Version:** v3.4.0 (2026-06-18)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel
