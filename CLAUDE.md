@@ -1043,13 +1043,111 @@ None. Fully backward compatible with v3.3.18.
 - Minimal impact on frame rate
 - GPU-accelerated CSS animations
 
-### Future Enhancements (v3.5.2+)
-- Timeline slider for date range filtering
-- Casualty statistics and KIA totals
-- Attack clustering for zoomed-out view
-- GeoJSON export for external analysis
-- Heatmap mode showing attack density
-- Advanced filters: by status, location, date range
+---
+
+## v3.5.2: Advanced Drone Analytics & Filtering
+
+**Status:** In Development
+
+### Features for v3.5.2
+
+#### 1. Timeline Slider (Date Range Filtering)
+- Interactive slider at bottom of drone section
+- Drag to filter attacks by date range (2024-2026)
+- Real-time map update (show/hide attacks outside range)
+- Display count of visible attacks
+
+#### 2. Casualty Statistics Panel
+- Total confirmed KIA across all visible attacks
+- Breakdown by year (2024: 9 KIA, 2025: 8 KIA, 2026: 1 KIA)
+- Status distribution (confirmed/claimed/disputed counts)
+- Average distance from border
+
+#### 3. Attack Clustering
+- Group attacks by location when zoomed out
+- Show cluster circles with attack count
+- Uncluster on zoom in
+- Color gradient by casualty severity
+
+#### 4. GeoJSON Export
+- Download button in drone section
+- Export visible attacks as GeoJSON FeatureCollection
+- Include all metadata (sources, status, casualties)
+- Compatible with ArcGIS, QGIS, Google Earth
+
+#### 5. Advanced Filters
+Checkboxes under drone toggle:
+- ☐ Show only confirmed attacks
+- ☐ Show only 2024 incidents
+- ☐ Show only 2025 incidents
+- ☐ Show only 2026 incidents
+- ☐ Show attacks with casualties only
+
+#### 6. Heatmap Mode
+- Alternative visualization: color density map
+- Red intensity = attack concentration areas
+- Hover to show exact locations
+- Toggle between map/heatmap view
+
+### Data Aggregations Available
+
+```
+By Year:
+- 2024: 4 attacks, 9 KIA confirmed
+- 2025: 4 attacks, 8 KIA confirmed
+- 2026: 3 attacks, 1 KIA confirmed
+
+By Status:
+- Confirmed: 9 attacks
+- Claimed: 1 attack
+- Disputed: 1 attack
+
+By Impact Severity:
+- High (3+ KIA): 4 attacks
+- Medium (1-2 KIA): 5 attacks
+- Low/Recon (0 KIA): 2 attacks
+```
+
+### Implementation Plan for v3.5.2
+
+1. **Create `useDroneFiltering.ts` hook**
+   - State: date range, status filter, year filter
+   - Methods: `setDateRange()`, `toggleStatus()`, `toggleYear()`
+   - Return: filtered drone attacks array
+
+2. **Create `DroneSummaryPanel.tsx` component**
+   - Display: casualty counts, status breakdown, timeline
+   - Interactive: show/hide statistics
+
+3. **Add `DronesTimelineSlider.tsx` component**
+   - Range input for year-month filtering
+   - Visual timeline of attacks
+
+4. **Create `useDroneExport.ts` utility**
+   - GeoJSON generation
+   - File download trigger
+   - Metadata formatting
+
+5. **Integrate into LayerTogglesSection**
+   - Add filter checkboxes below main toggle
+   - Add statistics display
+   - Add export button
+
+### Estimated Impact
+
+- **Lines of Code:** ~400 (hooks + components)
+- **New Files:** 4 (hook, 2 components, utility)
+- **Test Coverage:** 20+ new tests
+- **Build Size Impact:** +15KB gzipped
+- **Performance:** Negligible (filtering is in-memory)
+
+### Future Phases (v3.5.3+)
+
+- Real-time data updates from news APIs
+- Predictive flight path modeling
+- Integration with casualty databases
+- Comparative analysis across borders
+- Multi-source confidence scoring
 
 ### Data Quality Notes
 - All locations approximate to nearest settlement (±500m)
