@@ -44,6 +44,7 @@ export const loadLocalLayerVisibility = (): LayerVis => {
       waterLabels: typeof candidate.waterLabels === 'boolean' ? candidate.waterLabels : DEFAULT_LAYER_VISIBILITY.waterLabels,
       sectColors: typeof candidate.sectColors === 'boolean' ? candidate.sectColors : DEFAULT_LAYER_VISIBILITY.sectColors,
       navLabels: typeof candidate.navLabels === 'boolean' ? candidate.navLabels : DEFAULT_LAYER_VISIBILITY.navLabels,
+      drones: typeof candidate.drones === 'boolean' ? candidate.drones : DEFAULT_LAYER_VISIBILITY.drones,
     };
   } catch {
     return DEFAULT_LAYER_VISIBILITY;

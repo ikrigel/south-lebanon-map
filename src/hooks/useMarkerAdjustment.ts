@@ -63,7 +63,7 @@ export const useMarkerAdjustment = (props: UseMarkerAdjustmentProps) => {
     delta: 0,
   });
   const iterationCountRef = useRef(0);
-  const adjustmentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const adjustmentTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const calculateAdjustment = useCallback(() => {
     const map = props.mapRef.current;
