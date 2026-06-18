@@ -226,7 +226,7 @@ export function LeftPanel(props: LeftPanelProps) {
           <div
             className="toggle-row"
             data-active={props.visible.drones}
-            onClick={() => props.visibleKey('drones')}
+            onClick={() => props.visibleKey('drones')()}
             role="switch"
             aria-checked={props.visible.drones}
             data-testid="toggle-layer-drones"
