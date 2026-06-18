@@ -107,3 +107,10 @@ export const SNAP_LABELS: Record<number, string> = {
   0: '↑ צפון', 45: '↗ ס״מ', 90: '→ מזרח', 135: '↘ ד״מ',
   180: '↓ דרום', 225: '↙ ד״מ', 270: '← מערב', 315: '↖ ס״מ',
 };
+
+// Marker positioning parameters (v3.3.18)
+export const HEADER_VISIBILITY_STORAGE_KEY = 'south-lebanon-map:header-visibility:v1';
+export const MARKER_POSITION_TOLERANCE_PX = 5;
+export const MARKER_ADJUSTMENT_MAX_ITERATIONS = 3;
+export const MARKER_ADJUSTMENT_DELAY_MS = 150;
+export const MARKER_BASE_OFFSET_RATIO = 1 / 6; // 1/6 of screen height for lower-third positioning

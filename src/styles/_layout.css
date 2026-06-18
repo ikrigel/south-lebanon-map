@@ -171,3 +171,22 @@ body {
   border: 1px solid rgba(212,154,58,0.25);
   font-weight: 600;
 }
+
+/* Header visibility modes (v3.3.18) */
+.header-visibility-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.app.header-hidden {
+  grid-template-rows: 0 1fr 36px;
+}
+
+.app.header-hidden .header {
+  display: none;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}

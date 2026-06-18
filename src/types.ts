@@ -2,6 +2,7 @@
 export type ThemeMode = 'auto' | 'light' | 'dark';
 export type VoiceGuidanceMode = 'off' | 'basic' | 'detailed';
 export type VoiceLanguage = 'he' | 'en';
+export type HeaderVisibilityMode = 'fix' | 'manual' | 'auto';
 
 // Navigation and routing types
 export type TurnAction = 'straight' | 'right' | 'left' | 'uturn' | 'arrive' | 'none';
@@ -150,6 +151,23 @@ export type LocalFilterState = {
   yearTo?: number;
   typeFilter?: string[];
   sevFilter?: string[];
+};
+
+// Marker positioning types (v3.3.18)
+export type MarkerScreenPosition = {
+  x: number;
+  y: number;
+  isVisible: boolean;
+  occlusion: 'header' | 'footer' | 'left-panel' | 'right-panel' | null;
+};
+
+export type OcclusionType = 'header' | 'footer' | 'left-panel' | 'right-panel' | null;
+
+export type SafeZone = {
+  type: 'left-third' | 'right-third' | 'center-top' | 'center-bottom' | 'center';
+  targetX: number;
+  targetY: number;
+  adjustedBearing: number | null;
 };
 
 // Re-exports from other modules

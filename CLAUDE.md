@@ -713,6 +713,75 @@ const offsetY = baseOffset * Math.cos(bearingRad);
 
 ---
 
-**Current Version:** v3.3.17 (2026-06-17)  
+### v3.3.18 Architecture: Intelligent Marker Positioning System (Phase 1)
+
+**Feature:** Dynamic screen position verification and adjustment for marker during navigation. Includes header visibility modes to maximize map visibility.
+
+**Components Created (v3.3.18 - Phase 1):**
+
+1. **`src/hooks/useMarkerScreenPosition.ts`** — Calculates actual screen position of marker
+   - Projects marker lat/lng to screen coordinates
+   - Detects visibility (within map bounds)
+   - Detects occlusion by UI elements (header, footer, panels)
+   - Returns `MarkerScreenPosition` with `{x, y, isVisible, occlusion}`
+
+2. **`src/hooks/useMarkerAdjustment.ts`** — Verifies marker position vs target
+   - Calculates bearing-aware target position (lower third at 0°, right third at 90°, etc.)
+   - Compares actual vs target position
+   - Tracks adjustment state: `{needsAdjustment, targetX, targetY, actualX, actualY, delta}`
+   - Does NOT modify map directly; provides calculation state for future adjustments
+
+3. **`src/utils/markerOcclusionDetection.ts`** — UI occlusion detection
+   - `detectOcclusionAndGetSafeZone()` — finds nearest safe zone when marker occluded
+   - `calculateSafeZoneBoundaries()` — defines safe area boundaries
+   - `isMarkerPositionSafe()` — checks if position avoids UI elements
+   - `shouldHideHeader()` — determines if header should auto-hide based on mode
+
+4. **`src/hooks/useHeaderVisibility.ts`** — Header visibility state management
+   - Three modes: `'fix'` (always visible), `'manual'` (user toggles), `'auto'` (hide if blocking marker)
+   - Persists to localStorage with key `south-lebanon-map:header-visibility:v1`
+   - Methods: `changeMode()`, `toggleHeaderVisibility()`, `setVisible()`
+
+5. **`src/components/HeaderVisibilityToggle.tsx`** — UI control for visibility modes
+   - Mode selector dropdown (fix/manual/auto)
+   - Toggle button for manual mode (show/hide)
+   - Integrated into HeaderBar alongside theme selector
+
+6. **Type Definitions** (src/types.ts)
+   - `HeaderVisibilityMode = 'fix' | 'manual' | 'auto'`
+   - `MarkerScreenPosition = {x, y, isVisible, occlusion}`
+   - `SafeZone = {type, targetX, targetY, adjustedBearing}`
+   - `OcclusionType = 'header' | 'footer' | 'left-panel' | 'right-panel' | null`
+
+7. **Constants** (src/constants.ts)
+   - `HEADER_VISIBILITY_STORAGE_KEY`
+   - `MARKER_POSITION_TOLERANCE_PX = 5` (adjustment tolerance)
+   - `MARKER_ADJUSTMENT_MAX_ITERATIONS = 3` (max adjustment cycles)
+   - `MARKER_ADJUSTMENT_DELAY_MS = 150` (delay between cycles)
+   - `MARKER_BASE_OFFSET_RATIO = 1/6` (lower-third positioning)
+
+**Integration:** New hooks called in `useMapLiveLocation`:
+```typescript
+const markerScreenPosition = useMarkerScreenPosition({...});
+const markerAdjustment = useMarkerAdjustment({...});
+const headerVisibility = useHeaderVisibility({...});
+```
+
+**CSS Updates** (src/styles/_layout.css):
+- `.header-visibility-controls` — styling for mode selector
+- `.app.header-hidden` — grid row 0 when header hidden
+- `.app.header-hidden .header` — display none/visibility hidden
+
+**Future Phases (v3.3.19+):**
+- Phase 2: Implement actual map adjustment via `panBy()` iteratively (Phase 1 calculates, Phase 2 applies)
+- Phase 3: Smart repositioning when occluded (move to nearest safe zone)
+- Phase 4: Comprehensive test suite (640 lines, 4 test files)
+- Phase 5: Polish and edge-case handling
+
+**Test Status:** All 440 tests passing ✅
+
+---
+
+**Current Version:** v3.3.18 (2026-06-18)  
 **Updated:** June 2026  
 **Maintainer:** ikrigel

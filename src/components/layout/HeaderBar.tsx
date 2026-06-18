@@ -1,4 +1,5 @@
-import type { ThemeMode } from '../../types';
+import type { ThemeMode, HeaderVisibilityMode } from '../../types';
+import { HeaderVisibilityToggle } from '../HeaderVisibilityToggle';
 
 interface HeaderBarProps {
   panelsCollapsed: boolean;
@@ -16,6 +17,10 @@ interface HeaderBarProps {
   setManualMeasure: (measure: any[]) => void;
   setDrawerOpen: (open: boolean) => void;
   setTransferOpen: (open: boolean) => void;
+  headerVisibilityMode?: HeaderVisibilityMode;
+  headerVisible?: boolean;
+  onHeaderVisibilityModeChange?: (mode: HeaderVisibilityMode) => void;
+  onHeaderToggleVisibility?: () => void;
 }
 
 export function HeaderBar(props: HeaderBarProps) {
@@ -60,6 +65,14 @@ export function HeaderBar(props: HeaderBarProps) {
             </button>
           ))}
         </div>
+        {props.headerVisibilityMode && props.onHeaderVisibilityModeChange && (
+          <HeaderVisibilityToggle
+            mode={props.headerVisibilityMode}
+            visible={props.headerVisible ?? true}
+            onChange={props.onHeaderVisibilityModeChange}
+            onToggleVisibility={props.onHeaderToggleVisibility ?? (() => {})}
+          />
+        )}
         <button
           className="btn ghost"
           onClick={props.resetView}

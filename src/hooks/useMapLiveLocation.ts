@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
+import { useMarkerScreenPosition } from './useMarkerScreenPosition';
+import { useMarkerAdjustment } from './useMarkerAdjustment';
+import { useHeaderVisibility } from './useHeaderVisibility';
 
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
   const size = map.getSize();
@@ -44,6 +47,26 @@ export const useMapLiveLocation = (
   liveCenterRequestId: number,
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
+  // Initialize new marker positioning system (v3.3.18)
+  const markerScreenPosition = useMarkerScreenPosition({
+    mapRef,
+    liveLocation,
+    mapBearing,
+    headerHeight: 60, // Typical header height in pixels
+    footerHeight: 0,  // No footer in current layout
+    leftPanelWidth: 0, // Panels are only visible on desktop
+    rightPanelWidth: 0,
+  });
+
+  const markerAdjustment = useMarkerAdjustment({
+    mapRef,
+    liveLocation,
+    mapBearing,
+    markerScreenPosition: markerScreenPosition.position,
+    isNavigationActive: !!navigationRoute && !liveFollowDetachedRef.current,
+  });
+
+  const headerVisibility = useHeaderVisibility({ defaultMode: 'fix' });
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
   useEffect(() => {
     const group = layersRef.current.live;
