@@ -221,6 +221,30 @@ export function LeftPanel(props: LeftPanelProps) {
               כיבוי מנקה עבור מפה נקייה יותר.
             </p>
           )}
+
+          <div className="layer-group-title layer-group-title-labels" style={{ marginTop: 12 }}>מודיעין ביטחוני</div>
+          <div
+            className="toggle-row"
+            data-active={props.visible.drones}
+            onClick={() => props.visibleKey('drones')}
+            role="switch"
+            aria-checked={props.visible.drones}
+            data-testid="toggle-layer-drones"
+          >
+            <div className="toggle-label">
+              <span className="toggle-swatch" style={{ background: 'linear-gradient(90deg,#ef4444,#f59e0b,#fbbf24)' }} />
+              התקפות כלים של חזבאללה על כוחות צה״ל (2024–2026)
+            </div>
+            <span className="toggle-switch" />
+          </div>
+
+          {props.visible.drones && (
+            <p className="legend-note">
+              <strong>סטטוסים:</strong> 🔴 מאומת (לפחות מקור אחד) • 🟠 טוען (דיווח מצד אחד) • 🟡 מעורער (מקורות סותרים)<br/>
+              <strong>מקורות:</strong> דוחות צבאיים, OSINT, תקשורת בינלאומית<br/>
+              <strong>הערה:</strong> קואורדינטות מקורבות למקום הקרוב ביותר
+            </p>
+          )}
         </div>
 
         <NavigationPanel {...(props as any)} />
