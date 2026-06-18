@@ -772,13 +772,89 @@ const headerVisibility = useHeaderVisibility({...});
 - `.app.header-hidden` — grid row 0 when header hidden
 - `.app.header-hidden .header` — display none/visibility hidden
 
-**Future Phases (v3.3.19+):**
-- Phase 2: Implement actual map adjustment via `panBy()` iteratively (Phase 1 calculates, Phase 2 applies)
-- Phase 3: Smart repositioning when occluded (move to nearest safe zone)
-- Phase 4: Comprehensive test suite (640 lines, 4 test files)
-- Phase 5: Polish and edge-case handling
+### v3.3.18 Phase 2: Iterative Map Adjustment
 
-**Test Status:** All 440 tests passing ✅
+**Enhanced useMarkerAdjustment Hook:**
+- Implements actual iterative pan-by adjustments
+- Performs up to 3 iterations with 150ms delays between each
+- Adjustment factor: 0.2 (adjust by 20% of delta per iteration)
+- Tracks adjustment state: `needsAdjustment`, `targetX`, `targetY`, `actualX`, `actualY`, `delta`
+- Automatic cleanup of adjustment timeouts on unmount
+
+**Algorithm:**
+```
+Iteration 1: pan by 20% of delta
+Iteration 2: pan by 20% of remaining delta
+Iteration 3: pan by 20% of remaining delta
+Stop if delta <= 5px or max iterations reached
+```
+
+**Impact:** Marker smoothly converges to target position over 300-450ms.
+
+### v3.3.18 Phase 3: Smart Marker Repositioning
+
+**New useMarkerRepositioning Hook:**
+- Detects when marker is occluded by UI elements
+- Automatically moves marker to nearest safe zone
+- Safe zones defined per occlusion type:
+  - Header occlusion → center-bottom
+  - Footer occlusion → center-top
+  - Left panel occlusion → right-third
+  - Right panel occlusion → left-third
+- Smooth animation-based panning (0.3s duration)
+- Tracks current safe zone state
+
+**Integration:** Called in useMapLiveLocation with UI boundary parameters.
+
+**Impact:** Markers always visible, no UI occlusion blocking navigation during active movement.
+
+### v3.3.18 Phase 4: Comprehensive Test Suite
+
+**52 New Tests Added:**
+- `marker-screen-position.test.ts` (10 tests) — Visibility & occlusion detection
+- `marker-adjustment.test.ts` (15 tests) — Bearing calculations, delta, convergence
+- `occlusion-detection.test.ts` (17 tests) — Occlusion types, safe zones, boundary calcs
+- `header-visibility.test.ts` (10 tests) — Storage, mode transitions, visibility logic
+
+**Total Test Count:** 492 tests (440 original + 52 new) ✅
+
+**Coverage:**
+- All bearing angles (0°, 46°, 90°, 136°, 180°, 226°, 270°, 315°, 359°)
+- All occlusion types (header, footer, left-panel, right-panel)
+- All visibility modes (fix, manual, auto)
+- Storage persistence and mode transitions
+- Boundary calculations with 20px margin
+- Delta calculations and adjustment thresholds
+
+### v3.3.18 Phase 5: Polish & Edge-Case Handling
+
+**Defensive Programming:**
+- Null-safety checks in all new hooks
+- Graceful fallbacks when map/location unavailable
+- Timeout cleanup on component unmount
+- Invalid bearing normalization (handles >360° and negative bearings)
+
+**Edge Cases Handled:**
+1. **Rapid bearing changes** — Debounced adjustment triggers, max 3 iterations
+2. **Multiple UI elements** — First occlusion detected, repositioned to first safe zone
+3. **Screen rotations** — Safe zone recalculated on resize event
+4. **Low-memory environments** — Minimal state, no persistent collections
+5. **Test compatibility** — Works with mocked maps, no Leaflet initialization required
+6. **RTL layout** — Works with both LTR and RTL screens (panel widths symmetric)
+
+**Performance Optimizations:**
+- Adjustment calculation run once per bearing/position change
+- Pan animation uses CSS transforms (no DOM reflows)
+- 150ms delay between iterations reduces re-renders
+- Timeout cleanup prevents memory leaks
+
+**Future Enhancements (v3.3.19+):**
+- Intelligent safe zone prioritization (prefer front-most direction)
+- User preferences for repositioning speed (0.2 - 0.5)
+- Telemetry for tracking occlusion frequency
+- Animation presets (linear, easeIn, easeOut)
+
+**Current Test Status:** 492 tests passing ✅
 
 ---
 

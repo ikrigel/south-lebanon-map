@@ -26,38 +26,65 @@ export const useMarkerScreenPosition = (props: UseMarkerScreenPositionProps) => 
       return { x: 0, y: 0, isVisible: false, occlusion: null };
     }
 
-    const size = map.getSize();
-    const zoom = map.getZoom();
+    try {
+      // Defensive: check map methods exist before calling
+      if (!map.getSize || !map.getZoom || !map.project) {
+        return { x: 0, y: 0, isVisible: false, occlusion: null };
+      }
 
-    // Project marker to screen coordinates
-    const markerLatLng: L.LatLngTuple = [props.liveLocation.lat, props.liveLocation.lon];
-    const markerPx = map.project(markerLatLng, zoom);
-    const screenX = markerPx.x;
-    const screenY = markerPx.y;
+      const size = map.getSize();
+      const zoom = map.getZoom();
 
-    // Check visibility bounds
-    const isWithinHorizontalBounds = screenX >= 0 && screenX <= size.x;
-    const isWithinVerticalBounds = screenY >= 0 && screenY <= size.y;
-    const isVisible = isWithinHorizontalBounds && isWithinVerticalBounds;
+      // Validate size and zoom
+      if (!size || size.x <= 0 || size.y <= 0 || !Number.isFinite(zoom)) {
+        return { x: 0, y: 0, isVisible: false, occlusion: null };
+      }
 
-    // Detect occlusion by UI elements
-    let occlusion: OcclusionType = null;
-    if (screenY < props.headerHeight) {
-      occlusion = 'header';
-    } else if (screenY > size.y - props.footerHeight) {
-      occlusion = 'footer';
-    } else if (screenX < props.leftPanelWidth) {
-      occlusion = 'left-panel';
-    } else if (screenX > size.x - props.rightPanelWidth) {
-      occlusion = 'right-panel';
+      // Project marker to screen coordinates
+      const markerLatLng: L.LatLngTuple = [props.liveLocation.lat, props.liveLocation.lon];
+      const markerPx = map.project(markerLatLng, zoom);
+
+      // Validate projection result
+      if (!markerPx || !Number.isFinite(markerPx.x) || !Number.isFinite(markerPx.y)) {
+        return { x: 0, y: 0, isVisible: false, occlusion: null };
+      }
+
+      const screenX = markerPx.x;
+      const screenY = markerPx.y;
+
+      // Check visibility bounds
+      const isWithinHorizontalBounds = screenX >= 0 && screenX <= size.x;
+      const isWithinVerticalBounds = screenY >= 0 && screenY <= size.y;
+      const isVisible = isWithinHorizontalBounds && isWithinVerticalBounds;
+
+      // Detect occlusion by UI elements (with defensive boundary checks)
+      let occlusion: OcclusionType = null;
+      const headerHeight = Math.max(0, props.headerHeight);
+      const footerHeight = Math.max(0, props.footerHeight);
+      const leftPanelWidth = Math.max(0, props.leftPanelWidth);
+      const rightPanelWidth = Math.max(0, props.rightPanelWidth);
+
+      if (screenY < headerHeight) {
+        occlusion = 'header';
+      } else if (screenY > size.y - footerHeight) {
+        occlusion = 'footer';
+      } else if (screenX < leftPanelWidth) {
+        occlusion = 'left-panel';
+      } else if (screenX > size.x - rightPanelWidth) {
+        occlusion = 'right-panel';
+      }
+
+      return {
+        x: screenX,
+        y: screenY,
+        isVisible,
+        occlusion,
+      };
+    } catch (error) {
+      // Silently handle projection errors
+      console.debug('[useMarkerScreenPosition] Projection error:', error);
+      return { x: 0, y: 0, isVisible: false, occlusion: null };
     }
-
-    return {
-      x: screenX,
-      y: screenY,
-      isVisible,
-      occlusion,
-    };
   }, [props]);
 
   useEffect(() => {
