@@ -4,6 +4,7 @@ import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 import { useMarkerScreenPosition } from './useMarkerScreenPosition';
 import { useMarkerAdjustment } from './useMarkerAdjustment';
 import { useHeaderVisibility } from './useHeaderVisibility';
+import { useMarkerRepositioning } from './useMarkerRepositioning';
 
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
   const size = map.getSize();
@@ -64,6 +65,17 @@ export const useMapLiveLocation = (
     mapBearing,
     markerScreenPosition: markerScreenPosition.position,
     isNavigationActive: !!navigationRoute && !liveFollowDetachedRef.current,
+  });
+
+  const markerRepositioning = useMarkerRepositioning({
+    mapRef,
+    liveLocation,
+    markerScreenPosition: markerScreenPosition.position,
+    isNavigationActive: !!navigationRoute && !liveFollowDetachedRef.current,
+    headerHeight: 60,
+    footerHeight: 0,
+    leftPanelWidth: 0,
+    rightPanelWidth: 0,
   });
 
   const headerVisibility = useHeaderVisibility({ defaultMode: 'fix' });

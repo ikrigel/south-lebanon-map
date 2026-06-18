@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
-import { MARKER_POSITION_TOLERANCE_PX } from '../constants';
+import { MARKER_POSITION_TOLERANCE_PX, MARKER_ADJUSTMENT_MAX_ITERATIONS, MARKER_ADJUSTMENT_DELAY_MS } from '../constants';
 
 interface UseMarkerAdjustmentProps {
   mapRef: React.MutableRefObject<any>;
@@ -53,6 +53,7 @@ function getBearingAwareTarget(bearing: number, screenWidth: number, screenHeigh
 }
 
 export const useMarkerAdjustment = (props: UseMarkerAdjustmentProps) => {
+  const [adjustmentInProgress, setAdjustmentInProgress] = useState(false);
   const adjustmentStateRef = useRef<AdjustmentState>({
     needsAdjustment: false,
     targetX: 0,
@@ -61,6 +62,8 @@ export const useMarkerAdjustment = (props: UseMarkerAdjustmentProps) => {
     actualY: 0,
     delta: 0,
   });
+  const iterationCountRef = useRef(0);
+  const adjustmentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const calculateAdjustment = useCallback(() => {
     const map = props.mapRef.current;
@@ -97,11 +100,75 @@ export const useMarkerAdjustment = (props: UseMarkerAdjustmentProps) => {
     };
   }, [props]);
 
+  const performAdjustment = useCallback(() => {
+    const map = props.mapRef.current;
+    if (!map || !props.isNavigationActive || !props.liveLocation || !props.markerScreenPosition.isVisible) {
+      setAdjustmentInProgress(false);
+      return;
+    }
+
+    calculateAdjustment();
+    const state = adjustmentStateRef.current;
+
+    // Check if adjustment is needed and within iteration limit
+    if (!state.needsAdjustment || iterationCountRef.current >= MARKER_ADJUSTMENT_MAX_ITERATIONS) {
+      setAdjustmentInProgress(false);
+      iterationCountRef.current = 0;
+      return;
+    }
+
+    // Pan map by a fraction of the delta to move marker closer to target
+    const deltaX = state.targetX - state.actualX;
+    const deltaY = state.targetY - state.actualY;
+
+    if (Math.abs(deltaX) > 0.1 || Math.abs(deltaY) > 0.1) {
+      // Use a smaller adjustment factor for smoother movement (0.2 = 20% of delta per iteration)
+      const adjustmentFactor = 0.2;
+      if (map.panBy) {
+        map.panBy([-deltaX * adjustmentFactor, -deltaY * adjustmentFactor], { animate: false });
+      }
+    }
+
+    iterationCountRef.current += 1;
+
+    // Schedule next iteration if more adjustments needed
+    if (iterationCountRef.current < MARKER_ADJUSTMENT_MAX_ITERATIONS && state.delta > MARKER_POSITION_TOLERANCE_PX) {
+      if (adjustmentTimeoutRef.current) {
+        clearTimeout(adjustmentTimeoutRef.current);
+      }
+      adjustmentTimeoutRef.current = setTimeout(() => {
+        performAdjustment();
+      }, MARKER_ADJUSTMENT_DELAY_MS);
+    } else {
+      setAdjustmentInProgress(false);
+      iterationCountRef.current = 0;
+    }
+  }, [props, calculateAdjustment]);
+
+  // Trigger adjustment when marker position changes significantly
   useEffect(() => {
     calculateAdjustment();
-  }, [props.mapBearing, props.markerScreenPosition, props.isNavigationActive, calculateAdjustment]);
+    const state = adjustmentStateRef.current;
+
+    // Start adjustment if needed and not already in progress
+    if (state.needsAdjustment && !adjustmentInProgress && props.isNavigationActive) {
+      setAdjustmentInProgress(true);
+      iterationCountRef.current = 0;
+      performAdjustment();
+    }
+  }, [props.mapBearing, props.markerScreenPosition, props.isNavigationActive, calculateAdjustment, performAdjustment, adjustmentInProgress]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (adjustmentTimeoutRef.current) {
+        clearTimeout(adjustmentTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return {
     adjustmentState: adjustmentStateRef.current,
+    adjustmentInProgress,
   };
 };
