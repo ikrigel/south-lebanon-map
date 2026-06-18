@@ -47,6 +47,7 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   waterLabels: true,
   sectColors: true,
   navLabels: true,
+  drones: false,
 };
 
 // POI customization options

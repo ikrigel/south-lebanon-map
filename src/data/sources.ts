@@ -24,6 +24,15 @@ export const sources: SourceEntry[] = [
   { category: 'media', title_he: 'Times of Israel — סיקור שוטף של אזור הגבול', url: 'https://www.timesofisrael.com/' },
   { category: 'media', title_he: 'New Lines Magazine — סיקור כפרי הגבול הדרומיים בלבנון', url: 'https://newlinesmag.com/spotlight/the-devastation-of-lebanons-southern-border-towns/' },
   { category: 'media', title_he: 'Wikipedia — מלחמת לבנון 2024', url: 'https://en.wikipedia.org/wiki/2024_Lebanon_war' },
+  // Drone Intelligence
+  { category: 'media', title_he: 'IDF Spokesperson — דו״חות רשמיים על התקפות כלים (2024–2026)', url: 'https://www.idf.il/en/' },
+  { category: 'media', title_he: 'Bellingcat — ניתוח OSINT של טיסות כלים בדרום לבנון', url: 'https://bellingcat.com' },
+  { category: 'media', title_he: 'ISW (Institute for the Study of War) — דוחות מודיעיניים יומיים', url: 'https://www.understandingwar.org' },
+  { category: 'media', title_he: 'Janes Defence Weekly — טכנולוגיה של כלים בעזה ולבנון', url: 'https://www.janes.com' },
+  { category: 'media', title_he: 'Debka File — כיסוי מודיעיני של פעילות כלים', url: 'https://www.debka.com' },
+  { category: 'media', title_he: 'Al Jazeera — כיסוי של התנגדות בעולם ערב', url: 'https://www.aljazeera.com' },
+  { category: 'media', title_he: 'Middle East Eye — ניתוח של התנגדות מזוינת בלבנון', url: 'https://www.middleeasteye.net' },
+  { category: 'media', title_he: 'Haaretz — דו״חות אבטחה וביטחון מודיעיני', url: 'https://www.haaretz.com' },
   // Data
   { category: 'data', title_he: 'ACLED — בסיס נתוני אירועי קונפליקט', url: 'https://acleddata.com/dashboard/' },
   { category: 'data', title_he: 'ecoi.net — דו״ח אירועים שנתי, לבנון 2024 (ACLED)', url: 'https://www.ecoi.net/en/file/local/2121567/2024yLebanon_en.pdf' },

@@ -19,6 +19,7 @@ export type LayerVis = {
   waterLabels: boolean;
   sectColors: boolean;
   navLabels: boolean;
+  drones: boolean;
 };
 
 export type MapProps = {

@@ -28,3 +28,6 @@ export {
 
 export type { Incident } from './incidents';
 export { incidents } from './incidents';
+
+export type { DroneAttack } from './droneAttacks';
+export { droneAttacks } from './droneAttacks';
