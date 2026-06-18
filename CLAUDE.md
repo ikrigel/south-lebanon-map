@@ -972,7 +972,92 @@ None. Fully backward compatible with v3.3.18.
 
 ---
 
-**Current Version:** v3.5.0 (2026-06-18)  
-**Latest Features:** Hezbollah drone intelligence layer with 11 documented attacks (2024-2026)
+### v3.5.1: Drone Attack Visualization on Map
+
+**Release Date:** 2026-06-18  
+**Status:** Full Map Integration Ready ✅
+
+### What's New
+**Complete Drone Visualization System:**
+- Interactive origin markers (launch points) with pulsing animation
+- Target markers (impact points) with arrow-up shape and scale animation
+- Flight paths rendered as dashed polylines connecting origin to target
+- Decorative waypoint markers along flight path corridors
+- Status-based color coding (red/amber/orange)
+- Interactive popups with sources and casualty information
+
+### Visual Design
+**Status Color Coding:**
+- 🔴 Red (#ef4444): Confirmed attacks (multiple sources)
+- 🟠 Amber (#f59e0b): Claimed attacks (single source)
+- 🟡 Orange (#fbbf24): Disputed attacks (conflicting reports)
+
+**Animation Effects:**
+- Origin marker: Pulse from 70-100% opacity (2s cycle)
+- Target marker: Scale from 1.0x to 1.15x (1.5s cycle)
+- Both markers: Drop-shadow for depth perception
+
+### UI Integration
+**Layer Toggle:**
+- Located in left panel under "מודיעין ביטחוני" (Security Intelligence)
+- Default state: OFF (opt-in visibility)
+- Interactive legend with status explanation
+- Hebrew and English language support
+
+**Popup Information:**
+- Bilingual popups (Hebrew RTL primary)
+- Attack details: location, date, status, casualties
+- Source attribution with clickable links
+- Flight path metadata: origin, target, waypoint count
+
+### Implementation Details
+**useDroneVisualization Hook:**
+- Renders all 11 drone attacks from geo.ts
+- Status-aware color mapping
+- Lazy-loads attack data only when visible
+- Efficient layer management (add/clear on toggle)
+
+**CSS Module (_drones.css):**
+- Keyframe animations for marker effects
+- Pop-up styling for readability
+- Responsive design adjustments
+- Dark/light theme compatibility
+
+**Type Safety:**
+- DroneAttack[] extends MapProps
+- LayerVis.drones boolean toggle
+- Full TypeScript integration
+
+### Maps Rendering Order
+1. Base tiles (light/dark/topo)
+2. Layer groups: population, UNIFIL, Hezbollah zones
+3. Boundaries and rivers
+4. **Drone visualization layer** (z-index: 150)
+5. Labels: cities, settlements, terrain, water
+6. Navigation route overlays
+7. UI controls (zoom, compass)
+
+### Performance
+- Lazy rendering: only render when visible
+- 11 attacks ≈ 34 visual elements (3 per attack)
+- Minimal impact on frame rate
+- GPU-accelerated CSS animations
+
+### Future Enhancements (v3.5.2+)
+- Timeline slider for date range filtering
+- Casualty statistics and KIA totals
+- Attack clustering for zoomed-out view
+- GeoJSON export for external analysis
+- Heatmap mode showing attack density
+- Advanced filters: by status, location, date range
+
+### Data Quality Notes
+- All locations approximate to nearest settlement (±500m)
+- Casualty figures from reported public sources
+- Status determined by source corroboration count
+- Disputed items clearly marked for transparency
+
+**Current Version:** v3.5.1 (2026-06-18)  
+**Latest Features:** Complete drone visualization with interactive map rendering
 **Updated:** June 2026  
 **Maintainer:** ikrigel
