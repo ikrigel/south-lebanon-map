@@ -1,4 +1,4 @@
-import type { Incident, Town } from './data/geo';
+import type { Incident, Town, DroneAttack } from './data/geo';
 
 export type MapHandle = {
   snapshotCenter: () => void;
@@ -28,6 +28,7 @@ export type MapProps = {
   filteredIncidents: Incident[];
   selectedIncident: Incident | null;
   onSelectIncident: (id: string | null) => void;
+  droneAttacks?: DroneAttack[];
   measureMode: boolean;
   pointPickMode: boolean;
   manualMeasure: [number, number][];

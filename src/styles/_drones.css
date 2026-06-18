@@ -1,0 +1,94 @@
+/* === Drone Attack Visualization === */
+
+/* Drone origin marker (launch point) */
+.drone-origin-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  animation: pulse-origin 2s ease-in-out infinite;
+}
+
+@keyframes pulse-origin {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Drone target marker (impact point) */
+.drone-target-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  animation: pulse-target 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-target {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Drone flight path waypoints */
+.drone-path-point {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Drone popup styling */
+.drone-popup {
+  font-family: var(--font-family);
+  font-size: 12px;
+  direction: rtl;
+  text-align: right;
+  color: var(--text);
+}
+
+.drone-popup strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.drone-popup a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+
+.drone-popup a:hover {
+  text-decoration: underline;
+}
+
+.drone-popup small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+/* Status badges */
+.drone-status-confirmed {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.drone-status-claimed {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.drone-status-disputed {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+/* Drone layer group */
+.leaflet-drone-layer {
+  z-index: 150;
+}
+
+/* Responsive adjustments */
+@media (max-width: 760px) {
+  .drone-origin-marker,
+  .drone-target-marker {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  }
+}

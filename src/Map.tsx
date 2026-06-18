@@ -3,6 +3,7 @@ import L from 'leaflet';
 import {
   blueLine, litaniRiver, litaniBufferZone, zahraniRiver, awaliRiver,
   towns, unifilPoints, influenceZones, terrainFeatures,
+  droneAttacks,
   Incident, Town,
 } from './data/geo';
 import { TYPE_COLOR, TYPE_LABEL, escapeHtml, fmtDate, fmtKm, haversineKm } from './util';
@@ -20,6 +21,7 @@ import { useMapPois } from './hooks/useMapPois';
 import { useMapMultiRoute } from './hooks/useMapMultiRoute';
 import { useMapIncidents } from './hooks/useMapIncidents';
 import { useMapMeasureAndDistance } from './hooks/useMapMeasureAndDistance';
+import { useDroneVisualization } from './hooks/useDroneVisualization';
 
 // Re-export types for use by other modules
 export type { MapHandle, LayerVis, MapProps };
@@ -300,6 +302,13 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.visible.sectColors]);
   useMapIncidents(layersRef, mapRef, props.filteredIncidents, props.selectedIncident, props.onSelectIncident);
+
+  useDroneVisualization({
+    mapRef,
+    layersRef,
+    droneAttacks: props.droneAttacks || droneAttacks,
+    visible: props.visible.drones,
+  });
 
   useMapMeasureAndDistance({
     layersRef,
