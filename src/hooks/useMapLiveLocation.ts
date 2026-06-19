@@ -28,6 +28,12 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
 
   console.log(`[NAV] GPS ${lat.toFixed(4)},${lon.toFixed(4)} at screen(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}) → pan(${panX.toFixed(0)},${panY.toFixed(0)}) → center${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
 
+  // VALIDATE: Check if result is crazy far away
+  if (Math.abs(newCenter.lat) > 85 || Math.abs(newCenter.lng) > 180) {
+    console.error(`⚠️ [INVALID RESULT FROM lowerThirdCenter] Lat=${newCenter.lat.toFixed(4)}, Lon=${newCenter.lng.toFixed(4)} - RETURNING INPUT INSTEAD`);
+    return L.latLng(lat, lon);
+  }
+
   return newCenter;
 }
 
@@ -119,12 +125,18 @@ export const useMapLiveLocation = (
       const zoomLevel = navFollowZoom ?? map.getZoom();
       const clampedZoom = Math.max(zoomLevel, NAVIGATION_FOLLOW_MIN_ZOOM);
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
-      console.log(`[GPS UPDATE EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
-      map.setView(adjusted, clampedZoom, {
-        animate: true,
-        duration: 0.3,
-        easeLinearity: 1.0,
-      } as L.ZoomPanOptions);
+      console.log(`[GPS UPDATE EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
+
+      // Validate before setting
+      if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        map.setView(adjusted, clampedZoom, {
+          animate: true,
+          duration: 0.3,
+          easeLinearity: 1.0,
+        } as L.ZoomPanOptions);
+      } else {
+        console.error(`⚠️ [REJECTED INVALID COORDS] lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} - NOT calling map.setView()`);
+      }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
     }
   }, [liveLocation, navigationRoute, mapBearing, navFollowZoom, navLabels]);
@@ -132,16 +144,20 @@ export const useMapLiveLocation = (
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
-    console.log(`[CENTER ME] Clicked - centering on GPS (${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)})`);
+    console.log(`[CENTER ME] Clicked - map.setView(lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)})`);
     liveFollowDetachedRef.current = false;
     onLiveFollowDetachedChange(false);
     const zoom = map.getZoom();
     // SIMPLE: Just go to GPS location, no fancy offsets
-    map.setView([liveLocation.lat, liveLocation.lon], zoom, {
-      animate: true,
-      duration: 0.3,
-      easeLinearity: 1.0,
-    } as L.ZoomPanOptions);
+    if (Math.abs(liveLocation.lat) <= 85 && Math.abs(liveLocation.lon) <= 180) {
+      map.setView([liveLocation.lat, liveLocation.lon], zoom, {
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 1.0,
+      } as L.ZoomPanOptions);
+    } else {
+      console.error(`⚠️ [REJECTED] CENTER ME coords invalid: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`);
+    }
   }, [liveCenterRequestId]);
 
   useEffect(() => {
@@ -156,13 +172,18 @@ export const useMapLiveLocation = (
     // - Any other mode: just apply zoom without positional offset
     if (navigationRoute && liveLocation && !liveFollowDetachedRef.current) {
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
-      map.setView(adjusted, clampedZoom, {
-        animate: true,
-        duration: 0.3,
-        easeLinearity: 1.0,
-      } as L.ZoomPanOptions);
+      console.log(`[ZOOM EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
+      if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        map.setView(adjusted, clampedZoom, {
+          animate: true,
+          duration: 0.3,
+          easeLinearity: 1.0,
+        } as L.ZoomPanOptions);
+      } else {
+        console.error(`⚠️ [REJECTED] ZOOM EFFECT invalid: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
+      }
     } else if (map.setZoom) {
-      // Not in active navigation: just zoom the map (check if setZoom exists for test compatibility)
+      console.log(`[ZOOM EFFECT] map.setZoom(${clampedZoom})`);
       map.setZoom(clampedZoom, { animate: true } as any);
     }
   }, [navFollowZoom, navigationRoute]);
@@ -173,7 +194,12 @@ export const useMapLiveLocation = (
     const handleResize = () => {
       const zoom = map.getZoom();
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
-      map.setView(adjusted, zoom, { animate: false } as L.ZoomPanOptions);
+      console.log(`[RESIZE EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${zoom})`);
+      if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        map.setView(adjusted, zoom, { animate: false } as L.ZoomPanOptions);
+      } else {
+        console.error(`⚠️ [REJECTED] RESIZE EFFECT invalid: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
+      }
     };
     map.on('resize', handleResize);
     return () => map.off('resize', handleResize);
