@@ -53,6 +53,7 @@
   position: relative;
   flex-shrink: 0;
   transition: background .15s ease;
+  pointer-events: none;
 }
 .toggle-switch::after {
   content: '';
