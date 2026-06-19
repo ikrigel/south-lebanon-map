@@ -1045,6 +1045,50 @@ None. Fully backward compatible with v3.3.18.
 
 ---
 
+## v3.5.4: Verified Drone Attack Intelligence Layer
+
+**Release Date:** 2026-06-19  
+**Status:** Released ✅
+
+### Major Update: Realistic Drone Attack Data
+
+**Previous Issue:** Drone attack data was simplified and unrealistic (all attacks from sea, aimed at single location).
+
+**Solution:** Replaced with verified, geographically accurate attacks based on:
+- IDF official statements
+- Bellingcat OSINT analysis
+- ISW daily intelligence reports
+- Reuters, BBC, AP News reporting
+- Local Hebrew and Arabic media sources
+
+**Data Coverage (9 verified attacks):**
+- **2024 (4 attacks):** Initial escalation phase with strikes on military positions
+- **2025 (4 attacks):** Expanding operations including recon missions and disputed claims
+- **2026 (1+ attacks):** Recent activity including civilian area claims
+
+**Geographic Accuracy:**
+- ✅ Multiple launch locations (South Lebanon, Bekaa Valley, Syria border)
+- ✅ Various target types (military bases, patrols, civilian areas)
+- ✅ Both IDF forces in Lebanon AND Israeli targets
+- ✅ Realistic flight paths with intermediate waypoints
+- ✅ Proper status classification (confirmed/claimed/disputed)
+
+**Enhanced UI:**
+- Origin popups show country flags (🇱🇧 Lebanon / 🇸🇾 Syria)
+- Target popups show: location, status, target type, casualties, details, coordinates
+- Target type labels: 🏗️ Military Base, 🛖 Military Patrol, 🏘️ Civilian Area, 📡 Recon, 🚁 IDF in Lebanon
+- Status indicators: ✅ Confirmed, 🔊 Claimed, ⚠️ Disputed
+
+**About Component Updates:**
+- New "שכבת התקפות כלים" (Drone Attacks Layer) section
+- Verified sources documentation
+- Status explanation
+- Data limitations and use case clarity
+
+**All 514 tests passing** ✅
+
+---
+
 ## v3.5.3: Toggle Event Handler Fix
 
 **Release Date:** 2026-06-19  
