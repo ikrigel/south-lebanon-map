@@ -8,53 +8,37 @@ import { useMarkerRepositioning } from './useMarkerRepositioning';
 
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
   const size = map.getSize();
+  const screenCenterX = size.x / 2;
+  const screenCenterY = size.y / 2;
 
-  // Convert marker lat/lng to SCREEN coordinates (not global pixels)
-  const markerScreenPx = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
-
-  // Position marker ahead in direction of travel, accounting for map rotation
-  // Base offset: 1/6 of screen height (marker at 2/3 of screen from top)
+  // Calculate DESIRED screen position where marker should appear
+  // Base offset: 1/6 of screen height (marker at 2/3 of screen from top = 1/3 below center)
   const baseOffset = size.y / 6;
   const bearingRad = (bearing * Math.PI) / 180;
 
-  // Rotate offset vector based on map bearing
-  // bearing = 0° (North): offset (0, -117) → marker moves to lower third
-  // bearing = 90° (East): offset (117, 0) → marker moves to right third
+  // Offset direction based on bearing
+  // bearing = 0° (North): offset (0, +91) → marker at lower third (DOWN on screen)
+  // bearing = 90° (East): offset (+91, 0) → marker at right third (RIGHT on screen)
   const offsetX = baseOffset * Math.sin(bearingRad);
-  const offsetY = baseOffset * -Math.cos(bearingRad);
+  const offsetY = baseOffset * Math.cos(bearingRad);  // POSITIVE = down on screen
 
   // Clamp offset to prevent excessive panning
   const maxOffsetPx = Math.min(size.x, size.y) * 0.4;
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
-  // DIAGNOSTIC: Log with stack trace to see which effect called this
-  const stack = new Error().stack?.split('\n')[3]?.trim() || 'unknown';
+  // DESIRED screen position for the marker (always within viewport)
+  const desiredScreenX = screenCenterX + clampedOffsetX;
+  const desiredScreenY = screenCenterY + clampedOffsetY;
+
+  // DIAGNOSTIC
   const timestamp = new Date().toISOString().split('T')[1];
-  console.log(`[${timestamp}] lowerThirdCenter CALLED from: ${stack}`);
-  console.log(`[DEBUG] Input: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom}, bearing=${bearing}`);
-  console.log(`[DEBUG] Screen size: ${size.x}×${size.y}px`);
-  console.log(`[DEBUG] Marker screen position: (${markerScreenPx.x.toFixed(1)}, ${markerScreenPx.y.toFixed(1)})`);
-  console.log(`[DEBUG] Offset calc: baseOffset=${baseOffset.toFixed(1)}, offsetX=${offsetX.toFixed(1)}, offsetY=${offsetY.toFixed(1)}`);
-  console.log(`[DEBUG] Clamped offset: (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
+  console.log(`[${timestamp}] lowerThirdCenter: GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}), screen ${size.x}×${size.y}px`);
+  console.log(`[DEBUG] Bearing ${bearing}° → offset (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)}) → desired marker at (${desiredScreenX.toFixed(1)}, ${desiredScreenY.toFixed(1)})`);
 
-  // Calculate center in SCREEN coordinates (then convert back to lat/lng)
-  let centerScreenX = markerScreenPx.x - clampedOffsetX;
-  let centerScreenY = markerScreenPx.y - clampedOffsetY;
-
-  // CRITICAL: Clamp to viewport bounds to prevent Leaflet from returning invalid coords
-  // when marker is scrolled far off-screen. Keep center within screen ±25% margin.
-  const marginX = size.x * 0.25;
-  const marginY = size.y * 0.25;
-  centerScreenX = Math.max(-marginX, Math.min(size.x + marginX, centerScreenX));
-  centerScreenY = Math.max(-marginY, Math.min(size.y + marginY, centerScreenY));
-
-  const centerScreenPx = L.point(centerScreenX, centerScreenY);
-
-  console.log(`[DEBUG] Center screen position (before containerPointToLatLng): (${centerScreenPx.x.toFixed(1)}, ${centerScreenPx.y.toFixed(1)}) [clamped from (${(markerScreenPx.x - clampedOffsetX).toFixed(1)}, ${(markerScreenPx.y - clampedOffsetY).toFixed(1)})]`);
-
-  // Convert screen coordinates back to lat/lng (critical: use containerPointToLatLng, not unproject)
-  const centerLatLng = map.containerPointToLatLng(centerScreenPx);
+  // Convert desired screen position directly to lat/lng
+  // This avoids using marker's actual (possibly off-screen) position
+  const centerLatLng = map.containerPointToLatLng(L.point(desiredScreenX, desiredScreenY));
 
   console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)}) ⬅️ WILL CALL map.setView()`);
 
