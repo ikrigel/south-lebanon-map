@@ -20,37 +20,41 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   // bearing = 0° (North): offset (0, +91) → marker at lower third (DOWN on screen)
   // bearing = 90° (East): offset (+91, 0) → marker at right third (RIGHT on screen)
   const offsetX = baseOffset * Math.sin(bearingRad);
-  const offsetY = baseOffset * Math.cos(bearingRad);  // POSITIVE = down on screen
+  const offsetY = baseOffset * Math.cos(bearingRad);
 
   // Clamp offset to prevent excessive panning
   const maxOffsetPx = Math.min(size.x, size.y) * 0.4;
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
-  // DESIRED screen position for the marker (always within viewport)
-  const desiredScreenX = screenCenterX + clampedOffsetX;
-  const desiredScreenY = screenCenterY + clampedOffsetY;
-
   // DIAGNOSTIC
   const timestamp = new Date().toISOString().split('T')[1];
   console.log(`[${timestamp}] lowerThirdCenter: GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}), screen ${size.x}×${size.y}px`);
-  console.log(`[DEBUG] Bearing ${bearing}° → offset (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)}) → desired marker at (${desiredScreenX.toFixed(1)}, ${desiredScreenY.toFixed(1)})`);
+  console.log(`[DEBUG] Bearing ${bearing}° → offset (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
 
-  // Convert desired screen position directly to lat/lng
-  // This avoids using marker's actual (possibly off-screen) position
-  const centerLatLng = map.containerPointToLatLng(L.point(desiredScreenX, desiredScreenY));
+  // DIFFERENT APPROACH: Use pixel pan instead of containerPointToLatLng
+  // 1. Get where the GPS location currently projects to on screen
+  const gpsScreenPos = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
 
-  // VALIDATION: Reject invalid coordinates (can happen during map resize/rotation)
-  // Valid range: lat [-85, 85], lon [-180, 180]
-  const isValidLat = centerLatLng.lat >= -85.0511 && centerLatLng.lat <= 85.0511;
-  const isValidLon = centerLatLng.lng >= -180 && centerLatLng.lng <= 180;
+  // 2. Calculate desired screen position
+  const desiredScreenX = screenCenterX + clampedOffsetX;
+  const desiredScreenY = screenCenterY + clampedOffsetY;
 
-  if (!isValidLat || !isValidLon) {
-    console.warn(`[WARN] Invalid coordinates detected! Lat=${centerLatLng.lat.toFixed(4)}, Lon=${centerLatLng.lng.toFixed(4)}. Returning input GPS coords instead.`);
-    console.log(`[DEBUG] Center LatLng (RESULT): (${lat.toFixed(4)}, ${lon.toFixed(4)}) [fallback to input, rejected invalid] ⬅️ WILL CALL map.setView()`);
-    return L.latLng(lat, lon);
-  }
+  // 3. Calculate pan delta (how much to move center so GPS appears at desired position)
+  // If GPS is at screen pos (gpsScreenX, gpsScreenY) but we want it at (desiredX, desiredY)
+  // Then we pan by: delta = (gpsScreenX - desiredX, gpsScreenY - desiredY)
+  const panDeltaX = gpsScreenPos.x - desiredScreenX;
+  const panDeltaY = gpsScreenPos.y - desiredScreenY;
 
+  // 4. Get current center and pan it
+  const oldCenter = map.getCenter();
+  const oldCenterScreenPos = map.latLngToContainerPoint(oldCenter);
+  const newCenterScreenPos = L.point(oldCenterScreenPos.x + panDeltaX, oldCenterScreenPos.y + panDeltaY);
+
+  // 5. Convert back to lat/lng - this should be more reliable
+  const centerLatLng = map.unproject(map.project(oldCenter, zoom).add(L.point(panDeltaX, panDeltaY)), zoom);
+
+  console.log(`[DEBUG] GPS screen: (${gpsScreenPos.x.toFixed(0)}, ${gpsScreenPos.y.toFixed(0)}), desired: (${desiredScreenX.toFixed(0)}, ${desiredScreenY.toFixed(0)}), pan delta: (${panDeltaX.toFixed(0)}, ${panDeltaY.toFixed(0)})`);
   console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)}) ⬅️ WILL CALL map.setView()`);
 
   // Verification: log marker position on screen
