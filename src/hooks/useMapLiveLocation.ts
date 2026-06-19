@@ -40,6 +40,17 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   // This avoids using marker's actual (possibly off-screen) position
   const centerLatLng = map.containerPointToLatLng(L.point(desiredScreenX, desiredScreenY));
 
+  // VALIDATION: Reject invalid coordinates (can happen during map resize/rotation)
+  // Valid range: lat [-85, 85], lon [-180, 180]
+  const isValidLat = centerLatLng.lat >= -85.0511 && centerLatLng.lat <= 85.0511;
+  const isValidLon = centerLatLng.lng >= -180 && centerLatLng.lng <= 180;
+
+  if (!isValidLat || !isValidLon) {
+    console.warn(`[WARN] Invalid coordinates detected! Lat=${centerLatLng.lat.toFixed(4)}, Lon=${centerLatLng.lng.toFixed(4)}. Returning input GPS coords instead.`);
+    console.log(`[DEBUG] Center LatLng (RESULT): (${lat.toFixed(4)}, ${lon.toFixed(4)}) [fallback to input, rejected invalid] ⬅️ WILL CALL map.setView()`);
+    return L.latLng(lat, lon);
+  }
+
   console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)}) ⬅️ WILL CALL map.setView()`);
 
   // Verification: log marker position on screen
