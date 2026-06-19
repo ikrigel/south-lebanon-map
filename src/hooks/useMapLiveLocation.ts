@@ -28,7 +28,10 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
-  // DIAGNOSTIC: Log all intermediate values
+  // DIAGNOSTIC: Log with stack trace to see which effect called this
+  const stack = new Error().stack?.split('\n')[3]?.trim() || 'unknown';
+  const timestamp = new Date().toISOString().split('T')[1];
+  console.log(`[${timestamp}] lowerThirdCenter CALLED from: ${stack}`);
   console.log(`[DEBUG] Input: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom}, bearing=${bearing}`);
   console.log(`[DEBUG] Screen size: ${size.x}×${size.y}px`);
   console.log(`[DEBUG] Marker screen position: (${markerScreenPx.x.toFixed(1)}, ${markerScreenPx.y.toFixed(1)})`);
@@ -46,7 +49,7 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   // Convert screen coordinates back to lat/lng (critical: use containerPointToLatLng, not unproject)
   const centerLatLng = map.containerPointToLatLng(centerScreenPx);
 
-  console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)})`);
+  console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)}) ⬅️ WILL CALL map.setView()`);
 
   // Verification: log marker position on screen
   const screenMarkerX = size.x / 2;
@@ -145,6 +148,7 @@ export const useMapLiveLocation = (
       const zoomLevel = navFollowZoom ?? map.getZoom();
       const clampedZoom = Math.max(zoomLevel, NAVIGATION_FOLLOW_MIN_ZOOM);
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
+      console.log(`[GPS UPDATE EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
       map.setView(adjusted, clampedZoom, {
         animate: true,
         duration: 0.3,
@@ -157,15 +161,18 @@ export const useMapLiveLocation = (
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
+    console.log(`[CENTER ME EFFECT] Button clicked (liveCenterRequestId=${liveCenterRequestId})`);
     liveFollowDetachedRef.current = false;
     onLiveFollowDetachedChange(false);
     const zoom = map.getZoom();
     const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
+    console.log(`[CENTER ME EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${zoom})`);
     map.setView(adjusted, zoom, {
       animate: true,
       duration: 0.3,
       easeLinearity: 1.0,
     } as L.ZoomPanOptions);
+    console.log(`[CENTER ME EFFECT] setView call complete`);
   }, [liveCenterRequestId]);
 
   useEffect(() => {
