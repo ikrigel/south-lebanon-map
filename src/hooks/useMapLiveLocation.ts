@@ -32,9 +32,21 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   console.log(`[${timestamp}] lowerThirdCenter: GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}), screen ${size.x}×${size.y}px`);
   console.log(`[DEBUG] Bearing ${bearing}° → offset (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
 
-  // DIFFERENT APPROACH: Use pixel pan instead of containerPointToLatLng
-  // 1. Get where the GPS location currently projects to on screen
+  // Get where the GPS location currently projects to on screen
   const gpsScreenPos = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
+
+  // SAFETY CHECK: If GPS is way off-screen (>3x screen diagonal), just center on GPS
+  // This happens at high zoom when location is scrolled far away
+  // Trying fancy calculations with huge distances causes numerical instability
+  const screenDiag = Math.sqrt(size.x * size.x + size.y * size.y);
+  const gpsDist = Math.sqrt(gpsScreenPos.x * gpsScreenPos.x + gpsScreenPos.y * gpsScreenPos.y);
+
+  if (gpsDist > screenDiag * 3) {
+    console.log(`[SAFETY] GPS too far off-screen (${gpsDist.toFixed(0)}px from viewport), centering on GPS location directly`);
+    return L.latLng(lat, lon);
+  }
+
+  // DIFFERENT APPROACH: Use pixel pan instead of containerPointToLatLng
 
   // 2. Calculate desired screen position
   const desiredScreenX = screenCenterX + clampedOffsetX;
