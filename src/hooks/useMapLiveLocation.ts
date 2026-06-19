@@ -28,14 +28,25 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
+  // DIAGNOSTIC: Log all intermediate values
+  console.log(`[DEBUG] Input: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom}, bearing=${bearing}`);
+  console.log(`[DEBUG] Screen size: ${size.x}×${size.y}px`);
+  console.log(`[DEBUG] Marker screen position: (${markerScreenPx.x.toFixed(1)}, ${markerScreenPx.y.toFixed(1)})`);
+  console.log(`[DEBUG] Offset calc: baseOffset=${baseOffset.toFixed(1)}, offsetX=${offsetX.toFixed(1)}, offsetY=${offsetY.toFixed(1)}`);
+  console.log(`[DEBUG] Clamped offset: (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
+
   // Calculate center in SCREEN coordinates (then convert back to lat/lng)
   const centerScreenPx = L.point(
     markerScreenPx.x - clampedOffsetX,
     markerScreenPx.y - clampedOffsetY
   );
 
+  console.log(`[DEBUG] Center screen position (before containerPointToLatLng): (${centerScreenPx.x.toFixed(1)}, ${centerScreenPx.y.toFixed(1)})`);
+
   // Convert screen coordinates back to lat/lng (critical: use containerPointToLatLng, not unproject)
   const centerLatLng = map.containerPointToLatLng(centerScreenPx);
+
+  console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)})`);
 
   // Verification: log marker position on screen
   const screenMarkerX = size.x / 2;
