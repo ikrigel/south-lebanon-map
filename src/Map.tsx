@@ -202,14 +202,26 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       marker.openPopup();
     } else {
       // For search results, incidents: animate map and show label
+      const lat = props.focusTarget.lat;
+      const lon = props.focusTarget.lon;
+      const zoom = props.focusTarget.zoom ?? 12;
+
+      // VALIDATE coordinates before setting view
+      if (Math.abs(lat) > 85 || Math.abs(lon) > 180) {
+        console.error(`⚠️ [Map.tsx] INVALID focusTarget coords: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)} - NOT setting view`);
+        return; // Don't set invalid view
+      }
+
+      console.log(`[Map.tsx focusTarget] map.${props.focusTarget.id === 'restore-last-map-view' ? 'setView' : 'flyTo'}(lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom})`);
+
       if (props.focusTarget.id === 'restore-last-map-view') {
         map.setView(
-          [props.focusTarget.lat, props.focusTarget.lon],
-          props.focusTarget.zoom ?? 12,
+          [lat, lon],
+          zoom,
           { animate: false, noMoveStart: true },
         );
       } else {
-        map.flyTo([props.focusTarget.lat, props.focusTarget.lon], props.focusTarget.zoom ?? 12, {
+        map.flyTo([lat, lon], zoom, {
           animate: true,
           duration: 0.7,
         });
