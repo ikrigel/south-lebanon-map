@@ -26,13 +26,18 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
 
   // Move center AWAY from marker by the offset distance
   // This makes marker appear offset from center on the screen
-  const centerPx = L.point(markerPx.x + offsetX, markerPx.y + offsetY);
+  // Clamp offset to prevent wrapping around world
+  const maxOffsetPx = Math.min(size.x, size.y) * 0.4; // Max 40% of smallest dimension
+  const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
+  const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
+
+  const centerPx = L.point(markerPx.x + clampedOffsetX, markerPx.y + clampedOffsetY);
 
   // Verification: log marker position on screen
   const screenMarkerX = size.x / 2;
   const screenMarkerY = size.y * (2 / 3);
   const isPortrait = size.y > size.x;
-  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Ahead in travel direction`);
+  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Offset: (${clampedOffsetX.toFixed(0)}, ${clampedOffsetY.toFixed(0)}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Ahead in travel direction`);
 
   return map.unproject(centerPx, zoom);
 }
