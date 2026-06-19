@@ -39,12 +39,19 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   console.log(`[DEBUG] Clamped offset: (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
 
   // Calculate center in SCREEN coordinates (then convert back to lat/lng)
-  const centerScreenPx = L.point(
-    markerScreenPx.x - clampedOffsetX,
-    markerScreenPx.y - clampedOffsetY
-  );
+  let centerScreenX = markerScreenPx.x - clampedOffsetX;
+  let centerScreenY = markerScreenPx.y - clampedOffsetY;
 
-  console.log(`[DEBUG] Center screen position (before containerPointToLatLng): (${centerScreenPx.x.toFixed(1)}, ${centerScreenPx.y.toFixed(1)})`);
+  // CRITICAL: Clamp to viewport bounds to prevent Leaflet from returning invalid coords
+  // when marker is scrolled far off-screen. Keep center within screen ±25% margin.
+  const marginX = size.x * 0.25;
+  const marginY = size.y * 0.25;
+  centerScreenX = Math.max(-marginX, Math.min(size.x + marginX, centerScreenX));
+  centerScreenY = Math.max(-marginY, Math.min(size.y + marginY, centerScreenY));
+
+  const centerScreenPx = L.point(centerScreenX, centerScreenY);
+
+  console.log(`[DEBUG] Center screen position (before containerPointToLatLng): (${centerScreenPx.x.toFixed(1)}, ${centerScreenPx.y.toFixed(1)}) [clamped from (${(markerScreenPx.x - clampedOffsetX).toFixed(1)}, ${(markerScreenPx.y - clampedOffsetY).toFixed(1)})]`);
 
   // Convert screen coordinates back to lat/lng (critical: use containerPointToLatLng, not unproject)
   const centerLatLng = map.containerPointToLatLng(centerScreenPx);
