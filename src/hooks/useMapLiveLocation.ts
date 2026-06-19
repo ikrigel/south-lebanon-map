@@ -8,41 +8,42 @@ import { useMarkerRepositioning } from './useMarkerRepositioning';
 
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
   const size = map.getSize();
-  const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
+
+  // Convert marker lat/lng to SCREEN coordinates (not global pixels)
+  const markerScreenPx = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
 
   // Position marker ahead in direction of travel, accounting for map rotation
   // Base offset: 1/6 of screen height (marker at 2/3 of screen from top)
-  // To position marker at lower third, we move the map center AWAY from the marker
   const baseOffset = size.y / 6;
   const bearingRad = (bearing * Math.PI) / 180;
 
-  // Rotate offset vector based on map bearing (180° opposite direction)
-  // bearing = 0° (North): offset center North (UP) → marker appears at lower third
-  // bearing = 90° (East): offset center East (RIGHT) → marker appears left
-  // bearing = 180° (South): offset center South (DOWN) → marker appears at upper third
-  // bearing = 270° (West): offset center West (LEFT) → marker appears right
+  // Rotate offset vector based on map bearing
+  // bearing = 0° (North): offset (0, -117) → marker moves to lower third
+  // bearing = 90° (East): offset (117, 0) → marker moves to right third
   const offsetX = baseOffset * Math.sin(bearingRad);
   const offsetY = baseOffset * -Math.cos(bearingRad);
 
-  // Calculate map center so marker appears at desired screen position
-  // To make marker appear LOWER on screen, move map center UP (subtract Y offset)
-  // To make marker appear in travel direction, rotate offset by bearing
-  const maxOffsetPx = Math.min(size.x, size.y) * 0.4; // Max 40% of smallest dimension
+  // Clamp offset to prevent excessive panning
+  const maxOffsetPx = Math.min(size.x, size.y) * 0.4;
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
-  // SUBTRACT offset to position marker correctly
-  // bearing=0° (North): subtract (0, -screenY/6) = add (0, screenY/6) in pixel space
-  // This moves center UP, making marker appear LOWER on screen
-  const centerPx = L.point(markerPx.x - clampedOffsetX, markerPx.y - clampedOffsetY);
+  // Calculate center in SCREEN coordinates (then convert back to lat/lng)
+  const centerScreenPx = L.point(
+    markerScreenPx.x - clampedOffsetX,
+    markerScreenPx.y - clampedOffsetY
+  );
+
+  // Convert screen coordinates back to lat/lng (critical: use containerPointToLatLng, not unproject)
+  const centerLatLng = map.containerPointToLatLng(centerScreenPx);
 
   // Verification: log marker position on screen
   const screenMarkerX = size.x / 2;
   const screenMarkerY = size.y * (2 / 3);
   const isPortrait = size.y > size.x;
-  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Offset: (${clampedOffsetX.toFixed(0)}, ${clampedOffsetY.toFixed(0)}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Ahead in travel direction`);
+  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Offset: (${clampedOffsetX.toFixed(0)}, ${clampedOffsetY.toFixed(0)}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Center LatLng: (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)})`);
 
-  return map.unproject(centerPx, zoom);
+  return centerLatLng;
 }
 
 export const useMapLiveLocation = (
