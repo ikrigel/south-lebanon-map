@@ -13,7 +13,7 @@ export type DroneAttack = {
   targetType: 'military-base' | 'military-patrol' | 'civilian-area' | 'reconnaissance' | 'idf-in-lebanon';
   status: 'confirmed' | 'claimed' | 'disputed';
   origin: { lat: number; lon: number; location: string; country: 'LB' | 'SY' };
-  target: { lat: number; lon: number; location: string; country: 'IL' | 'LB' };
+  target: { lat: number; lon: number; location: string; country?: 'IL' | 'LB' };
   flightPath: Array<{ lat: number; lon: number }>;
   casualties?: number;
   assessment: string;
