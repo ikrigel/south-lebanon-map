@@ -50,6 +50,34 @@ export function AboutDrawer(props: AboutDrawerProps) {
           <p>
             המפה מיועדת להמחשה וללמידה בלבד. המיקומים מקורבים, הנתונים מבוססי מקורות פתוחים, ואין באפליקציה נתוני מודיעין מבצעי, מטרות, מצבורים או נקודות שיגור.
           </p>
+
+          <h4>שכבת התקפות כלים</h4>
+          <p>
+            שכבת התקפות החזבאללה מוצגת לצורכי מחקר היסטורי ו־OSINT (Open Source Intelligence). הנתונים אָמתוּ דרך מקורות ציבוריים מרובים:
+          </p>
+          <ul style={{ fontSize: '13px', lineHeight: '1.6', marginBottom: '12px' }}>
+            <li><strong>IDF Spokesperson</strong> — דוחות רשמיים על אירועי ביטחון (idf.il)</li>
+            <li><strong>Bellingcat</strong> — אמת מידע OSINT עצמאי וביקורת מקורות</li>
+            <li><strong>ISW (Institute for the Study of War)</strong> — ניתוח מודיעיני יומי</li>
+            <li><strong>Media outlets</strong> — Haaretz, Reuters, BBC, Al Jazeera, Middle East Eye</li>
+            <li><strong>Local sources</strong> — Ynet, Kan, Walla (ישראל); Al Mayadeen, Al Arabiya (מזרח תיכון)</li>
+          </ul>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <strong>סטטוסים:</strong><br/>
+            🔴 <strong>מאומת</strong> — אושר על ידי לפחות 2 מקורות עצמאיים<br/>
+            🟠 <strong>טוען</strong> — דיווח מצד אחד בלבד<br/>
+            🟡 <strong>מעורער</strong> — מקורות סותרים (ישראל טוענת חסימה, חזבאללה טוענת היטל)
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            <strong>הערה:</strong> קואורדינטות משוערות (±500 מטרים מהנקודה המדויקת). התקפות מטרח כללי (צבאי או אזרחי) — לא נקודות שיגור או עמדות הגנה מדויקות.
+          </p>
+
+          <h4>מקורות נוספים</h4>
+          <p style={{ fontSize: '13px', lineHeight: '1.6' }}>
+            <a href="https://www.understandingwar.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Institute for the Study of War (ISW)</a> —
+            <a href="https://www.bellingcat.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', marginLeft: '8px' }}>Bellingcat</a> —
+            <a href="https://www.idf.il/en/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', marginLeft: '8px' }}>IDF Official</a>
+          </p>
         </div>
       </div>
     </div>

@@ -28,13 +28,31 @@ const getStatusColor = (status: string): string => {
 const getStatusLabel = (status: string): string => {
   switch (status) {
     case 'confirmed':
-      return 'מאומת';
+      return 'מאומת ✅';
     case 'claimed':
-      return 'טוען';
+      return 'טוען 🔊';
     case 'disputed':
-      return 'מעורער';
+      return 'מעורער ⚠️';
     default:
       return 'לא ידוע';
+  }
+};
+
+// Target type label in Hebrew
+const getTargetTypeLabel = (type: string): string => {
+  switch (type) {
+    case 'military-base':
+      return 'בסיס צבאי 🏗️';
+    case 'military-patrol':
+      return 'כוח צבאי 🛖';
+    case 'civilian-area':
+      return 'אזור אזרחי 🏘️';
+    case 'reconnaissance':
+      return 'סיור מודיעיני 📡';
+    case 'idf-in-lebanon':
+      return 'כוחות בלבנון 🚁';
+    default:
+      return type;
   }
 };
 
@@ -78,9 +96,10 @@ export const useDroneVisualization = (props: UseDroneVisualizationProps) => {
 
       L.marker([drone.origin.lat, drone.origin.lon], { icon: originIcon, interactive: true })
         .bindPopup(
-          `<div style="font-size: 12px; text-align: right; direction: rtl;">
-            <strong>${drone.origin.location}</strong><br/>
-            <small>מקור: ${new Date(drone.date).toLocaleDateString('he-IL')}</small>
+          `<div style="font-size: 12px; text-align: right; direction: rtl; max-width: 220px;">
+            <strong>${drone.origin.location}</strong> (${drone.origin.country === 'LB' ? 'לבנון 🇱🇧' : 'סוריה 🇸🇾'})<br/>
+            <small>תאריך: ${new Date(drone.date).toLocaleDateString('he-IL')}</small><br/>
+            <small style="color: #999;">קואורדינטות: ${drone.origin.lat.toFixed(4)}, ${drone.origin.lon.toFixed(4)}</small>
           </div>`
         )
         .addTo(droneLayerRef.current!);
@@ -144,16 +163,19 @@ export const useDroneVisualization = (props: UseDroneVisualizationProps) => {
 // Helper function to create target popup
 function createTargetPopup(drone: DroneAttack): string {
   const statusLabel = getStatusLabel(drone.status);
-  const casualtyInfo = drone.casualties ? `<strong>נפגעים:</strong> ${drone.casualties}<br/>` : '';
+  const casualtyInfo = drone.casualties ? `<strong>נפגעים:</strong> ${drone.casualties}<br/>` : '<strong>נפגעים:</strong> 0<br/>';
+  const targetTypeLabel = getTargetTypeLabel(drone.targetType);
 
   return `
-    <div style="font-size: 12px; text-align: right; direction: rtl; max-width: 250px;">
-      <strong>${drone.target.location}</strong><br/>
-      <strong>סטטוס:</strong> ${statusLabel}<br/>
+    <div style="font-size: 12px; text-align: right; direction: rtl; max-width: 280px; line-height: 1.5;">
+      <strong style="font-size: 13px;">${drone.target.location}</strong><br/>
       <strong>תאריך:</strong> ${new Date(drone.date).toLocaleDateString('he-IL')}<br/>
+      <strong>סטטוס:</strong> ${statusLabel}<br/>
+      <strong>סוג מטרה:</strong> ${targetTypeLabel}<br/>
       ${casualtyInfo}
-      <strong>מטרה:</strong> ${drone.assessment}<br/>
-      <small style="color: #666;">סוג: ${drone.type}</small>
+      <strong>הערכה:</strong> ${drone.assessment}<br/>
+      <strong>פרטים:</strong> ${drone.details}<br/>
+      <small style="color: #999; font-size: 11px;">קואורדינטות: ${drone.target.lat.toFixed(4)}, ${drone.target.lon.toFixed(4)}</small>
     </div>
   `;
 }
