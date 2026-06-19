@@ -6,76 +6,29 @@ import { useMarkerAdjustment } from './useMarkerAdjustment';
 import { useHeaderVisibility } from './useHeaderVisibility';
 import { useMarkerRepositioning } from './useMarkerRepositioning';
 
-function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, bearing: number = 0): L.LatLng {
+// NAVIGATION MODE: Position GPS marker at lower-third of screen
+function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
   const size = map.getSize();
-  const screenCenterX = size.x / 2;
-  const screenCenterY = size.y / 2;
 
-  // Calculate DESIRED screen position where marker should appear
-  // Base offset: 1/6 of screen height (marker at 2/3 of screen from top = 1/3 below center)
-  const baseOffset = size.y / 6;
-  const bearingRad = (bearing * Math.PI) / 180;
+  // Target position: GPS marker should appear at center X, but 2/3 down on Y
+  const targetScreenX = size.x / 2;
+  const targetScreenY = size.y * (2 / 3);
 
-  // Offset direction based on bearing
-  // bearing = 0° (North): offset (0, +91) → marker at lower third (DOWN on screen)
-  // bearing = 90° (East): offset (+91, 0) → marker at right third (RIGHT on screen)
-  const offsetX = baseOffset * Math.sin(bearingRad);
-  const offsetY = baseOffset * Math.cos(bearingRad);
+  // Get current map center
+  const center = map.getCenter();
 
-  // Clamp offset to prevent excessive panning
-  const maxOffsetPx = Math.min(size.x, size.y) * 0.4;
-  const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
-  const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
-
-  // DIAGNOSTIC
-  const timestamp = new Date().toISOString().split('T')[1];
-  console.log(`[${timestamp}] lowerThirdCenter: GPS (${lat.toFixed(4)}, ${lon.toFixed(4)}), screen ${size.x}×${size.y}px`);
-  console.log(`[DEBUG] Bearing ${bearing}° → offset (${clampedOffsetX.toFixed(1)}, ${clampedOffsetY.toFixed(1)})`);
-
-  // Get where the GPS location currently projects to on screen
+  // Calculate how much to pan to position GPS at target
+  // Pan delta = (where GPS currently is) - (where we want GPS to be)
   const gpsScreenPos = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
+  const panX = gpsScreenPos.x - targetScreenX;
+  const panY = gpsScreenPos.y - targetScreenY;
 
-  // SAFETY CHECK: If GPS is way off-screen (>3x screen diagonal), just center on GPS
-  // This happens at high zoom when location is scrolled far away
-  // Trying fancy calculations with huge distances causes numerical instability
-  const screenDiag = Math.sqrt(size.x * size.x + size.y * size.y);
-  const gpsDist = Math.sqrt(gpsScreenPos.x * gpsScreenPos.x + gpsScreenPos.y * gpsScreenPos.y);
+  // Apply pan to map center using project/unproject
+  const newCenter = map.unproject(map.project(center, zoom).add(L.point(panX, panY)), zoom);
 
-  if (gpsDist > screenDiag * 3) {
-    console.log(`[SAFETY] GPS too far off-screen (${gpsDist.toFixed(0)}px from viewport), centering on GPS location directly`);
-    return L.latLng(lat, lon);
-  }
+  console.log(`[NAV] GPS ${lat.toFixed(4)},${lon.toFixed(4)} at screen(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}) → pan(${panX.toFixed(0)},${panY.toFixed(0)}) → center${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
 
-  // DIFFERENT APPROACH: Use pixel pan instead of containerPointToLatLng
-
-  // 2. Calculate desired screen position
-  const desiredScreenX = screenCenterX + clampedOffsetX;
-  const desiredScreenY = screenCenterY + clampedOffsetY;
-
-  // 3. Calculate pan delta (how much to move center so GPS appears at desired position)
-  // If GPS is at screen pos (gpsScreenX, gpsScreenY) but we want it at (desiredX, desiredY)
-  // Then we pan by: delta = (gpsScreenX - desiredX, gpsScreenY - desiredY)
-  const panDeltaX = gpsScreenPos.x - desiredScreenX;
-  const panDeltaY = gpsScreenPos.y - desiredScreenY;
-
-  // 4. Get current center and pan it
-  const oldCenter = map.getCenter();
-  const oldCenterScreenPos = map.latLngToContainerPoint(oldCenter);
-  const newCenterScreenPos = L.point(oldCenterScreenPos.x + panDeltaX, oldCenterScreenPos.y + panDeltaY);
-
-  // 5. Convert back to lat/lng - this should be more reliable
-  const centerLatLng = map.unproject(map.project(oldCenter, zoom).add(L.point(panDeltaX, panDeltaY)), zoom);
-
-  console.log(`[DEBUG] GPS screen: (${gpsScreenPos.x.toFixed(0)}, ${gpsScreenPos.y.toFixed(0)}), desired: (${desiredScreenX.toFixed(0)}, ${desiredScreenY.toFixed(0)}), pan delta: (${panDeltaX.toFixed(0)}, ${panDeltaY.toFixed(0)})`);
-  console.log(`[DEBUG] Center LatLng (RESULT): (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)}) ⬅️ WILL CALL map.setView()`);
-
-  // Verification: log marker position on screen
-  const screenMarkerX = size.x / 2;
-  const screenMarkerY = size.y * (2 / 3);
-  const isPortrait = size.y > size.x;
-  console.log(`[Nav Marker] Screen: ${size.x}×${size.y}px (${isPortrait ? 'portrait' : 'landscape'}) | Bearing: ${bearing.toFixed(0)}° | Offset: (${clampedOffsetX.toFixed(0)}, ${clampedOffsetY.toFixed(0)}) | Marker at (${screenMarkerX.toFixed(0)}, ${screenMarkerY.toFixed(0)}) | Center LatLng: (${centerLatLng.lat.toFixed(4)}, ${centerLatLng.lng.toFixed(4)})`);
-
-  return centerLatLng;
+  return newCenter;
 }
 
 export const useMapLiveLocation = (
@@ -179,18 +132,16 @@ export const useMapLiveLocation = (
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
-    console.log(`[CENTER ME EFFECT] Button clicked (liveCenterRequestId=${liveCenterRequestId})`);
+    console.log(`[CENTER ME] Clicked - centering on GPS (${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)})`);
     liveFollowDetachedRef.current = false;
     onLiveFollowDetachedChange(false);
     const zoom = map.getZoom();
-    const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
-    console.log(`[CENTER ME EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${zoom})`);
-    map.setView(adjusted, zoom, {
+    // SIMPLE: Just go to GPS location, no fancy offsets
+    map.setView([liveLocation.lat, liveLocation.lon], zoom, {
       animate: true,
       duration: 0.3,
       easeLinearity: 1.0,
     } as L.ZoomPanOptions);
-    console.log(`[CENTER ME EFFECT] setView call complete`);
   }, [liveCenterRequestId]);
 
   useEffect(() => {
