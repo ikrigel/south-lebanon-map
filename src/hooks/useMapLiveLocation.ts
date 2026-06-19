@@ -11,19 +11,21 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   const markerPx = map.project([lat, lon] as L.LatLngTuple, zoom);
 
   // Position marker ahead in direction of travel, accounting for map rotation
-  // Base offset: 1/6 of screen height (marker at 2/3 of screen)
-  // Rotate offset based on bearing so marker always stays ahead during navigation
+  // Base offset: 1/6 of screen height (marker at 2/3 of screen from top)
+  // To position marker at lower third, we move the map center AWAY from the marker
   const baseOffset = size.y / 6;
   const bearingRad = (bearing * Math.PI) / 180;
 
-  // Rotate offset vector based on map bearing
-  // bearing = 0° (North): offset center South → marker ahead North
-  // bearing = 90° (East): offset center West → marker ahead East
-  // bearing = 180° (South): offset center North → marker ahead South
-  // bearing = 270° (West): offset center East → marker ahead West
-  const offsetX = baseOffset * -Math.sin(bearingRad);
-  const offsetY = baseOffset * Math.cos(bearingRad);
+  // Rotate offset vector based on map bearing (180° opposite direction)
+  // bearing = 0° (North): offset center North (UP) → marker appears at lower third
+  // bearing = 90° (East): offset center East (RIGHT) → marker appears left
+  // bearing = 180° (South): offset center South (DOWN) → marker appears at upper third
+  // bearing = 270° (West): offset center West (LEFT) → marker appears right
+  const offsetX = baseOffset * Math.sin(bearingRad);
+  const offsetY = baseOffset * -Math.cos(bearingRad);
 
+  // Move center AWAY from marker by the offset distance
+  // This makes marker appear offset from center on the screen
   const centerPx = L.point(markerPx.x + offsetX, markerPx.y + offsetY);
 
   // Verification: log marker position on screen
