@@ -24,14 +24,17 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number, be
   const offsetX = baseOffset * Math.sin(bearingRad);
   const offsetY = baseOffset * -Math.cos(bearingRad);
 
-  // Move center AWAY from marker by the offset distance
-  // This makes marker appear offset from center on the screen
-  // Clamp offset to prevent wrapping around world
+  // Calculate map center so marker appears at desired screen position
+  // To make marker appear LOWER on screen, move map center UP (subtract Y offset)
+  // To make marker appear in travel direction, rotate offset by bearing
   const maxOffsetPx = Math.min(size.x, size.y) * 0.4; // Max 40% of smallest dimension
   const clampedOffsetX = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetX));
   const clampedOffsetY = Math.max(-maxOffsetPx, Math.min(maxOffsetPx, offsetY));
 
-  const centerPx = L.point(markerPx.x + clampedOffsetX, markerPx.y + clampedOffsetY);
+  // SUBTRACT offset to position marker correctly
+  // bearing=0° (North): subtract (0, -screenY/6) = add (0, screenY/6) in pixel space
+  // This moves center UP, making marker appear LOWER on screen
+  const centerPx = L.point(markerPx.x - clampedOffsetX, markerPx.y - clampedOffsetY);
 
   // Verification: log marker position on screen
   const screenMarkerX = size.x / 2;
