@@ -1045,6 +1045,32 @@ None. Fully backward compatible with v3.3.18.
 
 ---
 
+## v3.5.3: Toggle Event Handler Fix
+
+**Release Date:** 2026-06-19  
+**Status:** Released ✅
+
+### Bug Fix
+
+**Critical Issue:** Toggle switches (all layer toggles including drone toggle) weren't responding to clicks because click events weren't reaching the onClick handler.
+
+**Root Cause:** The inner `<span class="toggle-switch">` visual element was capturing clicks instead of allowing them to bubble up to the parent `<div class="toggle-row">` where the onClick handler was attached.
+
+**Solution:** Added `pointer-events: none` to `.toggle-switch` in `src/styles/_controls.css` so clicks pass through to the parent element.
+
+**Impact:**
+- ✅ All layer toggles (pop, unifil, hez, drones, etc.) now respond to clicks immediately
+- ✅ State updates work correctly for all toggles
+- ✅ Drone visualization toggle fully functional
+- ✅ No regressions (all 514 tests passing)
+
+**Files Changed:**
+- `src/styles/_controls.css` — Added `pointer-events: none` to `.toggle-switch`
+- `package.json` — Bumped to v3.5.3
+- `src/components/drawers/AboutDrawer.tsx` — Updated version display
+
+---
+
 ## v3.5.2: Advanced Drone Analytics & Filtering
 
 **Status:** In Development
