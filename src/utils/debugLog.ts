@@ -164,6 +164,9 @@ export const debugLog = {
 // Export emitter for UI to subscribe to config changes
 export { debugEmitter };
 
+// Call subscribers on module load so any late-mounting components get initial state
+setTimeout(() => debugEmitter.emit(), 0);
+
 let initLogged = false;
 
 export function initDebugLogging() {
@@ -174,7 +177,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  Status: ${config.enabled ? '✓ DISABLED' : '✗ DISABLED'}                                      ║
+║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║
 ║  Console commands:                                         ║

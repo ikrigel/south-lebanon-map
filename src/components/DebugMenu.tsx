@@ -5,19 +5,17 @@ type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE';
 
 export function DebugMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isEnabled, setIsEnabled] = useState(
-    localStorage.getItem('DEBUG_ENABLED') !== 'false'
-  );
-  const [level, setLevel] = useState<LogLevel>(
-    (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO'
-  );
+  const [isEnabled, setIsEnabled] = useState(false);  // Will sync from emitter
+  const [level, setLevel] = useState<LogLevel>('INFO');  // Will sync from emitter
 
   // Subscribe to debug config changes (event-driven, zero polling overhead!)
   useEffect(() => {
     const unsubscribe = debugEmitter.subscribe((config) => {
+      console.log(`[DebugMenu] Emitter update: enabled=${config.enabled}, level=${config.level}`);
       setIsEnabled(config.enabled);
       setLevel(config.level);
     });
+    // Immediately subscribe should call with current state via setTimeout emit in module load
     return unsubscribe;
   }, []);
 
