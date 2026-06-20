@@ -21,18 +21,32 @@ let config: DebugConfig = {
   prefix: '[DEBUG]',
 };
 
+// Quick helper to enable and set level
+function enableAtLevel(level: LogLevel) {
+  config.enabled = true;
+  config.level = level;
+  localStorage.setItem('DEBUG_ENABLED', 'true');
+  localStorage.setItem('DEBUG_LEVEL', level);
+  console.log(`✅ Debug enabled at level: ${level}`);
+}
+
 // Expose control functions globally for console access
-(window as any).DEBUG = {
-  enable: () => {
-    config.enabled = true;
-    localStorage.setItem('DEBUG_ENABLED', 'true');
-    console.log('🔓 Debug logging ENABLED');
-  },
+(window as any).debug = {
+  // Quick shortcuts: debug.trace, debug.debug, debug.info, etc.
+  trace: () => enableAtLevel('TRACE'),
+  all: () => enableAtLevel('TRACE'),
+  debug: () => enableAtLevel('DEBUG'),
+  info: () => enableAtLevel('INFO'),
+  warn: () => enableAtLevel('WARN'),
+  error: () => enableAtLevel('ERROR'),
   disable: () => {
     config.enabled = false;
     localStorage.setItem('DEBUG_ENABLED', 'false');
-    console.log('🔒 Debug logging DISABLED');
+    console.log('❌ Debug logging disabled');
   },
+
+  // Verbose methods (for backward compatibility)
+  enable: () => enableAtLevel('INFO'),
   setLevel: (level: LogLevel) => {
     if (!LOG_LEVELS.hasOwnProperty(level)) {
       console.error(`Invalid level: ${level}. Use: ERROR, WARN, INFO, DEBUG, TRACE`);
@@ -43,12 +57,32 @@ let config: DebugConfig = {
     console.log(`📊 Debug level set to: ${level}`);
   },
   status: () => {
-    console.log(`✓ Debug enabled: ${config.enabled}`);
-    console.log(`✓ Debug level: ${config.level}`);
-    console.log(`✓ Available levels: ERROR, WARN, INFO, DEBUG, TRACE`);
-    console.log(`✓ Commands: DEBUG.enable(), DEBUG.disable(), DEBUG.setLevel('LEVEL')`);
+    console.log(`
+╔════════════════════════════════════════════════════════════╗
+║                  DEBUG STATUS                              ║
+╠════════════════════════════════════════════════════════════╣
+║  Enabled: ${config.enabled ? '✓ YES' : '✗ NO'}                                      ║
+║  Level:   ${config.level.padEnd(5)}                                       ║
+║                                                            ║
+║  QUICK COMMANDS:                                           ║
+║  • debug.trace      - Enable everything                   ║
+║  • debug.debug      - Detailed debug logs                 ║
+║  • debug.info       - Normal operation logs               ║
+║  • debug.warn       - Warnings + errors only              ║
+║  • debug.error      - Errors only                         ║
+║  • debug.disable    - Turn off all logs                   ║
+║  • debug.all        - Same as .trace                      ║
+║  • debug.status     - Show this message                   ║
+║                                                            ║
+║  LEGACY COMMANDS:                                          ║
+║  • debug.enable()        • debug.setLevel('LEVEL')        ║
+╚════════════════════════════════════════════════════════════╝
+    `);
   },
 };
+
+// Keep DEBUG as alias for backward compatibility
+(window as any).DEBUG = (window as any).debug;
 
 function shouldLog(level: LogLevel): boolean {
   if (!config.enabled) return false;

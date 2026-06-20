@@ -4,20 +4,32 @@ Interactive debug logging system for tracing state changes and tracking user act
 
 ## Quick Start
 
-Open browser console (F12) and type:
+Open browser console (F12) and type any of these:
+
+### ⚡ Fastest Way (One word!)
 
 ```javascript
-// See debug status
-DEBUG.status()
+debug.trace    // Maximum verbosity - see everything
+debug.debug    // Detailed debug information
+debug.info     // Normal operation logs
+debug.warn     // Warnings and errors only
+debug.error    // Errors only
+debug.disable  // Turn off all logs
+```
 
-// Enable all debug logs
-DEBUG.enable()
+### 📋 Status & Control
 
-// Disable all debug logs
-DEBUG.disable()
+```javascript
+debug.status   // Show current config and all commands
+debug.all      // Same as debug.trace
+```
 
-// Set minimum log level
-DEBUG.setLevel('DEBUG')  // or 'TRACE', 'INFO', 'WARN', 'ERROR'
+### 📚 Verbose Methods (old style, still works)
+
+```javascript
+debug.enable()          // Turn on at INFO level
+debug.setLevel('DEBUG') // Set minimum level
+DEBUG.status()          // Show status (DEBUG is alias)
 ```
 
 ## Log Levels
@@ -34,38 +46,38 @@ Lower number = fewer logs, Higher number = more verbose.
 
 ## Console Commands
 
-Run these in your browser's developer console:
+### ⚡ Quick Shortcuts (Recommended)
 
-### Enable/Disable Logging
+Just type in console - no parentheses needed!
 
 ```javascript
-// Turn on debugging (remembers across page reloads)
-DEBUG.enable()
-
-// Turn off debugging (saves to localStorage)
-DEBUG.disable()
-
-// Check current status
-DEBUG.status()
+debug.trace      // 🟣 Everything - for deep debugging
+debug.debug      // 🟢 Detailed - recommended for troubleshooting  
+debug.info       // 🔵 Normal - important operations only
+debug.warn       // 🟡 Warnings - issues and errors only
+debug.error      // 🔴 Errors - critical errors only
+debug.all        // 🟣 Same as .trace
+debug.disable    // ❌ Turn off completely
+debug.status     // ℹ️  Show this help
 ```
 
-### Set Log Level
+### 📚 Full Commands (with parentheses)
 
 ```javascript
-// Only show errors
-DEBUG.setLevel('ERROR')
+debug.enable()           // Enable at INFO level
+debug.setLevel('DEBUG')  // Set to specific level
+debug.disable()          // Disable
+debug.status()           // Show config
+```
 
-// Show warnings and errors
+### 🔀 Backward Compatibility
+
+`DEBUG` is an alias for `debug`, so these also work:
+
+```javascript
+DEBUG.enable()
 DEBUG.setLevel('WARN')
-
-// Show everything important
-DEBUG.setLevel('INFO')
-
-// Show detailed debug info (recommended for troubleshooting)
-DEBUG.setLevel('DEBUG')
-
-// Show absolutely everything (very noisy)
-DEBUG.setLevel('TRACE')
+DEBUG.status()
 ```
 
 ## Typical Debugging Workflow

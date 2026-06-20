@@ -16,21 +16,22 @@ npm run typecheck    # Type check without emitting
 
 ## Debugging
 
-**Debug Logging System** — Interactive console-based logging with levels:
+**Debug Logging System** — Interactive console-based logging with quick shortcuts:
 
 ```javascript
-// Open browser console (F12) and run:
-DEBUG.enable()        // Turn on all logs
-DEBUG.setLevel('DEBUG')  // Set minimum log level
-DEBUG.status()        // Show current config
-DEBUG.disable()       // Turn off logs
+// Open browser console (F12) and type (no parentheses):
+debug.trace    // See everything
+debug.debug    // Detailed debug info (recommended)
+debug.info     // Normal operations
+debug.warn     // Warnings only
+debug.error    // Errors only
+debug.disable  // Turn off
+debug.status   // Show help
 ```
 
-**Log Levels:** ERROR → WARN → INFO → DEBUG → TRACE (increasing verbosity)
+**Documentation:** See [`docs/DEBUG_LOGGING.md`](docs/DEBUG_LOGGING.md) for complete guide.
 
-**Documentation:** See [`docs/DEBUG_LOGGING.md`](docs/DEBUG_LOGGING.md) for complete guide with examples.
-
-**Settings persist** in `localStorage`, so you don't need to reconfigure after page reload.
+**Settings persist** in `localStorage` across page reloads.
 
 ## Project Overview
 
