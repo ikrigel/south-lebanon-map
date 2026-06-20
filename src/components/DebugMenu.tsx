@@ -2,6 +2,18 @@ import { useState } from 'react';
 
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE';
 
+// Direct implementation - don't depend on window.debug
+function setDebugState(level: LogLevel) {
+  localStorage.setItem('DEBUG_ENABLED', 'true');
+  localStorage.setItem('DEBUG_LEVEL', level);
+  console.log(`✅ Debug enabled at level: ${level}`);
+}
+
+function disableDebugState() {
+  localStorage.setItem('DEBUG_ENABLED', 'false');
+  console.log('❌ Debug logging disabled');
+}
+
 export function DebugMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [isEnabled, setIsEnabled] = useState(
@@ -12,17 +24,17 @@ export function DebugMenu() {
   );
 
   const setDebugLevel = (newLevel: LogLevel) => {
-    (window as any).debug?.[newLevel.toLowerCase()]?.();
+    setDebugState(newLevel);
     setLevel(newLevel);
     setIsEnabled(true);
   };
 
   const toggleDebug = () => {
     if (isEnabled) {
-      (window as any).debug?.disable?.();
+      disableDebugState();
       setIsEnabled(false);
     } else {
-      (window as any).debug?.info?.();
+      setDebugState('INFO');
       setIsEnabled(true);
     }
   };
