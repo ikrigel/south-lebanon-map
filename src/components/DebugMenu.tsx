@@ -24,8 +24,15 @@ export function DebugMenu() {
 
   // Sync state from localStorage (handles console commands and other changes)
   const syncFromStorage = () => {
-    const newEnabled = localStorage.getItem('DEBUG_ENABLED') !== 'false';
-    const newLevel = (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO';
+    const storedEnabled = localStorage.getItem('DEBUG_ENABLED');
+    const storedLevel = localStorage.getItem('DEBUG_LEVEL');
+
+    const newEnabled = storedEnabled !== 'false';
+    const newLevel = (storedLevel as LogLevel) || 'INFO';
+
+    // Debug: log what we're reading
+    console.log(`[DebugMenu.syncFromStorage] storedLevel="${storedLevel}" → newLevel="${newLevel}"`);
+
     setIsEnabled(newEnabled);
     setLevel(newLevel);
   };
