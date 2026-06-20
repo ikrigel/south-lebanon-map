@@ -28,6 +28,10 @@ function enableAtLevel(level: LogLevel) {
   localStorage.setItem('DEBUG_ENABLED', 'true');
   localStorage.setItem('DEBUG_LEVEL', level);
   console.log(`✅ Debug enabled at level: ${level}`);
+  // Notify UI components of the change
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('debug-level-changed'));
+  }
 }
 
 // Expose control functions globally for console access
@@ -43,6 +47,10 @@ function enableAtLevel(level: LogLevel) {
     config.enabled = false;
     localStorage.setItem('DEBUG_ENABLED', 'false');
     console.log('❌ Debug logging disabled');
+    // Notify UI components of the change
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('debug-level-changed'));
+    }
   },
 
   // Verbose methods (for backward compatibility)
@@ -55,6 +63,10 @@ function enableAtLevel(level: LogLevel) {
     config.level = level;
     localStorage.setItem('DEBUG_LEVEL', level);
     console.log(`📊 Debug level set to: ${level}`);
+    // Notify UI components of the change
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('debug-level-changed'));
+    }
   },
   status: () => {
     console.log(`

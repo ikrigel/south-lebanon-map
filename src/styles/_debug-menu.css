@@ -135,7 +135,7 @@
   border-color: rgba(100, 200, 100, 0.5) !important;
 }
 
-.debug-console-hint {
+.debug-console-section {
   font-size: 12px;
   line-height: 1.5;
   padding: 12px;
@@ -145,13 +145,37 @@
   color: var(--text-muted);
 }
 
-.debug-console-hint code {
+.debug-console-section strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.debug-shortcuts-list {
+  margin: 0 0 8px 0;
+  padding: 8px;
   background: var(--bg-secondary);
-  padding: 2px 6px;
   border-radius: 3px;
-  font-family: 'Courier New', monospace;
   font-size: 11px;
-  margin: 0 2px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.debug-shortcuts-list code {
+  background: var(--bg-primary);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #61dafb;
+  font-weight: 500;
+}
+
+.debug-shortcuts-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Responsive: stack buttons on very small screens */

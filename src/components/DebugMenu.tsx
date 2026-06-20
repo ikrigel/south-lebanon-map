@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE';
 
@@ -22,10 +22,35 @@ export function DebugMenu() {
     (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO'
   );
 
+  // Listen for changes from console commands
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const newEnabled = localStorage.getItem('DEBUG_ENABLED') !== 'false';
+      const newLevel = (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO';
+      setIsEnabled(newEnabled);
+      setLevel(newLevel);
+    };
+
+    // Listen for storage changes (from other tabs or console)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom event from debugLog when changed via console
+    window.addEventListener('debug-level-changed', () => {
+      handleStorageChange();
+    });
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('debug-level-changed', handleStorageChange);
+    };
+  }, []);
+
   const setDebugLevel = (newLevel: LogLevel) => {
     setDebugState(newLevel);
     setLevel(newLevel);
     setIsEnabled(true);
+    // Emit custom event for other components
+    window.dispatchEvent(new Event('debug-level-changed'));
   };
 
   const toggleDebug = () => {
@@ -36,6 +61,7 @@ export function DebugMenu() {
       setDebugState('INFO');
       setIsEnabled(true);
     }
+    window.dispatchEvent(new Event('debug-level-changed'));
   };
 
   if (!isOpen) {
@@ -117,9 +143,20 @@ export function DebugMenu() {
             {isEnabled ? '🔴 Disable All' : '🟢 Enable'}
           </button>
 
-          <div className="debug-console-hint">
-            💡 <strong>Tip:</strong> Also works in console:<br/>
-            <code>debug.debug</code> • <code>debug.trace</code> • <code>debug.disable</code>
+          <div className="debug-console-section">
+            <strong>💻 Console Shortcuts</strong>
+            <p className="debug-shortcuts-list">
+              Type in browser console (F12):<br/>
+              <code>debug.trace</code> — Everything<br/>
+              <code>debug.debug</code> — Detailed<br/>
+              <code>debug.info</code> — Normal<br/>
+              <code>debug.warn</code> — Warnings<br/>
+              <code>debug.error</code> — Errors<br/>
+              <code>debug.disable</code> — Turn off
+            </p>
+            <p className="debug-shortcuts-note">
+              ✨ Menu updates automatically when you use console commands!
+            </p>
           </div>
         </div>
       </div>
