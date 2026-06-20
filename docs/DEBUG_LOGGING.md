@@ -4,18 +4,23 @@ Interactive debug logging system for tracing state changes and tracking user act
 
 ## Quick Start
 
-Open browser console (F12) and type any of these:
+Open browser console (F12) and type **ANY ONE** of these - **no enable() needed!**
 
-### ⚡ Fastest Way (One word!)
+### ⚡ Fastest Way (Just type one!)
+
+Each of these **automatically enables** debug logging AND sets the level:
 
 ```javascript
 debug.trace    // Maximum verbosity - see everything
-debug.debug    // Detailed debug information
+debug.debug    // Detailed debug information (recommended)
 debug.info     // Normal operation logs
 debug.warn     // Warnings and errors only
 debug.error    // Errors only
+debug.all      // Same as .trace - everything
 debug.disable  // Turn off all logs
 ```
+
+**These work immediately** — no `debug.enable()` required before them.
 
 ### 📋 Status & Control
 
@@ -46,9 +51,11 @@ Lower number = fewer logs, Higher number = more verbose.
 
 ## Console Commands
 
-### ⚡ Quick Shortcuts (Recommended)
+### ⚡ Quick Shortcuts (Recommended - Standalone!)
 
-Just type in console - no parentheses needed!
+Just type in console - **NO parentheses**, **NO enable() call needed!**
+
+Each shortcut **automatically enables** logging and sets the level:
 
 ```javascript
 debug.trace      // 🟣 Everything - for deep debugging
@@ -60,6 +67,8 @@ debug.all        // 🟣 Same as .trace
 debug.disable    // ❌ Turn off completely
 debug.status     // ℹ️  Show this help
 ```
+
+**No setup needed!** Just type `debug.debug` and you're logging.
 
 ### 📚 Full Commands (with parentheses)
 
@@ -85,10 +94,10 @@ DEBUG.status()
 ### 1. Reproduce the issue
 
 1. Open DevTools: F12 → Console tab
-2. Enable debugging: `DEBUG.enable()`
-3. Set level: `DEBUG.setLevel('DEBUG')`
-4. Perform actions that cause the issue
-5. Watch console for messages
+2. Type: `debug.debug`  ← **That's it! Enables + sets level**
+3. Perform actions that cause the issue
+4. Watch console for messages
+5. (Optional: `debug.trace` for even more detail)
 
 ### 2. Focus on specific areas
 
