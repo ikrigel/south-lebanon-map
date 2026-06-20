@@ -21,6 +21,14 @@ let config: DebugConfig = {
   prefix: '[DEBUG]',
 };
 
+// Initialize localStorage with default values if not set
+if (!localStorage.getItem('DEBUG_ENABLED')) {
+  localStorage.setItem('DEBUG_ENABLED', 'true');
+}
+if (!localStorage.getItem('DEBUG_LEVEL')) {
+  localStorage.setItem('DEBUG_LEVEL', config.level);
+}
+
 // Quick helper to enable and set level
 function enableAtLevel(level: LogLevel) {
   config.enabled = true;
