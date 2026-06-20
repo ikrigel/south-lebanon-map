@@ -67,10 +67,12 @@ body {
   align-items: center;
   justify-content: flex-end;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   flex: 1;
   min-width: 0;
   padding-inline-end: 8px;
+  position: relative;
+  z-index: 100;
 }
 .header-actions::-webkit-scrollbar { height: 4px; }
 .header-actions::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
