@@ -15,19 +15,19 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   TRACE: 4,
 };
 
+// Initialize localStorage with default values if not set
+if (!localStorage.getItem('DEBUG_ENABLED')) {
+  localStorage.setItem('DEBUG_ENABLED', 'false');
+}
+if (!localStorage.getItem('DEBUG_LEVEL')) {
+  localStorage.setItem('DEBUG_LEVEL', 'INFO');
+}
+
 let config: DebugConfig = {
   enabled: localStorage.getItem('DEBUG_ENABLED') !== 'false',
   level: (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO',
   prefix: '[DEBUG]',
 };
-
-// Initialize localStorage with default values if not set
-if (!localStorage.getItem('DEBUG_ENABLED')) {
-  localStorage.setItem('DEBUG_ENABLED', 'true');
-}
-if (!localStorage.getItem('DEBUG_LEVEL')) {
-  localStorage.setItem('DEBUG_LEVEL', config.level);
-}
 
 // Quick helper to enable and set level
 function enableAtLevel(level: LogLevel) {
