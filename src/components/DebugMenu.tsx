@@ -111,18 +111,60 @@ export function DebugMenu() {
           </button>
 
           <div className="debug-console-section">
-            <strong>💻 Console Shortcuts</strong>
-            <p className="debug-shortcuts-list">
-              Type in browser console (F12):<br/>
-              <code>debug.trace</code> — Everything<br/>
-              <code>debug.debug</code> — Detailed<br/>
-              <code>debug.info</code> — Normal<br/>
-              <code>debug.warn</code> — Warnings<br/>
-              <code>debug.error</code> — Errors<br/>
-              <code>debug.disable</code> — Turn off
-            </p>
+            <strong>💻 Method Shortcuts</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginBottom: '12px' }}>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.error?.()}
+                title="Log errors only"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                🔴 Error
+              </button>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.warn?.()}
+                title="Log warnings"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                🟡 Warn
+              </button>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.info?.()}
+                title="Log info"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                🔵 Info
+              </button>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.debug?.()}
+                title="Debug mode"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                🟢 Debug
+              </button>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.trace?.()}
+                title="Everything"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                ⚪ Trace
+              </button>
+              <button
+                className="debug-level-btn"
+                onClick={() => (window as any).debug.disable?.()}
+                title="Disable all"
+                style={{ fontSize: '11px', padding: '6px' }}
+              >
+                ⭕ Disable
+              </button>
+            </div>
+
             <p className="debug-shortcuts-note">
-              ✨ Menu updates automatically when you use console commands!
+              💡 Or type in console (F12): <code>debug.error()</code>, <code>debug.debug()</code>, etc.
             </p>
           </div>
         </div>
