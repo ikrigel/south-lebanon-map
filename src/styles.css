@@ -16,6 +16,7 @@
 @import url('./styles/_panels.css');
 @import url('./styles/_dialogs.css');
 @import url('./styles/_drones.css');
+@import url('./styles/_debug-menu.css');
 
 /* ======================================================================
    RESPONSIVE DESIGN & MEDIA QUERIES

@@ -1,5 +1,6 @@
 import type { ThemeMode, HeaderVisibilityMode } from '../../types';
 import { HeaderVisibilityToggle } from '../HeaderVisibilityToggle';
+import { DebugMenu } from '../DebugMenu';
 
 interface HeaderBarProps {
   panelsCollapsed: boolean;
@@ -116,6 +117,7 @@ export function HeaderBar(props: HeaderBarProps) {
         <button className="btn" onClick={() => { props.setTransferOpen(true); props.setDrawerOpen(false); props.setHelpOpen(false); props.setSupportOpen(false); props.setAboutOpen(false); }} data-testid="button-transfer">
           העברת מרשמים
         </button>
+        <DebugMenu />
       </div>
     </header>
   );
