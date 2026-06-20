@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE';
 
-// Direct implementation - don't depend on window.debug
 function setDebugState(level: LogLevel) {
   localStorage.setItem('DEBUG_ENABLED', 'true');
   localStorage.setItem('DEBUG_LEVEL', level);
@@ -39,76 +38,91 @@ export function DebugMenu() {
     }
   };
 
-  return (
-    <div className="debug-menu" data-testid="debug-menu">
+  if (!isOpen) {
+    return (
       <button
-        className="btn debug-toggle"
-        onClick={() => setIsOpen(!isOpen)}
-        title={isEnabled ? '🐛 Debug enabled' : '🐛 Debug disabled'}
-        aria-pressed={isOpen}
-        data-testid="button-debug-toggle"
+        className="btn debug-icon"
+        onClick={() => setIsOpen(true)}
+        title="🐛 Debug Menu"
+        data-testid="button-debug-menu"
       >
         🐛
       </button>
+    );
+  }
 
-      {isOpen && (
-        <div className="debug-menu-dropdown" data-testid="debug-menu-dropdown">
-          <div className="debug-status">
-            Status: {isEnabled ? '✓ ENABLED' : '✗ DISABLED'} | Level: {level}
+  // Modal dialog
+  return (
+    <div className="debug-modal-overlay" onClick={() => setIsOpen(false)}>
+      <div className="debug-modal" onClick={e => e.stopPropagation()}>
+        <div className="debug-modal-header">
+          <h3>🐛 Debug Logging</h3>
+          <button
+            className="debug-modal-close"
+            onClick={() => setIsOpen(false)}
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="debug-modal-body">
+          <div className="debug-status-info">
+            <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
+            <strong>Level:</strong> {level}
           </div>
 
-          <div className="debug-buttons">
+          <div className="debug-level-buttons">
             <button
-              className={`debug-btn ${level === 'TRACE' ? 'active' : ''}`}
+              className={`debug-level-btn ${level === 'TRACE' ? 'active' : ''}`}
               onClick={() => setDebugLevel('TRACE')}
-              title="See everything"
-              data-testid="debug-trace"
+              title="See absolutely everything"
             >
               TRACE
             </button>
             <button
-              className={`debug-btn ${level === 'DEBUG' ? 'active' : ''}`}
+              className={`debug-level-btn ${level === 'DEBUG' ? 'active' : ''}`}
               onClick={() => setDebugLevel('DEBUG')}
-              title="Detailed debugging"
-              data-testid="debug-debug"
+              title="Detailed debug info (recommended)"
             >
               DEBUG
             </button>
             <button
-              className={`debug-btn ${level === 'INFO' ? 'active' : ''}`}
+              className={`debug-level-btn ${level === 'INFO' ? 'active' : ''}`}
               onClick={() => setDebugLevel('INFO')}
-              title="Normal operations"
-              data-testid="debug-info"
+              title="Normal operations only"
             >
               INFO
             </button>
             <button
-              className={`debug-btn ${level === 'WARN' ? 'active' : ''}`}
+              className={`debug-level-btn ${level === 'WARN' ? 'active' : ''}`}
               onClick={() => setDebugLevel('WARN')}
-              title="Warnings only"
-              data-testid="debug-warn"
+              title="Warnings and errors"
             >
               WARN
             </button>
             <button
-              className={`debug-btn ${level === 'ERROR' ? 'active' : ''}`}
+              className={`debug-level-btn ${level === 'ERROR' ? 'active' : ''}`}
               onClick={() => setDebugLevel('ERROR')}
               title="Errors only"
-              data-testid="debug-error"
             >
               ERROR
             </button>
           </div>
 
           <button
-            className="debug-btn toggle-btn"
+            className="debug-toggle-btn"
             onClick={toggleDebug}
-            data-testid="debug-toggle-btn"
           >
-            {isEnabled ? 'Disable All' : 'Enable'}
+            {isEnabled ? '🔴 Disable All' : '🟢 Enable'}
           </button>
+
+          <div className="debug-console-hint">
+            💡 <strong>Tip:</strong> Also works in console:<br/>
+            <code>debug.debug</code> • <code>debug.trace</code> • <code>debug.disable</code>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
