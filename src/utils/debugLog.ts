@@ -154,19 +154,27 @@ export const debugLog = {
     formatLog('TRACE', context, message, data),
 };
 
+let initLogged = false;
+
 export function initDebugLogging() {
+  if (initLogged) return; // Only log once
+  initLogged = true;
+
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
+║  Status: ${config.enabled ? '✓ DISABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║
 ║  Console commands:                                         ║
-║  • DEBUG.enable()        - Turn on all logs               ║
-║  • DEBUG.disable()       - Turn off all logs              ║
-║  • DEBUG.setLevel(LEVEL) - Set minimum level             ║
-║  • DEBUG.status()        - Show current config            ║
+║  • debug.debug           - Detailed debug info            ║
+║  • debug.trace           - Everything                     ║
+║  • debug.info            - Normal operations              ║
+║  • debug.warn            - Warnings only                  ║
+║  • debug.error           - Errors only                    ║
+║  • debug.disable         - Turn off all logs              ║
+║  • debug.status()        - Show current config            ║
 ║                                                            ║
 ║  Levels: ERROR < WARN < INFO < DEBUG < TRACE             ║
 ╚════════════════════════════════════════════════════════════╝
