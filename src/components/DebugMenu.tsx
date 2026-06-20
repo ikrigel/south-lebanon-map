@@ -22,28 +22,38 @@ export function DebugMenu() {
     (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO'
   );
 
-  // Listen for changes from console commands
+  // Sync state from localStorage (handles console commands and other changes)
+  const syncFromStorage = () => {
+    const newEnabled = localStorage.getItem('DEBUG_ENABLED') !== 'false';
+    const newLevel = (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO';
+    setIsEnabled(newEnabled);
+    setLevel(newLevel);
+  };
+
+  // Listen for changes from console commands and sync
   useEffect(() => {
-    const handleStorageChange = () => {
-      const newEnabled = localStorage.getItem('DEBUG_ENABLED') !== 'false';
-      const newLevel = (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO';
-      setIsEnabled(newEnabled);
-      setLevel(newLevel);
-    };
+    // Check localStorage periodically (catches console command changes)
+    const interval = setInterval(syncFromStorage, 500);
 
-    // Listen for storage changes (from other tabs or console)
-    window.addEventListener('storage', handleStorageChange);
+    // Also listen for storage changes (from other tabs)
+    window.addEventListener('storage', syncFromStorage);
 
-    // Also listen for custom event from debugLog when changed via console
-    window.addEventListener('debug-level-changed', () => {
-      handleStorageChange();
-    });
+    // Listen for custom event from debugLog when changed via console
+    window.addEventListener('debug-level-changed', syncFromStorage);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('debug-level-changed', handleStorageChange);
+      clearInterval(interval);
+      window.removeEventListener('storage', syncFromStorage);
+      window.removeEventListener('debug-level-changed', syncFromStorage);
     };
   }, []);
+
+  // Also sync when modal opens (shows latest state)
+  useEffect(() => {
+    if (isOpen) {
+      syncFromStorage();
+    }
+  }, [isOpen]);
 
   const setDebugLevel = (newLevel: LogLevel) => {
     setDebugState(newLevel);
