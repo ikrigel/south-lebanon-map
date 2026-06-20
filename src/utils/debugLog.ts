@@ -29,6 +29,22 @@ let config: DebugConfig = {
   prefix: '[DEBUG]',
 };
 
+// Event emitter for debug state changes
+class DebugEventEmitter {
+  private listeners = new Set<(config: DebugConfig) => void>();
+
+  subscribe(callback: (config: DebugConfig) => void) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  emit() {
+    this.listeners.forEach(cb => cb({ ...config }));
+  }
+}
+
+const debugEmitter = new DebugEventEmitter();
+
 // Quick helper to enable and set level
 function enableAtLevel(level: LogLevel) {
   config.enabled = true;
@@ -36,10 +52,7 @@ function enableAtLevel(level: LogLevel) {
   localStorage.setItem('DEBUG_ENABLED', 'true');
   localStorage.setItem('DEBUG_LEVEL', level);
   console.log(`✅ Debug enabled at level: ${level}`);
-  // Notify UI components of the change
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('debug-level-changed'));
-  }
+  debugEmitter.emit();
 }
 
 // Expose control functions globally for console access
@@ -55,10 +68,7 @@ function enableAtLevel(level: LogLevel) {
     config.enabled = false;
     localStorage.setItem('DEBUG_ENABLED', 'false');
     console.log('❌ Debug logging disabled');
-    // Notify UI components of the change
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('debug-level-changed'));
-    }
+    debugEmitter.emit();
   },
 
   // Verbose methods (for backward compatibility)
@@ -71,10 +81,7 @@ function enableAtLevel(level: LogLevel) {
     config.level = level;
     localStorage.setItem('DEBUG_LEVEL', level);
     console.log(`📊 Debug level set to: ${level}`);
-    // Notify UI components of the change
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('debug-level-changed'));
-    }
+    debugEmitter.emit();
   },
   status: () => {
     console.log(`
@@ -153,6 +160,9 @@ export const debugLog = {
   trace: (context: string, message: string, data?: any) =>
     formatLog('TRACE', context, message, data),
 };
+
+// Export emitter for UI to subscribe to config changes
+export { debugEmitter };
 
 let initLogged = false;
 

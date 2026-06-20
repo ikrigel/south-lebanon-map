@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
+import { debugEmitter } from '../utils/debugLog';
 
 type LogLevel = 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE';
-
-function setDebugState(level: LogLevel) {
-  localStorage.setItem('DEBUG_ENABLED', 'true');
-  localStorage.setItem('DEBUG_LEVEL', level);
-  console.log(`✅ Debug enabled at level: ${level}`);
-}
-
-function disableDebugState() {
-  localStorage.setItem('DEBUG_ENABLED', 'false');
-  console.log('❌ Debug logging disabled');
-}
 
 export function DebugMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,63 +12,25 @@ export function DebugMenu() {
     (localStorage.getItem('DEBUG_LEVEL') as LogLevel) || 'INFO'
   );
 
-  // Sync state from localStorage (handles console commands and other changes)
-  const syncFromStorage = () => {
-    const storedEnabled = localStorage.getItem('DEBUG_ENABLED');
-    const storedLevel = localStorage.getItem('DEBUG_LEVEL');
-
-    const newEnabled = storedEnabled !== 'false';
-    const newLevel = (storedLevel as LogLevel) || 'INFO';
-
-    // Debug: log what we're reading
-    console.log(`[DebugMenu.syncFromStorage] storedLevel="${storedLevel}" → newLevel="${newLevel}"`);
-
-    setIsEnabled(newEnabled);
-    setLevel(newLevel);
-  };
-
-  // Listen for changes from console commands and sync
+  // Subscribe to debug config changes (event-driven, zero polling overhead!)
   useEffect(() => {
-    // Check localStorage periodically (catches console command changes)
-    const interval = setInterval(syncFromStorage, 500);
-
-    // Also listen for storage changes (from other tabs)
-    window.addEventListener('storage', syncFromStorage);
-
-    // Listen for custom event from debugLog when changed via console
-    window.addEventListener('debug-level-changed', syncFromStorage);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', syncFromStorage);
-      window.removeEventListener('debug-level-changed', syncFromStorage);
-    };
+    const unsubscribe = debugEmitter.subscribe((config) => {
+      setIsEnabled(config.enabled);
+      setLevel(config.level);
+    });
+    return unsubscribe;
   }, []);
 
-  // Also sync when modal opens (shows latest state)
-  useEffect(() => {
-    if (isOpen) {
-      syncFromStorage();
-    }
-  }, [isOpen]);
-
   const setDebugLevel = (newLevel: LogLevel) => {
-    setDebugState(newLevel);
-    setLevel(newLevel);
-    setIsEnabled(true);
-    // Emit custom event for other components
-    window.dispatchEvent(new Event('debug-level-changed'));
+    (window as any).debug[newLevel.toLowerCase()]?.();
   };
 
   const toggleDebug = () => {
     if (isEnabled) {
-      disableDebugState();
-      setIsEnabled(false);
+      (window as any).debug.disable?.();
     } else {
-      setDebugState('INFO');
-      setIsEnabled(true);
+      (window as any).debug.info?.();
     }
-    window.dispatchEvent(new Event('debug-level-changed'));
   };
 
   if (!isOpen) {
