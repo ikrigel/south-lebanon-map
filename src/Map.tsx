@@ -120,6 +120,30 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
   useMapPopupButtons(mapRef, onNavigateRef, onSetNavStartRef);
 
+  // Global Leaflet event logging to catch ALL map movements
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const handleMoveEnd = () => {
+      const center = map.getCenter();
+      console.log(`[LEAFLET moveend] map center now: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}, zoom=${map.getZoom()}`);
+    };
+
+    const handleZoom = () => {
+      const center = map.getCenter();
+      console.log(`[LEAFLET zoom] map zoom now: ${map.getZoom()}, center: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+    };
+
+    map.on('moveend', handleMoveEnd);
+    map.on('zoom', handleZoom);
+
+    return () => {
+      map.off('moveend', handleMoveEnd);
+      map.off('zoom', handleZoom);
+    };
+  }, []);
+
   useEffect(() => {
     const base = layersRef.current.base;
     if (!base) return;

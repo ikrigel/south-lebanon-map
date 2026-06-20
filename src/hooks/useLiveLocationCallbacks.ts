@@ -107,14 +107,16 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
 
   const centerLiveLocation = useCallback(() => {
     if (!props.liveLocation) return;
-    props.setLiveFollowDetached(false);
-    props.setLiveCenterRequestId(`center-${Date.now()}`);
-    props.setFocusTarget({
+    const target = {
       lat: props.liveLocation.lat,
       lon: props.liveLocation.lon,
       zoom: 15,
       id: `live-center-${Date.now()}`,
-    });
+    };
+    console.log(`[centerLiveLocation] setFocusTarget(lat=${target.lat.toFixed(4)}, lon=${target.lon.toFixed(4)}, id=${target.id})`);
+    props.setLiveFollowDetached(false);
+    props.setLiveCenterRequestId(`center-${Date.now()}`);
+    props.setFocusTarget(target);
     props.showToast('מפה מתמקדת במיקומך');
   }, [props]);
 
