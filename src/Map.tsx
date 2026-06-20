@@ -97,7 +97,12 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       map.invalidateSize({ animate: false, pan: false });
       // setView recalculates _pixelOrigin for the new container size,
       // anchoring it on the saved geo-center without changing zoom.
-      map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
+      console.log(`[Map.invalidateSize] map.setView(lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}, zoom=${zoom})`);
+      if (Math.abs(center.lat) <= 85 && Math.abs(center.lng) <= 180) {
+        map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
+      } else {
+        console.error(`⚠️ [Map.invalidateSize] INVALID coords detected: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)} - NOT setting view`);
+      }
     },
   }), [mapRef, savedViewRef]);
   // Always-fresh refs — updated every render so closures are never stale
@@ -206,9 +211,12 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const lon = props.focusTarget.lon;
       const zoom = props.focusTarget.zoom ?? 12;
 
+      console.log(`[Map.tsx focusTarget RECEIVED] lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, id=${props.focusTarget.id}`);
+
       // VALIDATE coordinates before setting view
       if (Math.abs(lat) > 85 || Math.abs(lon) > 180) {
         console.error(`⚠️ [Map.tsx] INVALID focusTarget coords: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)} - NOT setting view`);
+        console.error(`⚠️ [Map.tsx] focusTarget object:`, props.focusTarget);
         return; // Don't set invalid view
       }
 
