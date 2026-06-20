@@ -2,26 +2,33 @@
 
 .debug-menu {
   position: relative;
+  flex-shrink: 0;
 }
 
 .debug-toggle {
-  font-size: 18px;
-  padding: 4px 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  font-size: 18px !important;
+  padding: 4px 8px !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  opacity: 0.6 !important;
+  transition: opacity 0.2s !important;
+  color: inherit !important;
+  min-height: unset !important;
+  min-width: unset !important;
+  height: auto !important;
 }
 
 .debug-toggle:hover {
-  opacity: 1;
+  opacity: 1 !important;
+  background: rgba(100, 200, 100, 0.1) !important;
+  border-radius: 4px !important;
 }
 
 .debug-toggle[aria-pressed="true"] {
-  opacity: 1;
-  background: rgba(100, 200, 100, 0.1);
-  border-radius: 4px;
+  opacity: 1 !important;
+  background: rgba(100, 200, 100, 0.1) !important;
+  border-radius: 4px !important;
 }
 
 .debug-menu-dropdown {
