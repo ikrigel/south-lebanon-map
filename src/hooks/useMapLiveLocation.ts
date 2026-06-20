@@ -23,14 +23,18 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
   const panX = gpsScreenPos.x - targetScreenX;
   const panY = gpsScreenPos.y - targetScreenY;
 
-  // Apply pan to map center using project/unproject
-  const newCenter = map.unproject(map.project(center, zoom).add(L.point(panX, panY)), zoom);
+  // DEBUG: Log projection steps
+  const projectedCenter = map.project(center, zoom);
+  const panPoint = projectedCenter.add(L.point(panX, panY));
+  const newCenter = map.unproject(panPoint, zoom);
 
   console.log(`[NAV] GPS ${lat.toFixed(4)},${lon.toFixed(4)} at screen(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}) → pan(${panX.toFixed(0)},${panY.toFixed(0)}) → center${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
 
   // VALIDATE: Check if result is crazy far away
   if (Math.abs(newCenter.lat) > 85 || Math.abs(newCenter.lng) > 180) {
-    console.error(`⚠️ [INVALID RESULT FROM lowerThirdCenter] Lat=${newCenter.lat.toFixed(4)}, Lon=${newCenter.lng.toFixed(4)} - RETURNING INPUT INSTEAD`);
+    console.error(`⚠️ [INVALID lowerThirdCenter] INPUT: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom}`);
+    console.error(`   mapCenter=${center.lat.toFixed(4)},${center.lng.toFixed(4)} → projected=${projectedCenter.x.toFixed(0)},${projectedCenter.y.toFixed(0)} → panPoint=${panPoint.x.toFixed(0)},${panPoint.y.toFixed(0)} → RESULT=${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
+    console.error(`   mapSize=${size.x}x${size.y}, targetScreen=${targetScreenX.toFixed(0)},${targetScreenY.toFixed(0)}, gpsScreen=${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}`);
     return L.latLng(lat, lon);
   }
 
