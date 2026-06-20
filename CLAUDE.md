@@ -14,6 +14,24 @@ npm run typecheck    # Type check without emitting
 
 **Single test:** `npm test -- --run coord-popup-nearby.test.ts`
 
+## Debugging
+
+**Debug Logging System** — Interactive console-based logging with levels:
+
+```javascript
+// Open browser console (F12) and run:
+DEBUG.enable()        // Turn on all logs
+DEBUG.setLevel('DEBUG')  // Set minimum log level
+DEBUG.status()        // Show current config
+DEBUG.disable()       // Turn off logs
+```
+
+**Log Levels:** ERROR → WARN → INFO → DEBUG → TRACE (increasing verbosity)
+
+**Documentation:** See [`docs/DEBUG_LOGGING.md`](docs/DEBUG_LOGGING.md) for complete guide with examples.
+
+**Settings persist** in `localStorage`, so you don't need to reconfigure after page reload.
+
 ## Project Overview
 
 **South Lebanon Map** is a static Vite + React + Leaflet analytical dashboard for the area between the Blue Line and Litani River. It visualizes security incidents, UNIFIL points, Hezbollah influence zones, topography, towns and custom user data (routes, POIs, recordings).

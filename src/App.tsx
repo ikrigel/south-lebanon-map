@@ -84,8 +84,13 @@ import { useQrImportHandlers } from './hooks/useQrImportHandlers';
 import { usePanelCallbacks } from './hooks/usePanelCallbacks';
 import { useViewReset } from './hooks/useViewReset';
 import { useAppOrchestration } from './hooks/useAppOrchestration';
+import { initDebugLogging } from './utils/debugLog';
 
 export default function App() {
+  // Initialize debug logging system (console-controlled)
+  useEffect(() => {
+    initDebugLogging();
+  }, []);
   const {
     initialRecordingSessionRef, initialMapViewRef, recordingStatus, setRecordingStatus,
     recordingWatchId, setRecordingWatchId, recordedTrack, setRecordedTrack,
