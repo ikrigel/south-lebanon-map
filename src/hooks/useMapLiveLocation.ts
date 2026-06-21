@@ -146,33 +146,22 @@ export const useMapLiveLocation = (
   }, [liveLocation, navigationRoute, mapBearing, navFollowZoom, navLabels]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
-    console.log(`[CENTER ME] Clicked - map.flyTo(lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}, zoom=15)`);
-    // CRITICAL: Disable GPS tracking while CENTER ME animation runs!
-    // Otherwise GPS UPDATE EFFECT runs during animation and calls lowerThirdCenter
-    // with invalid map state, causing giant pan to wrong coordinates
+    if (!liveLocation || liveCenterRequestId <= 0) return;
+    console.log(`[CENTER ME] Clicked - disable GPS tracking during focusTarget animation`);
+
+    // CRITICAL: Don't call flyTo directly! This creates competing animations with focusTarget
+    // focusTarget will handle the flyTo(zoom=17) animation
+    // We just disable GPS tracking so UPDATE EFFECT doesn't interfere
     liveFollowDetachedRef.current = true;
     onLiveFollowDetachedChange(true);
 
-    if (Math.abs(liveLocation.lat) <= 85 && Math.abs(liveLocation.lon) <= 180) {
-      map.flyTo([liveLocation.lat, liveLocation.lon], 15, {
-        animate: true,
-        duration: 0.7,
-      });
-      // Re-enable GPS tracking after animation completes
-      const handleMoveEnd = () => {
-        liveFollowDetachedRef.current = false;
-        onLiveFollowDetachedChange(false);
-        map.off('moveend', handleMoveEnd);
-      };
-      map.on('moveend', handleMoveEnd);
-    } else {
-      console.error(`⚠️ [REJECTED] CENTER ME coords invalid: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`);
-      // Re-enable GPS tracking if validation failed
+    // Re-enable GPS tracking after animation window (1 second should be enough for focusTarget's 0.7s animation)
+    const timer = setTimeout(() => {
       liveFollowDetachedRef.current = false;
       onLiveFollowDetachedChange(false);
-    }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [liveCenterRequestId, onLiveFollowDetachedChange]);
 
   useEffect(() => {
