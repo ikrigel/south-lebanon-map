@@ -7,6 +7,7 @@ import { useHeaderVisibility } from './useHeaderVisibility';
 import { useMarkerRepositioning } from './useMarkerRepositioning';
 
 // NAVIGATION MODE: Position GPS marker at lower-third of screen
+// CRITICAL: Only call this when map is NOT animating (moveend state)
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
   const size = map.getSize();
 
@@ -17,8 +18,9 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
   // Get current map center
   const center = map.getCenter();
 
-  // Calculate how much to pan to position GPS at target
-  // Pan delta = (where GPS currently is) - (where we want GPS to be)
+  // CRITICAL BUG FIX: latLngToContainerPoint is unreliable during map animations
+  // because the map's internal projection state is changing frame-by-frame
+  // Solution: Never call this while map is moving, only after moveend fires
   const gpsScreenPos = map.latLngToContainerPoint([lat, lon] as L.LatLngTuple);
   const panX = gpsScreenPos.x - targetScreenX;
   const panY = gpsScreenPos.y - targetScreenY;
@@ -86,6 +88,32 @@ export const useMapLiveLocation = (
 
   const headerVisibility = useHeaderVisibility({ defaultMode: 'fix' });
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
+  const isMapMovingRef = useRef<boolean>(false);
+
+  // Track when map is animating - CRITICAL FIX
+  // Never call lowerThirdCenter while map.isMoving() is true
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const handleMoveStart = () => {
+      isMapMovingRef.current = true;
+      console.log(`[MAP] Animation started - disabling GPS pan temporarily`);
+    };
+
+    const handleMoveEnd = () => {
+      isMapMovingRef.current = false;
+      console.log(`[MAP] Animation ended - GPS pan re-enabled`);
+    };
+
+    map.on('movestart', handleMoveStart);
+    map.on('moveend', handleMoveEnd);
+    return () => {
+      map.off('movestart', handleMoveStart);
+      map.off('moveend', handleMoveEnd);
+    };
+  }, []);
+
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -119,8 +147,12 @@ export const useMapLiveLocation = (
     const lastFollow = lastLiveFollowRef.current;
     const minPan = 100; // ms
     const minDist = navigationRoute ? 15 : 300; // 15m during nav for smooth tracking
+
+    // CRITICAL FIX: Don't pan while map is animating!
+    // lowerThirdCenter uses latLngToContainerPoint which is unreliable during animations
     const shouldPan =
       !liveFollowDetachedRef.current &&
+      !isMapMovingRef.current &&  // ← NEW: Skip if map is moving
       (!lastFollow || now - lastFollow.at > minPan) &&
       (!lastFollow || Math.abs(liveLocation.lat - lastFollow.lat) > minDist / 111000 ||
                        Math.abs(liveLocation.lon - lastFollow.lon) > minDist / 111000);
@@ -142,6 +174,8 @@ export const useMapLiveLocation = (
         console.error(`⚠️ [REJECTED INVALID COORDS] lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} - NOT calling map.setView()`);
       }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
+    } else if (liveFollowDetachedRef.current || isMapMovingRef.current) {
+      console.log(`[GPS UPDATE EFFECT] Skipped: detached=${liveFollowDetachedRef.current}, mapMoving=${isMapMovingRef.current}`);
     }
   }, [liveLocation, navigationRoute, mapBearing, navFollowZoom, navLabels]);
 
