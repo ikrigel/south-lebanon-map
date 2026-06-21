@@ -148,17 +148,16 @@ export const useMapLiveLocation = (
   useEffect(() => {
     const map = mapRef.current;
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
-    console.log(`[CENTER ME] Clicked - map.setView(lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)})`);
+    console.log(`[CENTER ME] Clicked - map.flyTo(lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}, zoom=15)`);
     liveFollowDetachedRef.current = false;
     onLiveFollowDetachedChange(false);
-    const zoom = map.getZoom();
-    // SIMPLE: Just go to GPS location, no fancy offsets
+    // Use FIXED zoom=15 to avoid corrupted state from map.getZoom()
+    // Don't use current zoom - map might be in error state!
     if (Math.abs(liveLocation.lat) <= 85 && Math.abs(liveLocation.lon) <= 180) {
-      map.setView([liveLocation.lat, liveLocation.lon], zoom, {
+      map.flyTo([liveLocation.lat, liveLocation.lon], 15, {
         animate: true,
-        duration: 0.3,
-        easeLinearity: 1.0,
-      } as L.ZoomPanOptions);
+        duration: 0.7,
+      });
     } else {
       console.error(`⚠️ [REJECTED] CENTER ME coords invalid: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`);
     }
