@@ -165,7 +165,7 @@ export const useMapLiveLocation = (
       const mapCenter = map.getCenter();
       console.log(`[GPS UPDATE EFFECT] About to call lowerThirdCenter: mapCenter=(${mapCenter.lat.toFixed(4)}, ${mapCenter.lng.toFixed(4)}), gps=(${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}), mapMoving=${isMapMovingRef.current}`);
 
-      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
       console.log(`[GPS UPDATE EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
 
       // Validate before setting
@@ -216,7 +216,7 @@ export const useMapLiveLocation = (
     // - During navigation with live location: apply lower-third positioning
     // - Any other mode: just apply zoom without positional offset
     if (navigationRoute && liveLocation && !liveFollowDetachedRef.current) {
-      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
+      const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
       console.log(`[ZOOM EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
         map.setView(adjusted, clampedZoom, {

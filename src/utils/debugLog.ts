@@ -35,7 +35,9 @@ class DebugEventEmitter {
 
   subscribe(callback: (config: DebugConfig) => void) {
     this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+    return () => {
+      this.listeners.delete(callback);
+    };
   }
 
   emit() {
