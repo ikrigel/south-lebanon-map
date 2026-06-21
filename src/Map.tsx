@@ -244,15 +244,19 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         return; // Don't set invalid view
       }
 
-      console.log(`[Map.tsx focusTarget] map.${props.focusTarget.id === 'restore-last-map-view' ? 'setView' : 'flyTo'}(lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom})`);
+      const method = props.focusTarget.id === 'restore-last-map-view' ? 'setView' : 'flyTo';
+      console.log(`[Map.tsx focusTarget] ✅ map.${method}(lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom})`);
+      console.log(`[MAP_MOVE] ✅ FOCUS_TARGET → ${method}(${lat.toFixed(4)}, ${lon.toFixed(4)}, zoom=${zoom})`);
 
       if (props.focusTarget.id === 'restore-last-map-view') {
+        console.log(`[focusTarget-restore] Restoring saved map view`);
         map.setView(
           [lat, lon],
           zoom,
           { animate: false, noMoveStart: true },
         );
       } else {
+        console.log(`[focusTarget-flyto] Animating to target (id=${props.focusTarget.id})`);
         map.flyTo([lat, lon], zoom, {
           animate: true,
           duration: 0.7,

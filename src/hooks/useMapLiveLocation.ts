@@ -43,6 +43,17 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
   return newCenter;
 }
 
+// Helper: Log all setView calls with context
+function logMapMovement(source: string, method: string, lat: number, lon: number, zoom?: number) {
+  const isValid = Math.abs(lat) <= 85 && Math.abs(lon) <= 180;
+  const status = isValid ? '✅' : '❌ INVALID';
+  const trace = new Error().stack?.split('\n')[2]?.trim() || 'unknown';
+  console.log(`[MAP_MOVE] ${status} ${source} → ${method}(${lat.toFixed(4)}, ${lon.toFixed(4)}${zoom ? `, zoom=${zoom}` : ''})`);
+  if (!isValid) {
+    console.error(`   ⚠️  INVALID COORDS DETECTED! Called from: ${trace}`);
+  }
+}
+
 export const useMapLiveLocation = (
   mapRef: React.MutableRefObject<any>,
   layersRef: React.MutableRefObject<any>,
@@ -170,7 +181,8 @@ export const useMapLiveLocation = (
 
       // Validate before setting
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
-        console.log(`[GPS UPDATE EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
+        console.log(`[GPS UPDATE EFFECT] ✅ Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
+        logMapMovement('GPS_UPDATE_EFFECT', 'setView', adjusted.lat, adjusted.lng, clampedZoom);
         map.setView(adjusted, clampedZoom, {
           animate: true,
           duration: 0.3,
@@ -179,6 +191,7 @@ export const useMapLiveLocation = (
       } else {
         console.error(`⚠️ [REJECTED INVALID COORDS] lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} - NOT calling map.setView()`);
         console.error(`   lowerThirdCenter returned INVALID coordinates! This is the root cause of the bug.`);
+        logMapMovement('GPS_UPDATE_EFFECT_REJECTED', 'REJECTED', adjusted.lat, adjusted.lng, clampedZoom);
       }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
     } else if (liveFollowDetachedRef.current || isMapMovingRef.current) {
@@ -188,7 +201,10 @@ export const useMapLiveLocation = (
 
   useEffect(() => {
     if (!liveLocation || liveCenterRequestId <= 0) return;
-    console.log(`[CENTER ME] Clicked - disable GPS tracking during focusTarget animation`);
+    console.log(`[CENTER ME] ✅ Clicked (id=${liveCenterRequestId})`);
+    console.log(`[CENTER ME] Current map: lat=${mapRef.current?.getCenter().lat.toFixed(4)}, lon=${mapRef.current?.getCenter().lng.toFixed(4)}, zoom=${mapRef.current?.getZoom()}`);
+    console.log(`[CENTER ME] Target GPS: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`);
+    console.log(`[CENTER ME] Disabling GPS pan (liveFollowDetachedRef=true) to prevent interference with focusTarget animation`);
 
     // CRITICAL: Don't call flyTo directly! This creates competing animations with focusTarget
     // focusTarget will handle the flyTo(zoom=17) animation
@@ -198,6 +214,7 @@ export const useMapLiveLocation = (
 
     // Re-enable GPS tracking after animation window (1 second should be enough for focusTarget's 0.7s animation)
     const timer = setTimeout(() => {
+      console.log(`[CENTER ME] Re-enabling GPS pan after 1s timeout`);
       liveFollowDetachedRef.current = false;
       onLiveFollowDetachedChange(false);
     }, 1000);
@@ -217,8 +234,10 @@ export const useMapLiveLocation = (
     // - Any other mode: just apply zoom without positional offset
     if (navigationRoute && liveLocation && !liveFollowDetachedRef.current) {
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
-      console.log(`[ZOOM EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
+      console.log(`[ZOOM EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        console.log(`[ZOOM EFFECT] ✅ map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
+        logMapMovement('ZOOM_EFFECT', 'setView', adjusted.lat, adjusted.lng, clampedZoom);
         map.setView(adjusted, clampedZoom, {
           animate: true,
           duration: 0.3,
@@ -226,9 +245,11 @@ export const useMapLiveLocation = (
         } as L.ZoomPanOptions);
       } else {
         console.error(`⚠️ [REJECTED] ZOOM EFFECT invalid: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
+        logMapMovement('ZOOM_EFFECT_REJECTED', 'REJECTED', adjusted.lat, adjusted.lng, clampedZoom);
       }
     } else if (map.setZoom) {
-      console.log(`[ZOOM EFFECT] map.setZoom(${clampedZoom})`);
+      console.log(`[ZOOM EFFECT] ✅ map.setZoom(${clampedZoom})`);
+      logMapMovement('ZOOM_EFFECT', 'setZoom', map.getCenter().lat, map.getCenter().lng, clampedZoom);
       map.setZoom(clampedZoom, { animate: true } as any);
     }
   }, [navFollowZoom, navigationRoute]);
@@ -238,12 +259,16 @@ export const useMapLiveLocation = (
     if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
     const handleResize = () => {
       const zoom = map.getZoom();
+      console.log(`[RESIZE EVENT] Screen resized - recalculating marker position`);
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
-      console.log(`[RESIZE EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${zoom})`);
+      console.log(`[RESIZE EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        console.log(`[RESIZE EFFECT] ✅ map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, zoom=${zoom})`);
+        logMapMovement('RESIZE_EFFECT', 'setView', adjusted.lat, adjusted.lng, zoom);
         map.setView(adjusted, zoom, { animate: false } as L.ZoomPanOptions);
       } else {
         console.error(`⚠️ [REJECTED] RESIZE EFFECT invalid: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
+        logMapMovement('RESIZE_EFFECT_REJECTED', 'REJECTED', adjusted.lat, adjusted.lng, zoom);
       }
     };
     map.on('resize', handleResize);
