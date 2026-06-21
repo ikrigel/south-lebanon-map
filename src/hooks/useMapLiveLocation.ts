@@ -149,19 +149,31 @@ export const useMapLiveLocation = (
     const map = mapRef.current;
     if (!map || liveCenterRequestId <= 0 || !liveLocation) return;
     console.log(`[CENTER ME] Clicked - map.flyTo(lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}, zoom=15)`);
-    liveFollowDetachedRef.current = false;
-    onLiveFollowDetachedChange(false);
-    // Use FIXED zoom=15 to avoid corrupted state from map.getZoom()
-    // Don't use current zoom - map might be in error state!
+    // CRITICAL: Disable GPS tracking while CENTER ME animation runs!
+    // Otherwise GPS UPDATE EFFECT runs during animation and calls lowerThirdCenter
+    // with invalid map state, causing giant pan to wrong coordinates
+    liveFollowDetachedRef.current = true;
+    onLiveFollowDetachedChange(true);
+
     if (Math.abs(liveLocation.lat) <= 85 && Math.abs(liveLocation.lon) <= 180) {
       map.flyTo([liveLocation.lat, liveLocation.lon], 15, {
         animate: true,
         duration: 0.7,
       });
+      // Re-enable GPS tracking after animation completes
+      const handleMoveEnd = () => {
+        liveFollowDetachedRef.current = false;
+        onLiveFollowDetachedChange(false);
+        map.off('moveend', handleMoveEnd);
+      };
+      map.on('moveend', handleMoveEnd);
     } else {
       console.error(`⚠️ [REJECTED] CENTER ME coords invalid: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`);
+      // Re-enable GPS tracking if validation failed
+      liveFollowDetachedRef.current = false;
+      onLiveFollowDetachedChange(false);
     }
-  }, [liveCenterRequestId]);
+  }, [liveCenterRequestId, onLiveFollowDetachedChange]);
 
   useEffect(() => {
     const map = mapRef.current;
