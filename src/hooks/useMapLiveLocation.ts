@@ -160,11 +160,17 @@ export const useMapLiveLocation = (
     if (shouldPan) {
       const zoomLevel = navFollowZoom ?? map.getZoom();
       const clampedZoom = Math.max(zoomLevel, NAVIGATION_FOLLOW_MIN_ZOOM);
+
+      // CRITICAL: Log BEFORE calling lowerThirdCenter to see if it returns invalid coords
+      const mapCenter = map.getCenter();
+      console.log(`[GPS UPDATE EFFECT] About to call lowerThirdCenter: mapCenter=(${mapCenter.lat.toFixed(4)}, ${mapCenter.lng.toFixed(4)}), gps=(${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}), mapMoving=${isMapMovingRef.current}`);
+
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom, mapBearing);
-      console.log(`[GPS UPDATE EFFECT] map.setView(lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}, zoom=${clampedZoom})`);
+      console.log(`[GPS UPDATE EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
 
       // Validate before setting
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+        console.log(`[GPS UPDATE EFFECT] Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
         map.setView(adjusted, clampedZoom, {
           animate: true,
           duration: 0.3,
@@ -172,6 +178,7 @@ export const useMapLiveLocation = (
         } as L.ZoomPanOptions);
       } else {
         console.error(`⚠️ [REJECTED INVALID COORDS] lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} - NOT calling map.setView()`);
+        console.error(`   lowerThirdCenter returned INVALID coordinates! This is the root cause of the bug.`);
       }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
     } else if (liveFollowDetachedRef.current || isMapMovingRef.current) {
