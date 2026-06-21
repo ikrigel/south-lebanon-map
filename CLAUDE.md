@@ -1244,7 +1244,120 @@ By Impact Severity:
 - Status determined by source corroboration count
 - Disputed items clearly marked for transparency
 
-**Current Version:** v3.5.1 (2026-06-18)  
-**Latest Features:** Complete drone visualization with interactive map rendering
+---
+
+## v3.5.6: GPS Navigation Reliability Fixes
+
+**Release Date:** 2026-06-21  
+**Status:** Released ✅
+
+### Bug Fixes
+
+**CRITICAL FIX 1: Map Click-During-Animation Race Condition**
+- **Issue:** Calling map movement functions (setView/flyTo) while another animation is running would cause chaotic coordinate jumping
+- **Root Cause:** `lowerThirdCenter()` uses `map.latLngToContainerPoint()` which returns DIFFERENT coordinates frame-by-frame during animation
+- **Solution:** Track map animation state via movestart/moveend events; skip GPS pan while map is moving
+- **Code:** Added `isMapMovingRef` ref + movestart/moveend listeners
+- **Impact:** Eliminated cascading invalid coordinate updates
+
+**CRITICAL FIX 2: Eliminate Competing flyTo Animations**
+- **Issue:** CENTER ME button was calling `map.flyTo()`, then focusTarget was ALSO calling `map.flyTo()` with different zoom
+- **Root Cause:** Two competing animations would interrupt each other, map would animate from/to wrong coordinates
+- **Solution:** CENTER ME now only disables GPS tracking; focusTarget handles the ONLY animation
+- **Code:** Removed direct flyTo from CENTER ME effect; relies on focusTarget for animation
+- **Impact:** Smooth, reliable animation without conflicts
+
+**CRITICAL FIX 3: Detailed Diagnostic Logging**
+- **New Logs:** GPS UPDATE EFFECT now shows:
+  - Map center BEFORE lowerThirdCenter call
+  - Coordinates RETURNED by lowerThirdCenter
+  - Whether setView was actually called with those values
+  - Skip reason if shouldPan evaluated to false
+- **Benefit:** Future GPS issues can be diagnosed from console logs
+- **Test:** Added `identify-coordinate-jump.test.ts` for monitoring all map movement calls
+
+### Architecture Changes
+
+**New useMapLiveLocation effects:**
+```typescript
+// Track when map is animating - CRITICAL FIX
+useEffect(() => {
+  const handleMoveStart = () => {
+    isMapMovingRef.current = true;
+    console.log(`[MAP] Animation started - disabling GPS pan temporarily`);
+  };
+  const handleMoveEnd = () => {
+    isMapMovingRef.current = false;
+    console.log(`[MAP] Animation ended - GPS pan re-enabled`);
+  };
+  map.on('movestart', handleMoveStart);
+  map.on('moveend', handleMoveEnd);
+  return () => {
+    map.off('movestart', handleMoveStart);
+    map.off('moveend', handleMoveEnd);
+  };
+}, []);
+
+// Skip GPS pan while map is moving
+const shouldPan = 
+  !liveFollowDetachedRef.current &&
+  !isMapMovingRef.current &&  // ← NEW
+  (other conditions);
+```
+
+**Enhanced GPS UPDATE EFFECT logging:**
+```typescript
+const mapCenter = map.getCenter();
+console.log(`[GPS UPDATE EFFECT] About to call lowerThirdCenter...`);
+const adjusted = lowerThirdCenter(map, ...);
+console.log(`[GPS UPDATE EFFECT] lowerThirdCenter returned: ${adjusted.lat}, ${adjusted.lng}`);
+if (valid) {
+  console.log(`[GPS UPDATE EFFECT] Calling map.setView(...)`);
+  map.setView(adjusted, ...);
+} else {
+  console.error(`⚠️ [REJECTED INVALID COORDS] ...`);
+}
+```
+
+### What's Fixed
+
+✅ **CENTER ME button** — Centers reliably on GPS, stays at location, no automatic jumps  
+✅ **Map animations** — Smooth transitions without interference from GPS tracking  
+✅ **Coordinate validation** — lowerThirdCenter validates output before use  
+✅ **Animation state** — System properly tracks when map is moving vs static  
+✅ **Competing animations** — No more multiple flyTo/setView calls fighting each other  
+✅ **Debugging capability** — Detailed console logs help diagnose any future issues  
+
+### Test Coverage
+
+- **492 tests passing** (no regressions)
+- Added `identify-coordinate-jump.test.ts` (3 tests) for:
+  - Detecting invalid coordinate calls
+  - Monitoring behavior after reaching destination
+  - Verifying no invalid intermediate states
+
+### User Impact
+
+**Before v3.5.6:**
+- Click CENTER ME → map goes to GPS but then jumps 5000+ km away
+- Happens repeatedly, unpredictably
+- Console logs didn't help identify source
+
+**After v3.5.6:**
+- Click CENTER ME → map animates smoothly to GPS location
+- Map STAYS at correct location
+- No automatic jumps
+- If issue occurs, detailed logs show exactly which function caused it
+
+### Commits
+
+- `78b713a` — Final FIX: Remove competing flyTo calls - let focusTarget handle animation
+- `15db5e5` — CRITICAL FIX: Don't call lowerThirdCenter while map is animating
+- `0227e16` — Add detailed logging to identify lowerThirdCenter invalid coordinate source
+
+---
+
+**Current Version:** v3.5.6 (2026-06-21)  
+**Latest Features:** GPS navigation reliability fixes, comprehensive diagnostic logging
 **Updated:** June 2026  
 **Maintainer:** ikrigel
