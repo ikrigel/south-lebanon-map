@@ -179,8 +179,13 @@ export const useMapLiveLocation = (
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
       console.log(`[GPS UPDATE EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
 
+      // CRITICAL: Sanity check - if lowerThirdCenter returned values that are WILDLY far from the GPS location,
+      // it means the projection math broke (likely during Leaflet animation recovery)
+      const distFromGps = Math.abs(adjusted.lat - liveLocation.lat) + Math.abs(adjusted.lng - liveLocation.lon);
+      const isSane = distFromGps < 2.0; // If more than ~2 degrees away, something is broken
+
       // Validate before setting
-      if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180) {
+      if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180 && isSane) {
         console.log(`[GPS UPDATE EFFECT] ✅ Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
         logMapMovement('GPS_UPDATE_EFFECT', 'setView', adjusted.lat, adjusted.lng, clampedZoom);
         map.setView(adjusted, clampedZoom, {
@@ -189,8 +194,10 @@ export const useMapLiveLocation = (
           easeLinearity: 1.0,
         } as L.ZoomPanOptions);
       } else {
-        console.error(`⚠️ [REJECTED INVALID COORDS] lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} - NOT calling map.setView()`);
-        console.error(`   lowerThirdCenter returned INVALID coordinates! This is the root cause of the bug.`);
+        const reason = !isSane
+          ? `returned value (${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}) is ${distFromGps.toFixed(2)}° away from GPS (${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}) - Leaflet projection likely unstable`
+          : `lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} out of bounds`;
+        console.error(`⚠️ [REJECTED INVALID COORDS] ${reason} - NOT calling map.setView()`);
         logMapMovement('GPS_UPDATE_EFFECT_REJECTED', 'REJECTED', adjusted.lat, adjusted.lng, clampedZoom);
       }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
@@ -212,12 +219,14 @@ export const useMapLiveLocation = (
     liveFollowDetachedRef.current = true;
     onLiveFollowDetachedChange(true);
 
-    // Re-enable GPS tracking after animation window (1 second should be enough for focusTarget's 0.7s animation)
+    // CRITICAL BUG FIX: lowerThirdCenter's projection/unproject math fails right after Leaflet animations
+    // The map's projection state is unstable immediately after flyTo completes.
+    // Wait 2+ seconds to let Leaflet's internal animation state fully settle
     const timer = setTimeout(() => {
-      console.log(`[CENTER ME] Re-enabling GPS pan after 1s timeout`);
+      console.log(`[CENTER ME] Re-enabling GPS pan after 2s timeout (giving Leaflet projection time to stabilize)`);
       liveFollowDetachedRef.current = false;
       onLiveFollowDetachedChange(false);
-    }, 1000);
+    }, 2000);  // Increased from 1000ms to 2000ms
 
     return () => clearTimeout(timer);
   }, [liveCenterRequestId, onLiveFollowDetachedChange]);
