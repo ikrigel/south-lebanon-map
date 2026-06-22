@@ -234,14 +234,18 @@ export const useMapLiveLocation = (
     liveFollowDetachedRef.current = true;
     onLiveFollowDetachedChange(true);
 
-    // CRITICAL BUG FIX: lowerThirdCenter's projection/unproject math fails right after Leaflet animations
-    // The map's projection state is unstable immediately after flyTo completes.
-    // Wait 2+ seconds to let Leaflet's internal animation state fully settle
+    // CRITICAL BUG FIX: Coordinate with moveend's 2.5s projection stabilization delay
+    // Timeline:
+    // - moveend fires → starts 2.5s isMapMovingRef=true delay
+    // - CENTER ME timeout at 3s → sets liveFollowDetachedRef=false
+    // - Result: GPS UPDATE EFFECT can only run AFTER 2.5s when isMapMovingRef resets
+    // If we re-enabled at 2s (before moveend's 2.5s completes), GPS UPDATE EFFECT would run
+    // while projection is still unstable, causing the 5000km jump
     const timer = setTimeout(() => {
-      console.log(`[CENTER ME] Re-enabling GPS pan after 2s timeout (giving Leaflet projection time to stabilize)`);
+      console.log(`[CENTER ME] Re-enabling GPS pan after 3s timeout (AFTER moveend projection stabilization)`);
       liveFollowDetachedRef.current = false;
       onLiveFollowDetachedChange(false);
-    }, 2000);  // Increased from 1000ms to 2000ms
+    }, 3000);  // MUST be > moveend's 2.5s delay
 
     return () => clearTimeout(timer);
   }, [liveCenterRequestId, onLiveFollowDetachedChange]);
