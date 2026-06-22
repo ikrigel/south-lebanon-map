@@ -117,15 +117,18 @@ export const useMapLiveLocation = (
     };
 
     const handleMoveEnd = () => {
-      console.log(`[MAP] Animation ended - starting 1s projection stabilization delay`);
+      console.log(`[MAP] Animation ended - starting 2.5s projection stabilization delay`);
       // CRITICAL: Don't set isMapMovingRef=false immediately!
-      // Leaflet's projection is still unstable for ~1s after moveend
+      // Leaflet's projection is unstable for ~1-2s after moveend
       // Setting it to false would allow lowerThirdCenter to run with corrupt projection values
-      // Keep it true for 1000ms to let Leaflet fully settle
+      // IMPORTANT: CENTER ME effect also has a 2s timeout to re-enable GPS tracking
+      // We MUST keep isMapMovingRef=true for longer (2.5s) so that when CENTER ME re-enables
+      // GPS tracking at 2s, the projection is ALREADY stable
+      // This prevents the race condition where lowerThirdCenter gets called during projection instability
       moveEndTimeoutRef = setTimeout(() => {
         isMapMovingRef.current = false;
-        console.log(`[MAP] Projection stabilized - GPS pan re-enabled after 1s delay`);
-      }, 1000);
+        console.log(`[MAP] Projection stabilized - GPS pan re-enabled after 2.5s delay`);
+      }, 2500);
     };
 
     map.on('movestart', handleMoveStart);
