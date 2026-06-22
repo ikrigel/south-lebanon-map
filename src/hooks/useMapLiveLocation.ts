@@ -109,7 +109,7 @@ export const useMapLiveLocation = (
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    let moveEndTimeoutRef: NodeJS.Timeout | undefined;
+    let moveEndTimeoutRef: ReturnType<typeof setTimeout> | undefined;
 
     const handleMoveStart = () => {
       isMapMovingRef.current = true;
