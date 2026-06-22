@@ -117,18 +117,28 @@ export const useMapLiveLocation = (
     };
 
     const handleMoveEnd = () => {
-      console.log(`[MAP] Animation ended - starting 2.5s projection stabilization delay`);
-      // CRITICAL: Don't set isMapMovingRef=false immediately!
-      // Leaflet's projection is unstable for ~1-2s after moveend
-      // Setting it to false would allow lowerThirdCenter to run with corrupt projection values
-      // IMPORTANT: CENTER ME effect also has a 2s timeout to re-enable GPS tracking
-      // We MUST keep isMapMovingRef=true for longer (2.5s) so that when CENTER ME re-enables
-      // GPS tracking at 2s, the projection is ALREADY stable
-      // This prevents the race condition where lowerThirdCenter gets called during projection instability
+      console.log(`[MAP] Animation ended - starting stabilization delay (2.5s projection + 3.5s GPS pan)`);
+      // CRITICAL: Coordinate BOTH animation flags from the SAME handler to prevent race conditions
+      // Timeline:
+      // 0-2.5s: isMapMovingRef=true (Leaflet projection stabilizing)
+      // 0-3.5s: liveFollowDetachedRef=true (GPS tracking disabled during CENTER ME animation)
+      // 2.5s: Reset isMapMovingRef → allows lowerThirdCenter to run
+      // 3.5s: Reset liveFollowDetachedRef → allows GPS UPDATE EFFECT to run
+      // Result: By the time GPS pan re-enables, projection is DEFINITELY stable AND no concurrent animations
       moveEndTimeoutRef = setTimeout(() => {
         isMapMovingRef.current = false;
-        console.log(`[MAP] Projection stabilized - GPS pan re-enabled after 2.5s delay`);
+        console.log(`[MAP] Projection stabilized after 2.5s`);
       }, 2500);
+
+      // CRITICAL: Also reset liveFollowDetachedRef here (not in CENTER ME effect!)
+      // This ensures GPS tracking doesn't resume until projection is fully stable
+      setTimeout(() => {
+        if (liveFollowDetachedRef.current) {
+          liveFollowDetachedRef.current = false;
+          onLiveFollowDetachedChange(false);
+          console.log(`[MAP] GPS pan re-enabled after 3.5s (moveend stabilization complete)`);
+        }
+      }, 3500);
     };
 
     map.on('movestart', handleMoveStart);
@@ -234,20 +244,11 @@ export const useMapLiveLocation = (
     liveFollowDetachedRef.current = true;
     onLiveFollowDetachedChange(true);
 
-    // CRITICAL BUG FIX: Coordinate with moveend's 2.5s projection stabilization delay
-    // Timeline:
-    // - moveend fires → starts 2.5s isMapMovingRef=true delay
-    // - CENTER ME timeout at 3s → sets liveFollowDetachedRef=false
-    // - Result: GPS UPDATE EFFECT can only run AFTER 2.5s when isMapMovingRef resets
-    // If we re-enabled at 2s (before moveend's 2.5s completes), GPS UPDATE EFFECT would run
-    // while projection is still unstable, causing the 5000km jump
-    const timer = setTimeout(() => {
-      console.log(`[CENTER ME] Re-enabling GPS pan after 3s timeout (AFTER moveend projection stabilization)`);
-      liveFollowDetachedRef.current = false;
-      onLiveFollowDetachedChange(false);
-    }, 3000);  // MUST be > moveend's 2.5s delay
+    // NOTE: GPS pan will be re-enabled by moveend handler's 3.5s timeout, not by this effect!
+    // This ensures both animation flags are managed by the same handler, preventing race conditions
+    // The moveend handler is the authoritative source for when animation recovery is complete
 
-    return () => clearTimeout(timer);
+    return () => {};
   }, [liveCenterRequestId, onLiveFollowDetachedChange]);
 
   useEffect(() => {
