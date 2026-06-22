@@ -61,6 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
+            <strong>🔧 Version:</strong> 3.5.7 (Race Condition Fix)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
