@@ -103,9 +103,13 @@ export const useMapLiveLocation = (
 
   // Track when map is animating - CRITICAL FIX
   // Never call lowerThirdCenter while map.isMoving() is true
+  // CRITICAL BUG FIX: Leaflet's projection is unstable for ~1s after animation completes
+  // If we call lowerThirdCenter too soon, latLngToContainerPoint returns garbage
+  // Solution: Keep isMapMovingRef=true for 1s after moveend to give projection time to stabilize
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    let moveEndTimeoutRef: NodeJS.Timeout | undefined;
 
     const handleMoveStart = () => {
       isMapMovingRef.current = true;
@@ -113,8 +117,15 @@ export const useMapLiveLocation = (
     };
 
     const handleMoveEnd = () => {
-      isMapMovingRef.current = false;
-      console.log(`[MAP] Animation ended - GPS pan re-enabled`);
+      console.log(`[MAP] Animation ended - starting 1s projection stabilization delay`);
+      // CRITICAL: Don't set isMapMovingRef=false immediately!
+      // Leaflet's projection is still unstable for ~1s after moveend
+      // Setting it to false would allow lowerThirdCenter to run with corrupt projection values
+      // Keep it true for 1000ms to let Leaflet fully settle
+      moveEndTimeoutRef = setTimeout(() => {
+        isMapMovingRef.current = false;
+        console.log(`[MAP] Projection stabilized - GPS pan re-enabled after 1s delay`);
+      }, 1000);
     };
 
     map.on('movestart', handleMoveStart);
@@ -122,6 +133,7 @@ export const useMapLiveLocation = (
     return () => {
       map.off('movestart', handleMoveStart);
       map.off('moveend', handleMoveEnd);
+      if (moveEndTimeoutRef) clearTimeout(moveEndTimeoutRef);
     };
   }, []);
 
