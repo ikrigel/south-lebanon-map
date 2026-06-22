@@ -285,6 +285,17 @@ export const useMapLiveLocation = (
         console.log(`[RESIZE EVENT] Skipped: GPS pan is detached (CENTER ME active or recovery in progress)`);
         return;
       }
+
+      // CRITICAL: Validate map is at a reasonable location before calling lowerThirdCenter
+      // If map is at wrong coordinates (e.g., lat=-73, lon=250), latLngToContainerPoint returns garbage
+      // This happens when earlier animations jumped to wrong coords
+      const mapCenter = map.getCenter();
+      const mapIsAtWrongLocation = Math.abs(mapCenter.lat) > 85 || Math.abs(mapCenter.lng) > 180;
+      if (mapIsAtWrongLocation) {
+        console.log(`[RESIZE EVENT] Skipped: Map is at invalid location (lat=${mapCenter.lat.toFixed(4)}, lon=${mapCenter.lng.toFixed(4)}) - cannot safely call lowerThirdCenter`);
+        return;
+      }
+
       const zoom = map.getZoom();
       console.log(`[RESIZE EVENT] Screen resized - recalculating marker position`);
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
