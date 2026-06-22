@@ -247,6 +247,14 @@ export const useMapLiveLocation = (
     const map = mapRef.current;
     if (!map) return;
     if (navFollowZoom === undefined || navFollowZoom === lastAppliedZoomRef.current) return;
+
+    // CRITICAL: Skip zoom effect if GPS pan is detached (CENTER ME recovery in progress)
+    // Calling lowerThirdCenter during detached state can calculate pan with wrong projection
+    if (liveFollowDetachedRef.current) {
+      console.log(`[ZOOM EFFECT] Skipped: GPS pan is detached (CENTER ME active or recovery in progress)`);
+      return;
+    }
+
     lastAppliedZoomRef.current = navFollowZoom;
     const clampedZoom = Math.max(navFollowZoom, NAVIGATION_FOLLOW_MIN_ZOOM);
 

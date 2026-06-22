@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 3.5.11 (MAP LOCATION VALIDATION)<br/>
+            <strong>🔧 Version:</strong> 3.5.12 (ZOOM EFFECT DETACH CHECK)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
