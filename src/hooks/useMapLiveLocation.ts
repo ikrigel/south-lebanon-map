@@ -279,6 +279,12 @@ export const useMapLiveLocation = (
     const map = mapRef.current;
     if (!map || !navigationRoute || !liveLocation || liveFollowDetachedRef.current) return;
     const handleResize = () => {
+      // CRITICAL: Check detached state at RUNTIME, not just at effect setup time
+      // CENTER ME can enable/disable GPS pan mid-session, and resize events can fire after that change
+      if (liveFollowDetachedRef.current) {
+        console.log(`[RESIZE EVENT] Skipped: GPS pan is detached (CENTER ME active or recovery in progress)`);
+        return;
+      }
       const zoom = map.getZoom();
       console.log(`[RESIZE EVENT] Screen resized - recalculating marker position`);
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, zoom);
