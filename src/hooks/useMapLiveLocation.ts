@@ -169,6 +169,13 @@ export const useMapLiveLocation = (
     const minPan = 100; // ms
     const minDist = navigationRoute ? 15 : 300; // 15m during nav for smooth tracking
 
+    // CRITICAL: Only pan if we're in ACTIVE NAVIGATION mode
+    // Don't call lowerThirdCenter during app init or when navigation not started
+    if (!navigationRoute) {
+      console.log(`[GPS UPDATE EFFECT] Skipped: no active navigation route`);
+      return;
+    }
+
     // CRITICAL FIX: Don't pan while map is animating!
     // lowerThirdCenter uses latLngToContainerPoint which is unreliable during animations
     const shouldPan =
