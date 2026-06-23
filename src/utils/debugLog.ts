@@ -179,7 +179,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  🔧 Version: 3.5.13 (ACTIVE NAV ONLY)                               ║
+║  🔧 Version: 3.5.14 (DETAILED TRACE)                                 ║
 ║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║

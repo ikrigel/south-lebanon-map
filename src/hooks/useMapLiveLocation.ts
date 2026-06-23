@@ -10,13 +10,14 @@ import { useMarkerRepositioning } from './useMarkerRepositioning';
 // CRITICAL: Only call this when map is NOT animating (moveend state)
 function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L.LatLng {
   const size = map.getSize();
+  const mapCenter = map.getCenter();
+  const mapBounds = map.getBounds();
+
+  console.log(`[lowerThirdCenter ENTRY] GPS(${lat.toFixed(4)},${lon.toFixed(4)}) mapCenter(${mapCenter.lat.toFixed(4)},${mapCenter.lng.toFixed(4)}) mapBounds(${mapBounds.getSouthWest().lat.toFixed(1)},${mapBounds.getNorthEast().lat.toFixed(1)}) zoom=${zoom} size=${size.x}x${size.y}`);
 
   // Target position: GPS marker should appear at center X, but 2/3 down on Y
   const targetScreenX = size.x / 2;
   const targetScreenY = size.y * (2 / 3);
-
-  // Get current map center
-  const center = map.getCenter();
 
   // CRITICAL BUG FIX: latLngToContainerPoint is unreliable during map animations
   // because the map's internal projection state is changing frame-by-frame
@@ -25,32 +26,36 @@ function lowerThirdCenter(map: L.Map, lat: number, lon: number, zoom: number): L
   const panX = gpsScreenPos.x - targetScreenX;
   const panY = gpsScreenPos.y - targetScreenY;
 
+  console.log(`[lowerThirdCenter PROJ] gpsScreenPos(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}) targetScreen(${targetScreenX.toFixed(0)},${targetScreenY.toFixed(0)}) panDelta(${panX.toFixed(0)},${panY.toFixed(0)})`);
+
   // DEBUG: Log projection steps
-  const projectedCenter = map.project(center, zoom);
+  const projectedCenter = map.project(mapCenter, zoom);
   const panPoint = projectedCenter.add(L.point(panX, panY));
   const newCenter = map.unproject(panPoint, zoom);
 
-  console.log(`[NAV] GPS ${lat.toFixed(4)},${lon.toFixed(4)} at screen(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}) → pan(${panX.toFixed(0)},${panY.toFixed(0)}) → center${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
+  console.log(`[lowerThirdCenter CALC] projected(${projectedCenter.x.toFixed(0)},${projectedCenter.y.toFixed(0)}) panPoint(${panPoint.x.toFixed(0)},${panPoint.y.toFixed(0)}) result(${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)})`);
 
   // VALIDATE: Check if result is crazy far away
   if (Math.abs(newCenter.lat) > 85 || Math.abs(newCenter.lng) > 180) {
-    console.error(`⚠️ [INVALID lowerThirdCenter] INPUT: lat=${lat.toFixed(4)}, lon=${lon.toFixed(4)}, zoom=${zoom}`);
-    console.error(`   mapCenter=${center.lat.toFixed(4)},${center.lng.toFixed(4)} → projected=${projectedCenter.x.toFixed(0)},${projectedCenter.y.toFixed(0)} → panPoint=${panPoint.x.toFixed(0)},${panPoint.y.toFixed(0)} → RESULT=${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)}`);
-    console.error(`   mapSize=${size.x}x${size.y}, targetScreen=${targetScreenX.toFixed(0)},${targetScreenY.toFixed(0)}, gpsScreen=${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)}`);
+    console.error(`⚠️ [INVALID lowerThirdCenter] RETURNING FALLBACK GPS(${lat.toFixed(4)},${lon.toFixed(4)}) because result out of bounds`);
+    console.error(`   mapCenter=${mapCenter.lat.toFixed(4)},${mapCenter.lng.toFixed(4)} mapBounds=(${mapBounds.getSouthWest().lat.toFixed(1)}-${mapBounds.getNorthEast().lat.toFixed(1)})`);
+    console.error(`   badResult=${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)} gpsScreen(${gpsScreenPos.x.toFixed(0)},${gpsScreenPos.y.toFixed(0)})`);
     return L.latLng(lat, lon);
   }
 
+  console.log(`[lowerThirdCenter EXIT] returning (${newCenter.lat.toFixed(4)},${newCenter.lng.toFixed(4)})`);
   return newCenter;
 }
 
-// Helper: Log all setView calls with context
+// Helper: Log all setView calls with context and full stack trace
 function logMapMovement(source: string, method: string, lat: number, lon: number, zoom?: number) {
   const isValid = Math.abs(lat) <= 85 && Math.abs(lon) <= 180;
   const status = isValid ? '✅' : '❌ INVALID';
-  const trace = new Error().stack?.split('\n')[2]?.trim() || 'unknown';
+  const stack = new Error().stack?.split('\n').slice(2, 5).map(s => s.trim()).join(' → ') || 'unknown';
   console.log(`[MAP_MOVE] ${status} ${source} → ${method}(${lat.toFixed(4)}, ${lon.toFixed(4)}${zoom ? `, zoom=${zoom}` : ''})`);
+  console.log(`[MAP_MOVE_STACK] ${stack}`);
   if (!isValid) {
-    console.error(`   ⚠️  INVALID COORDS DETECTED! Called from: ${trace}`);
+    console.error(`   ⚠️  INVALID COORDS! Stack: ${stack}`);
   }
 }
 
@@ -191,10 +196,11 @@ export const useMapLiveLocation = (
 
       // CRITICAL: Log BEFORE calling lowerThirdCenter to see if it returns invalid coords
       const mapCenter = map.getCenter();
-      console.log(`[GPS UPDATE EFFECT] About to call lowerThirdCenter: mapCenter=(${mapCenter.lat.toFixed(4)}, ${mapCenter.lng.toFixed(4)}), gps=(${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}), mapMoving=${isMapMovingRef.current}`);
+      console.log(`[GPS UPDATE EFFECT BEFORE] navigationRoute=${!!navigationRoute} detached=${liveFollowDetachedRef.current} moving=${isMapMovingRef.current} mapCenter=(${mapCenter.lat.toFixed(4)}, ${mapCenter.lng.toFixed(4)})`);
+      console.log(`[GPS UPDATE EFFECT BEFORE] gps=(${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}) zoom=${clampedZoom}`);
 
       const adjusted = lowerThirdCenter(map, liveLocation.lat, liveLocation.lon, clampedZoom);
-      console.log(`[GPS UPDATE EFFECT] lowerThirdCenter returned: lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)}`);
+      console.log(`[GPS UPDATE EFFECT RESULT] lowerThirdCenter returned: (${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)})`);
 
       // CRITICAL: Sanity check - if lowerThirdCenter returned values that are WILDLY far from the GPS location,
       // it means the projection math broke (likely during Leaflet animation recovery)
@@ -203,23 +209,24 @@ export const useMapLiveLocation = (
 
       // Validate before setting
       if (Math.abs(adjusted.lat) <= 85 && Math.abs(adjusted.lng) <= 180 && isSane) {
-        console.log(`[GPS UPDATE EFFECT] ✅ Calling map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
+        console.log(`[GPS UPDATE EFFECT CALLING] map.setView(${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}, ${clampedZoom})`);
         logMapMovement('GPS_UPDATE_EFFECT', 'setView', adjusted.lat, adjusted.lng, clampedZoom);
         map.setView(adjusted, clampedZoom, {
           animate: true,
           duration: 0.3,
           easeLinearity: 1.0,
         } as L.ZoomPanOptions);
+        console.log(`[GPS UPDATE EFFECT DONE] setView call completed`);
       } else {
         const reason = !isSane
-          ? `returned value (${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}) is ${distFromGps.toFixed(2)}° away from GPS (${liveLocation.lat.toFixed(4)}, ${liveLocation.lon.toFixed(4)}) - Leaflet projection likely unstable`
-          : `lat=${adjusted.lat.toFixed(4)}, lon=${adjusted.lng.toFixed(4)} out of bounds`;
-        console.error(`⚠️ [REJECTED INVALID COORDS] ${reason} - NOT calling map.setView()`);
+          ? `returned (${adjusted.lat.toFixed(4)}, ${adjusted.lng.toFixed(4)}) is ${distFromGps.toFixed(2)}° from GPS - projection unstable`
+          : `out of bounds`;
+        console.error(`⚠️ [GPS UPDATE EFFECT REJECTED] ${reason}`);
         logMapMovement('GPS_UPDATE_EFFECT_REJECTED', 'REJECTED', adjusted.lat, adjusted.lng, clampedZoom);
       }
       lastLiveFollowRef.current = { lat: liveLocation.lat, lon: liveLocation.lon, at: now };
-    } else if (liveFollowDetachedRef.current || isMapMovingRef.current) {
-      console.log(`[GPS UPDATE EFFECT] Skipped: detached=${liveFollowDetachedRef.current}, mapMoving=${isMapMovingRef.current}`);
+    } else {
+      console.log(`[GPS UPDATE EFFECT SKIPPED] navRoute=${!!navigationRoute} detached=${liveFollowDetachedRef.current} moving=${isMapMovingRef.current}`);
     }
   }, [liveLocation, navigationRoute, mapBearing, navFollowZoom, navLabels]);
 
