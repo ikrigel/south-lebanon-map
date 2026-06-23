@@ -181,6 +181,18 @@ export const useMapLiveLocation = (
       return;
     }
 
+    // CRITICAL: Check if GPS location is STALE (too far from current map center)
+    // This happens when CENTER ME re-enables GPS pan but GPS hasn't updated with new location yet
+    // Stale GPS + fresh map center = huge pan calculation = 5000km jump
+    const mapCenter = map.getCenter();
+    const gpsDistance = Math.abs(liveLocation.lat - mapCenter.lat) + Math.abs(liveLocation.lon - mapCenter.lng);
+    const isStaleGps = gpsDistance > 10; // If GPS is >10° away from map center, it's definitely stale
+
+    if (isStaleGps) {
+      console.log(`[GPS UPDATE EFFECT] Skipped: GPS too far from map center (${gpsDistance.toFixed(2)}°) - likely stale location`);
+      return;
+    }
+
     // CRITICAL FIX: Don't pan while map is animating!
     // lowerThirdCenter uses latLngToContainerPoint which is unreliable during animations
     const shouldPan =
