@@ -179,7 +179,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  🔧 Version: 4.0.0 (MINIMAL - GPS PAN REMOVED)                       ║
+║  🔧 Version: 4.0.1 (SNAPSHOT VALIDATION FIX)                          ║
 ║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║

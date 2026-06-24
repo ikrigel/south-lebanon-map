@@ -72,7 +72,16 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       // getCenter(), so we snapshot here while the layout is still stable.
       const map = mapRef.current;
       if (!map) return;
-      savedViewRef.current = { center: map.getCenter(), zoom: map.getZoom() };
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      // CRITICAL: Only save VALID coordinates. If map is at wrong location, don't update snapshot
+      // This prevents cascading corruption where invalid coords get saved and restored
+      if (Math.abs(center.lat) <= 85 && Math.abs(center.lng) <= 180) {
+        console.log(`[snapshotCenter] ✅ Saving valid location: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+        savedViewRef.current = { center, zoom };
+      } else {
+        console.error(`⚠️ [snapshotCenter] INVALID location, NOT saving: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+      }
     },
     invalidateSize: () => {
       // App.tsx already waited double-rAF so the CSS grid is applied.
@@ -92,8 +101,20 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       const map = mapRef.current;
       if (!map) return;
       const saved = savedViewRef.current;
-      const center = saved ? saved.center : map.getCenter();
       const zoom = map.getZoom(); // invalidateSize never changes zoom
+
+      // CRITICAL: Only use saved center if it's VALID
+      // If snapshotCenter() saved invalid coords, use current map center instead
+      let center = map.getCenter();
+      if (saved && Math.abs(saved.center.lat) <= 85 && Math.abs(saved.center.lng) <= 180) {
+        center = saved.center;
+        console.log(`[Map.invalidateSize] Using saved location: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+      } else if (!saved) {
+        console.log(`[Map.invalidateSize] No saved location, using current: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+      } else {
+        console.error(`⚠️ [Map.invalidateSize] Saved location invalid, using current: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)}`);
+      }
+
       map.invalidateSize({ animate: false, pan: false });
       // setView recalculates _pixelOrigin for the new container size,
       // anchoring it on the saved geo-center without changing zoom.
@@ -101,7 +122,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       if (Math.abs(center.lat) <= 85 && Math.abs(center.lng) <= 180) {
         map.setView(center, zoom, { animate: false, noMoveStart: true } as L.ZoomPanOptions);
       } else {
-        console.error(`⚠️ [Map.invalidateSize] INVALID coords detected: lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)} - NOT setting view`);
+        console.error(`⚠️ [Map.invalidateSize] FINAL CHECK: coords still invalid! lat=${center.lat.toFixed(4)}, lon=${center.lng.toFixed(4)} - NOT setting view`);
       }
     },
   }), [mapRef, savedViewRef]);
