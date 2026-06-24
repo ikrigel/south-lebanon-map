@@ -1,6 +1,12 @@
 # Coreset Camera Calibration - Academic Paper
 
-Hebrew academic paper on Phase 3 implementation of Coreset algorithms for camera calibration.
+Hebrew academic paper on **Phase 3** implementation of Coreset algorithms for camera calibration.
+
+## 📍 Complete Vision
+
+**Phase 2: Camera-to-Map Localization** — User points camera at distant object → System calculates GPS location → Pin drops on map
+
+**Phase 3: Camera Calibration** — Improve distance accuracy ±10% with Coreset-based camera intrinsic calibration
 
 ## Content
 

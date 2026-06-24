@@ -22,6 +22,9 @@ export default function Home() {
             <Link href="/algorithms" className="btn btn-secondary">
               🧮 Algorithms
             </Link>
+            <Link href="/phase2" className="btn btn-secondary">
+              📷 Phase 2
+            </Link>
             <Link href="/testing" className="btn btn-secondary">
               ✅ Testing Plan
             </Link>

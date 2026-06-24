@@ -1521,8 +1521,162 @@ useEffect(() => {
 
 ---
 
+---
+
+## Phase 2: Camera-to-Map Localization (Planned)
+
+**Goal:** User points camera at object in distance → System calculates GPS location → Pin drops on map
+
+### Feature Overview
+
+Users can:
+1. **Open camera view** (📷 button in header)
+2. **Point at any distant object** (building, vehicle, terrain feature, person, aircraft)
+3. **System detects object type** using YOLOv8n (offline ONNX model)
+4. **System calculates GPS coordinates** where camera is pointing:
+   - Current device position (GPS)
+   - Device heading/bearing (compass)
+   - Object distance (focal length + object height formula)
+   - Object screen position (camera projection)
+5. **Creates map pin** at calculated location
+6. **User can save as POI, navigate, or share**
+
+### Detection Range: Unlimited
+
+- **Person:** 200-500m (2MP+ camera)
+- **Vehicle:** 1-5km (standard phone)
+- **Building/Tower:** 5-20km (depending on size)
+- **Terrain (ridges, peaks):** 20-50km (large landscape features)
+- **Aircraft:** 5-15km+ (if visible to camera)
+
+No software range cap — optical resolution of device camera is the only limit.
+
+### Implementation Architecture
+
+**Phase 2 Modules:**
+- `useCameraStream.ts` — getUserMedia wrapper, video/canvas refs
+- `useObjectDetection.ts` — YOLOv8n ONNX inference, real-time detection (~5 FPS)
+- `useObjectLocalization.ts` — GPS coordinate calculation (unlimited range)
+- `ObjectDetectionOverlay.tsx` — Canvas overlay with detection boxes + labels
+- `CameraDetectView.tsx` — Full-screen camera UI with detection list, editing, save options
+- `CameraButton.tsx` — Header button to launch camera
+- `cocoCategories.ts` — COCO class → Hebrew category mapping with known heights
+
+**Data Flow:**
+```
+Camera frame
+    ↓
+YOLOv8n detection (ONNX)
+    ↓
+User selects/confirms object
+    ↓
+useObjectLocalization calculates GPS
+    ↓
+usePoiManagement creates local POI
+    ↓
+Pin drops on map
+    ↓
+User navigates or saves
+```
+
+### Key Formula: Distance Estimation
+
+```
+distance = (knownHeightM × focalLengthPixels) / objectHeightPixels
+
+Where:
+- knownHeightM = typical height of detected object (e.g., person=1.7m, building=15m)
+- focalLengthPixels = camera K matrix[0][0] from calibration (or default from FOV)
+- objectHeightPixels = bounding box height in pixels
+```
+
+### Terrain Cross-Reference
+
+If `terrainFeatures[]` (from geo.ts) is within ±5° of compass bearing:
+- Suggest known terrain distance automatically
+- User can confirm or override with manual slider
+
+### Integration with Phase 3 (Calibration)
+
+- Phase 3 computes K matrix (camera intrinsics)
+- K matrix focal length feeds into distance formula
+- Without Phase 3: Uses default FOV-based focal length
+- With Phase 3: ±10% more accurate localization
+
+### Layer Toggle
+
+New layer in map controls: "זיהוי מצלמה" (Camera Detection)
+- Toggle on/off visibility of camera-detected pins
+- Show/hide confidence scores
+- Filter by object type
+
+### UI Components
+
+**CameraDetectView:**
+- Full-screen camera stream with ObjectDetectionOverlay
+- Real-time 5 FPS detection
+- Bottom sheet: list of all detected objects + bounding boxes
+- Tap detection → side panel with:
+  - Object label (editable, Hebrew)
+  - Category dropdown (people / vehicles / buildings / aircraft / terrain / other)
+  - Known height input (pre-filled or manual)
+  - Distance slider (0.01km - 100km logarithmic, no upper cap)
+  - Terrain cross-reference chip (if applicable)
+  - Photo button (snap frame to base64 JPEG)
+  - Save radio: "מקומי" (local) / "ענן" (cloud) / "שניהם" (both)
+
+### localStorage Schema
+
+```typescript
+// Extend CustomPoi in src/types.ts:
+interface CustomPoi {
+  // ... existing fields ...
+  photo?: string;              // base64 JPEG from camera
+  detectedLabel?: string;      // AI-detected label (before user edit)
+  confidence?: number;         // YOLO confidence 0-1
+  distanceM?: number;          // calculated distance
+  source?: 'camera' | 'manual'; // how created
+}
+```
+
+### Performance
+
+- ONNX model: ~6.3MB (cached by service worker)
+- Detection: ~200ms per frame (5 FPS on mobile)
+- Localization: <10ms per calculation
+- No internet required (full offline)
+
+### Test Plan (Phase 2)
+
+**Unit Tests (20+):**
+- Object detection accuracy (YOLO confidence filtering)
+- Distance calculation (focal length formula)
+- Bearing calculation (compass integration)
+- GPS offset computation (Haversine variant)
+- Terrain cross-reference matching
+
+**E2E Tests (Playwright, 15+):**
+- Open camera, detect objects
+- Confirm/edit detection
+- Save as POI (local + cloud)
+- Pin appears on map
+- Navigation from pin
+- Offline mode verification
+
+### Success Criteria
+
+✅ Detect objects at 2-50km distances  
+✅ GPS accuracy within 100m  
+✅ Real-time detection at 5 FPS  
+✅ 100% offline capability  
+✅ All 35 E2E tests passing  
+✅ Mobile responsive (portrait + landscape)
+
+---
+
 **Current Version:** v4.2.0 (2026-06-24)  
 **Latest Features:** Waze-style arrow marker + zoom fixes
+**Planned Phase 2:** Camera-to-Map Localization (unlimited range)
 **Status:** Stable ✅ - All navigation functions working correctly
 **Updated:** June 2026  
 **Maintainer:** ikrigel

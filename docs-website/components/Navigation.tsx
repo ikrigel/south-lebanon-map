@@ -24,6 +24,9 @@ export default function Navigation() {
         <Link href="/timeline" className={`nav-link ${isActive('/timeline') ? 'active' : ''}`}>
           📅 Timeline
         </Link>
+        <Link href="/phase2" className={`nav-link ${isActive('/phase2') ? 'active' : ''}`}>
+          📷 Phase 2
+        </Link>
         <a
           href="https://github.com/ikrigel/south-lebanon-map"
           target="_blank"
