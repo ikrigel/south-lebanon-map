@@ -187,6 +187,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     const map = mapRef.current;
     if (!map || !props.focusTarget) return;
 
+    console.log(`[focusTarget EFFECT RUN] id=${props.focusTarget.id} lat=${props.focusTarget.lat.toFixed(4)} lon=${props.focusTarget.lon.toFixed(4)}`);
+
     // Setup focus layer
     if (!layersRef.current.focus) layersRef.current.focus = L.layerGroup().addTo(map);
     const focusGroup = layersRef.current.focus;
@@ -278,10 +280,12 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         );
       } else {
         console.log(`[focusTarget-flyto] Animating to target (id=${props.focusTarget.id})`);
+        console.log(`[focusTarget-flyto] ABOUT TO CALL map.flyTo - map.getCenter() BEFORE: lat=${map.getCenter().lat.toFixed(4)}, lon=${map.getCenter().lng.toFixed(4)}`);
         map.flyTo([lat, lon], zoom, {
           animate: true,
           duration: 0.7,
         });
+        console.log(`[focusTarget-flyto] map.flyTo CALL COMPLETED (animation scheduled, not finished yet)`);
       }
 
       // Show label on map
@@ -302,6 +306,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
           .addTo(focusGroup);
       }
     }
+    console.log(`[focusTarget EFFECT END] Completed setup for id=${props.focusTarget.id}`);
   }, [props.focusTarget]);
 
   useEffect(() => {

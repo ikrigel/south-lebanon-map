@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.0.1 (SNAPSHOT VALIDATION FIX)<br/>
+            <strong>🔧 Version:</strong> 4.0.2 (FOCUSTARGET EFFECT TRACE)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
