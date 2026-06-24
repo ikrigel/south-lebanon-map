@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "out",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
   "env": {},
   "headers": [
     {

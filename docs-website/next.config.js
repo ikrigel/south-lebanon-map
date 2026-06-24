@@ -2,8 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // For static export to Vercel
-  output: 'export',
   basePath: '',
 };
 
