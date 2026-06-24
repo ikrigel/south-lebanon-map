@@ -1525,7 +1525,18 @@ useEffect(() => {
 
 ## Phase 2: Camera-to-Map Localization (Planned)
 
-**Goal:** User points camera at object in distance → System calculates GPS location → Pin drops on map
+### Feature Goal: Camera-to-Map Localization
+
+**What It Does:**
+1. User points camera at an object/location in the distance
+2. System detects the object (YOLO AI model identifies what it is)
+3. System calculates GPS coordinates of where the camera is pointing using:
+   - Current GPS location (device position)
+   - Camera heading/bearing (device compass)
+   - Object distance (calculated from camera focal length + object height)
+   - Object's screen position in the frame
+4. Creates a map pin at the calculated GPS location on the map
+5. User can save as POI or view navigation details
 
 ### Feature Overview
 
@@ -1541,15 +1552,16 @@ Users can:
 5. **Creates map pin** at calculated location
 6. **User can save as POI, navigate, or share**
 
-### Detection Range: Unlimited
+### Detection Range: Unlimited (No Software Limit)
 
-- **Person:** 200-500m (2MP+ camera)
-- **Vehicle:** 1-5km (standard phone)
-- **Building/Tower:** 5-20km (depending on size)
-- **Terrain (ridges, peaks):** 20-50km (large landscape features)
-- **Aircraft:** 5-15km+ (if visible to camera)
+No hardcoded range restrictions. Detection range depends entirely on optical physics:
+- **Person:** 200-500m (requires 2MP+ camera resolution)
+- **Vehicle:** 1km+ (small vehicles need closer range)
+- **Building/Tower:** 5km+ (visible if large enough)
+- **Terrain (ridges, peaks):** 20km+ (landscape features)
+- **Aircraft:** 5km+ (depends on altitude)
 
-No software range cap — optical resolution of device camera is the only limit.
+**Key principle:** Optical resolution of device camera is the ONLY limit, not software constraints.
 
 ### Implementation Architecture
 

@@ -11,9 +11,12 @@ export default function Home() {
 
       <div className="hero">
         <div className="hero-content">
-          <h1>🎥 Coreset Camera Calibration</h1>
-          <h2>Phase 3: Advanced GPS Localization</h2>
-          <p>Implementation of Dan Feldman's Coreset algorithms for real-time camera calibration on mobile devices</p>
+          <h1>📷 Camera-to-Map Localization</h1>
+          <h2>Point Camera → Calculate GPS → Pin on Map</h2>
+          <p>User points camera at distant object → System calculates GPS location and drops a pin on the map (unlimited range, no software limits)</p>
+          <p style={{ fontSize: '14px', marginTop: '10px', opacity: 0.9 }}>
+            📚 With <strong>Phase 3 Calibration</strong>: 2× more accurate using Coreset algorithms
+          </p>
 
           <div className="cta-buttons">
             <Link href="/overview" className="btn btn-primary">

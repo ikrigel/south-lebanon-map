@@ -11,6 +11,30 @@ export default function Overview() {
         <h1>Project Overview</h1>
 
         <section>
+          <h2>🎯 Feature Goal: Camera-to-Map Localization</h2>
+          <div style={{ background: '#f0f4f8', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #0066cc', marginBottom: '30px' }}>
+            <h3>What It Does:</h3>
+            <ol>
+              <li><strong>User points camera</strong> at an object/location in the distance</li>
+              <li><strong>System detects</strong> the object (YOLO AI model identifies what it is)</li>
+              <li><strong>System calculates GPS coordinates</strong> of where the camera is pointing:
+                <ul style={{ marginTop: '10px' }}>
+                  <li>Current GPS location (device position)</li>
+                  <li>Camera heading/bearing (device compass)</li>
+                  <li>Object distance (from focal length + height formula)</li>
+                  <li>Object's screen position in frame</li>
+                </ul>
+              </li>
+              <li><strong>Creates map pin</strong> at calculated GPS location</li>
+              <li><strong>User can save as POI</strong> or view navigation details</li>
+            </ol>
+            <p style={{ marginTop: '15px', fontWeight: 'bold', color: '#0066cc' }}>
+              🔓 <strong>Unlimited Detection Range:</strong> No software limits — optical camera resolution is the only constraint
+            </p>
+          </div>
+        </section>
+
+        <section>
           <h2>The Problem</h2>
           <p>
             GPS-based object localization in remote areas requires camera calibration accurate to &lt; 100 meters at 5km distance.

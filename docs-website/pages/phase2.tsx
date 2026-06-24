@@ -12,9 +12,23 @@ export default function Phase2() {
         <h1>📷 Phase 2: Camera-to-Map Localization</h1>
 
         <section>
-          <h2>Feature Goal</h2>
+          <h2>Feature Goal: Camera-to-Map Localization</h2>
           <div className="solution-box">
-            <p>User points camera at distant object → System calculates GPS location → Pin drops on map</p>
+            <h3>What It Does:</h3>
+            <ol>
+              <li>User points camera at an object/location in the distance</li>
+              <li>System detects the object (YOLO AI model identifies what it is)</li>
+              <li>System calculates GPS coordinates of where the camera is pointing using:
+                <ul>
+                  <li>Current GPS location (device position)</li>
+                  <li>Camera heading/bearing (device compass)</li>
+                  <li>Object distance (calculated from camera focal length + object height)</li>
+                  <li>Object's screen position in the frame</li>
+                </ul>
+              </li>
+              <li>Creates a map pin at the calculated GPS location on the map</li>
+              <li>User can save as POI or view navigation details</li>
+            </ol>
           </div>
         </section>
 
@@ -54,37 +68,40 @@ export default function Phase2() {
         </section>
 
         <section>
-          <h2>Detection Range: Unlimited</h2>
-          <p>No software range limit — optical resolution is the only constraint:</p>
+          <h2>Detection Range: Unlimited (No Software Limit)</h2>
+          <p>
+            <strong>No hardcoded range restrictions.</strong> Detection range depends entirely on optical physics —
+            the resolution of your device camera is the only limit, not software constraints.
+          </p>
           <div className="components-grid">
             <div className="component">
               <h3>Person 👤</h3>
-              <p>200-500m with 2MP+ camera</p>
+              <p>200-500m (requires 2MP+ camera)</p>
             </div>
 
             <div className="component">
               <h3>Vehicle 🚗</h3>
-              <p>1-5km on standard phone</p>
+              <p>1km+ (depending on size)</p>
             </div>
 
             <div className="component">
               <h3>Building 🏢</h3>
-              <p>5-20km depending on size</p>
+              <p>5km+ (visible if large enough)</p>
             </div>
 
             <div className="component">
               <h3>Terrain 🏔️</h3>
-              <p>20-50km for ridges/peaks</p>
+              <p>20km+ (landscape features)</p>
             </div>
 
             <div className="component">
               <h3>Aircraft ✈️</h3>
-              <p>5-15km+ if visible</p>
+              <p>5km+ (depends on altitude)</p>
             </div>
 
             <div className="component">
               <h3>Custom 🎯</h3>
-              <p>User-entered distance</p>
+              <p>No maximum — user defined</p>
             </div>
           </div>
         </section>
