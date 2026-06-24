@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.1.1 (DOCS & TESTS ADDED)<br/>
+            <strong>🔧 Version:</strong> 4.2.0 (WAZE ARROW & ZOOM FIXES)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>

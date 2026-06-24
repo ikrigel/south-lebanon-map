@@ -36,6 +36,7 @@ vi.mock('leaflet', () => {
     }),
     once: vi.fn(),
     setView: vi.fn().mockReturnThis(),
+    setZoom: vi.fn().mockReturnThis(),
     fitBounds: vi.fn(),
     getCenter: vi.fn(() => ({ lat: 33.2, lng: 35.5 })),
     getZoom: vi.fn(() => 10),

@@ -1,9 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { useMarkerScreenPosition } from './useMarkerScreenPosition';
-import { useMarkerAdjustment } from './useMarkerAdjustment';
-import { useHeaderVisibility } from './useHeaderVisibility';
-import { useMarkerRepositioning } from './useMarkerRepositioning';
+import { NAVIGATION_FOLLOW_MIN_ZOOM } from '../mapHtml';
 
 export const useMapLiveLocation = (
   mapRef: React.MutableRefObject<any>,
@@ -18,17 +15,42 @@ export const useMapLiveLocation = (
   liveCenterRequestId: number,
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
-  // DISABLED v3.3.18 marker positioning system - these hooks were calling map.panBy()
-  // which was panning the map to invalid coordinates, causing the 5000km jump bug!
-  // Keeping this commented out as it's the ROOT CAUSE of the jumping issue.
-  /*
-  const markerScreenPosition = useMarkerScreenPosition({...});
-  const markerAdjustment = useMarkerAdjustment({...});
-  const markerRepositioning = useMarkerRepositioning({...});
-  const headerVisibility = useHeaderVisibility({...});
-  */
+  const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Render live location marker on map
+  // Waze-style arrow SVG marker (rotates based on heading)
+  const createArrowMarker = (heading: number) => {
+    const arrowDeg = heading + mapBearing;
+    const svg = `
+      <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="arrow-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.4"/>
+          </filter>
+        </defs>
+        <g transform="rotate(${arrowDeg} 20 20)">
+          <!-- Arrow body -->
+          <path d="M 20 4 L 28 20 L 24 20 L 24 34 L 16 34 L 16 20 L 12 20 Z"
+                fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#arrow-shadow)"/>
+          <!-- White highlight -->
+          <path d="M 20 6 L 26 18 L 22 18 L 22 32 L 18 32 L 18 18 L 14 18 Z"
+                fill="white" opacity="0.3"/>
+          <!-- Center dot -->
+          <circle cx="20" cy="20" r="2.5" fill="white"/>
+        </g>
+      </svg>
+    `;
+
+    const icon = L.divIcon({
+      className: 'marker-live-location-arrow',
+      html: svg,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20],
+    });
+    return icon;
+  };
+
+  // Render live location marker on map with Waze-style arrow
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -38,13 +60,8 @@ export const useMapLiveLocation = (
     }
     group.clearLayers();
 
-    const arrowDeg = (liveLocation.heading ?? 0) + mapBearing;
-    const arrowIcon = L.divIcon({
-      className: 'marker-live-location',
-      html: `<div style="transform:rotate(${arrowDeg}deg)">📍</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-    });
+    const heading = liveLocation.heading ?? 0;
+    const arrowIcon = createArrowMarker(heading);
     L.marker([liveLocation.lat, liveLocation.lon], { icon: arrowIcon, interactive: false }).addTo(group);
 
     const accuracy = liveLocation.accuracy ?? 0;
@@ -58,6 +75,19 @@ export const useMapLiveLocation = (
       }).addTo(group);
     }
   }, [liveLocation, mapBearing]);
+
+  // Apply navigation zoom scale when selected
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || navFollowZoom === undefined) return;
+    if (navFollowZoom === lastAppliedZoomRef.current) return;
+
+    lastAppliedZoomRef.current = navFollowZoom;
+    const clampedZoom = Math.max(navFollowZoom, NAVIGATION_FOLLOW_MIN_ZOOM);
+
+    console.log(`[ZOOM BUTTON] Applying zoom level: ${clampedZoom}`);
+    map.setZoom(clampedZoom, { animate: true });
+  }, [navFollowZoom]);
 
   // CENTER ME button: animate map to GPS location via focusTarget
   useEffect(() => {

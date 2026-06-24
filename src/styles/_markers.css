@@ -261,3 +261,23 @@
   0%, 100% { opacity: 1; }
   50% { opacity: .72; }
 }
+
+/* Waze-style live location marker */
+.marker-live-location-arrow {
+  pointer-events: none !important;
+}
+.marker-live-location-arrow svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: arrowPulse 2s ease-in-out infinite;
+}
+
+@keyframes arrowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    opacity: 1;
+  }
+  50% {
+    filter: drop-shadow(0 2px 6px rgba(25, 118, 210, 0.5));
+    opacity: 0.92;
+  }
+}

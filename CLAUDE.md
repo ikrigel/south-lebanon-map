@@ -1455,8 +1455,74 @@ Console logs after v4.1.0 show:
 
 ---
 
-**Current Version:** v4.1.0 (2026-06-24)  
-**Latest Features:** FIXED - 5000km jump bug eliminated by disabling marker adjustment hooks
+## v4.2.0: Waze-Style Navigation Marker & Zoom Fixes
+
+**Release Date:** 2026-06-24  
+**Status:** Ready ✅
+
+### What's New
+
+**1. Waze-Style Arrow Marker**
+- Replaced emoji pin (📍) with elegant SVG arrow
+- Arrow rotates based on device heading + map bearing
+- Arrow always points direction of travel
+- Subtle drop-shadow and pulsing animation for visibility
+- CSS keyframe animation with opacity and glow effects
+
+**2. Zoom Scale Buttons Now Work During Navigation**
+- Fixed: Navigation zoom scales (1:20 through 1:2000) now apply immediately
+- New effect in `useMapLiveLocation.ts` listens to `navFollowZoom` prop changes
+- Applies zoom via `map.setZoom(clampedZoom, { animate: true })`
+- Clamps zoom to minimum safe level (NAVIGATION_FOLLOW_MIN_ZOOM = 11)
+- Tracks last applied zoom to avoid duplicate calls
+
+### Implementation Details
+
+**Arrow Marker SVG Features:**
+- Solid blue arrow (#1976D2) with dark outline for contrast
+- White highlight stripe for depth perception
+- Center white dot for precise location reference
+- Smooth drop-shadow filter
+- Pulsing animation: opacity + shadow glow (2s cycle)
+
+**Zoom Effect (`useMapLiveLocation.ts`):**
+```typescript
+// Track zoom changes and apply immediately
+useEffect(() => {
+  const map = mapRef.current;
+  if (!map || navFollowZoom === undefined) return;
+  if (navFollowZoom === lastAppliedZoomRef.current) return;
+
+  lastAppliedZoomRef.current = navFollowZoom;
+  const clampedZoom = Math.max(navFollowZoom, NAVIGATION_FOLLOW_MIN_ZOOM);
+  map.setZoom(clampedZoom, { animate: true });
+}, [navFollowZoom]);
+```
+
+**CSS Animation:**
+- `.marker-live-location-arrow` class for styling
+- `@keyframes arrowPulse` for 2s opacity + shadow glow
+- `pointer-events: none` to prevent interaction
+
+**Test Fixes:**
+- Added `setZoom` method to Leaflet mock in test setup
+- All 519 tests passing
+
+### Visual Impact
+
+**Before:** Small rotating emoji pin, zoom buttons didn't work
+**After:** Elegant blue arrow rotates with heading, all zoom scales apply instantly
+
+### Files Modified
+- `src/hooks/useMapLiveLocation.ts` — Added zoom effect + arrow marker creation
+- `src/styles/_markers.css` — Added arrow styling and pulse animation
+- `src/test/setup.ts` — Added setZoom to map mock
+- `package.json` — Version bumped to 4.2.0
+
+---
+
+**Current Version:** v4.2.0 (2026-06-24)  
+**Latest Features:** Waze-style arrow marker + zoom fixes
 **Status:** Stable ✅ - All navigation functions working correctly
 **Updated:** June 2026  
 **Maintainer:** ikrigel
