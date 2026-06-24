@@ -1,78 +1,36 @@
-name: Deploy to Vercel
+name: Deploy Coreset Website to Vercel
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
-      - 'src/**'
-      - 'public/**'
-      - 'package.json'
-      - 'vite.config.ts'
-      - '.github/workflows/deploy.yml'
-
-permissions:
-  contents: read
-  deployments: write
+      - 'docs-website/**'
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
-    name: Test Before Deploy
-    outputs:
-      status: ${{ job.status }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          cache: 'npm'
+          node-version: '18'
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ./docs-website
 
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Run tests
-        run: npm test -- --run
-
-      - name: Build
+      - name: Build website
         run: npm run build
+        working-directory: ./docs-website
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    name: Deploy to Vercel
-    if: success()
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
         with:
-          node-version: '20.x'
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel
-
-      - name: Pull Vercel environment information
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
-
-      - name: Build project artifacts
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel build --prod --token="${VERCEL_TOKEN}"
-
-      - name: Deploy project artifacts to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: vercel deploy --prod --prebuilt --token="${VERCEL_TOKEN}"
-
-      - name: Deployment complete
-        run: echo "✅ v2.0.0 successfully deployed to Vercel"
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./docs-website
