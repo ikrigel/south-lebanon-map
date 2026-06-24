@@ -18,37 +18,15 @@ export const useMapLiveLocation = (
   liveCenterRequestId: number,
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
-  // Initialize new marker positioning system (v3.3.18)
-  const markerScreenPosition = useMarkerScreenPosition({
-    mapRef,
-    liveLocation,
-    mapBearing,
-    headerHeight: 60,
-    footerHeight: 0,
-    leftPanelWidth: 0,
-    rightPanelWidth: 0,
-  });
-
-  const markerAdjustment = useMarkerAdjustment({
-    mapRef,
-    liveLocation,
-    mapBearing,
-    markerScreenPosition: markerScreenPosition.position,
-    isNavigationActive: !!navigationRoute && !liveFollowDetachedRef.current,
-  });
-
-  const markerRepositioning = useMarkerRepositioning({
-    mapRef,
-    liveLocation,
-    markerScreenPosition: markerScreenPosition.position,
-    isNavigationActive: !!navigationRoute && !liveFollowDetachedRef.current,
-    headerHeight: 60,
-    footerHeight: 0,
-    leftPanelWidth: 0,
-    rightPanelWidth: 0,
-  });
-
-  const headerVisibility = useHeaderVisibility({ defaultMode: 'fix' });
+  // DISABLED v3.3.18 marker positioning system - these hooks were calling map.panBy()
+  // which was panning the map to invalid coordinates, causing the 5000km jump bug!
+  // Keeping this commented out as it's the ROOT CAUSE of the jumping issue.
+  /*
+  const markerScreenPosition = useMarkerScreenPosition({...});
+  const markerAdjustment = useMarkerAdjustment({...});
+  const markerRepositioning = useMarkerRepositioning({...});
+  const headerVisibility = useHeaderVisibility({...});
+  */
 
   // Render live location marker on map
   useEffect(() => {
