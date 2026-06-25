@@ -19,7 +19,10 @@ export default function Home() {
           </p>
 
           <div className="cta-buttons">
-            <Link href="/overview" className="btn btn-primary">
+            <Link href="/goals" className="btn btn-primary">
+              🎯 Goals & Motivation
+            </Link>
+            <Link href="/overview" className="btn btn-secondary">
               📖 Overview
             </Link>
             <Link href="/algorithms" className="btn btn-secondary">

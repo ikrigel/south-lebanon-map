@@ -12,6 +12,9 @@ export default function Navigation() {
         <Link href="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
           🏠 Home
         </Link>
+        <Link href="/goals" className={`nav-link ${isActive('/goals') ? 'active' : ''}`}>
+          🎯 Goals
+        </Link>
         <Link href="/overview" className={`nav-link ${isActive('/overview') ? 'active' : ''}`}>
           📖 Overview
         </Link>
