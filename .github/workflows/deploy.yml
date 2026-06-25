@@ -1,4 +1,4 @@
-name: Deploy docs-website to Vercel
+name: Deploy to Vercel
 
 on:
   push:
@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'docs-website/**'
+      - 'src/**'
+      - 'package.json'
+      - '.github/workflows/deploy.yml'
 
 jobs:
   deploy:
@@ -17,17 +20,15 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: docs-website/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: ./docs-website
 
       - name: Build
         run: npm run build
-        working-directory: ./docs-website
 
       - name: Deploy to Vercel
-        run: npx vercel --token=${{ secrets.VERCEL_TOKEN }} --prod --yes --cwd ./docs-website
+        run: npx vercel --token=${{ secrets.VERCEL_TOKEN }} --prod --yes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
