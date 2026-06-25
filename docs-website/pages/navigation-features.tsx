@@ -74,8 +74,8 @@ export default function NavigationFeatures() {
 
               <h4>Technical Implementation:</h4>
               <ul>
-                <li>Blue arrow rotation: `transform: rotate(${heading}deg)`</li>
-                <li>White/Red arrows: Fixed `transform: none`</li>
+                <li>Blue arrow rotation: CSS transform rotate with device heading</li>
+                <li>White/Red arrows: Fixed position (no rotation)</li>
                 <li>SVG composite element with 3 arrow paths</li>
                 <li>Real-time update from device compass (Web Sensors API)</li>
                 <li>Smooth rotation animation (0.2s transition)</li>
@@ -216,10 +216,10 @@ User sees world rotating around them`}</pre>
           <div className="test-suite">
             <h3>Key Formulas</h3>
             <ul>
-              <li><strong>Blue arrow rotation:</strong> `transform: rotate(${deviceHeading}deg)`</li>
-              <li><strong>Map rotation:</strong> `transform: rotate(${deviceHeading}deg)`</li>
-              <li><strong>Arrow position:</strong> Fixed at `(screenWidth/2, screenHeight/2)`</li>
-              <li><strong>Rotation center:</strong> `transform-origin: 50% 50%`</li>
+              <li><strong>Blue arrow rotation:</strong> transform: rotate with device heading angle</li>
+              <li><strong>Map rotation:</strong> transform: rotate with device heading angle</li>
+              <li><strong>Arrow position:</strong> Fixed at screen center (50%, 50%)</li>
+              <li><strong>Rotation center:</strong> transform-origin: 50% 50% (center point)</li>
             </ul>
           </div>
         </section>
