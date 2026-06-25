@@ -1,6 +1,6 @@
 {
   "name": "coreset-calibration-website",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Coreset Camera Calibration - Implementation Plan & Documentation",
   "scripts": {
     "dev": "next dev",
