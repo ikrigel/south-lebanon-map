@@ -30,6 +30,9 @@ export default function Navigation() {
         <Link href="/phase2" className={`nav-link ${isActive('/phase2') ? 'active' : ''}`}>
           📷 Phase 2
         </Link>
+        <Link href="/navigation-features" className={`nav-link ${isActive('/navigation-features') ? 'active' : ''}`}>
+          🧭 Navigation
+        </Link>
         <a
           href="https://github.com/ikrigel/south-lebanon-map"
           target="_blank"

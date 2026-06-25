@@ -1523,6 +1523,61 @@ useEffect(() => {
 
 ---
 
+## Enhanced Navigation Features (New)
+
+### Feature 1: Tri-Directional Heading Indicator
+
+**Composite Arrow with Three Components:**
+1. **Blue Arrow** — Always faces the direction of drive (device heading/bearing)
+   - Centered on screen
+   - Rotates with device compass
+   - Shows where you're actually heading
+
+2. **White Arrow** — Always points North (↑)
+   - Fixed North reference
+   - Never rotates
+   - Visual geographic anchor
+
+3. **Red Arrow** — Always points South (↓)
+   - Fixed South reference
+   - Never rotates
+   - Confirms North-South axis
+
+**Design:** Composite arrow showing three directions simultaneously:
+```
+      ⬜
+     ↑ (North)
+    /  \
+   /    \
+  /  🔵  \  ← Blue arrow faces heading (e.g., NE)
+ \        /
+  \      /
+   \    /
+    ↓ (South)
+    ⬜
+```
+
+### Feature 2: Screen-Center Map Rotation
+
+**Fixed Arrow Position:**
+- 🔵 Blue arrow always locked to **center of screen**
+- Arrow never moves, screen never scrolls
+- User always centered on the map
+
+**Dynamic Map Rotation:**
+- Map rotates around the fixed center point
+- Rotation angle = current device heading
+- Map content (routes, POIs, terrain) rotates around center
+- Navigation route always shows ahead of arrow
+
+**User Experience:**
+- Looking North? Map shows North ahead
+- Turning East? Map rotates to show East ahead
+- Arrow stays center, world rotates around you
+- Like Google Maps "compass heading up" mode but locked to center
+
+---
+
 ## Phase 2: Camera-to-Map Localization (Planned)
 
 ### Feature Goal: Camera-to-Map Localization
