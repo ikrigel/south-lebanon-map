@@ -17,25 +17,28 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Waze-style arrow SVG marker (rotates based on heading)
+  // Composite arrow: blue (travels) + white/red compass needle (fixed N/S)
   const createArrowMarker = (heading: number) => {
     const arrowDeg = heading + mapBearing;
     const svg = `
-      <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <filter id="arrow-shadow" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id="sh">
             <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.4"/>
           </filter>
         </defs>
-        <g transform="rotate(${arrowDeg} 20 20)">
-          <!-- Arrow body -->
-          <path d="M 20 4 L 28 20 L 24 20 L 24 34 L 16 34 L 16 20 L 12 20 Z"
-                fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#arrow-shadow)"/>
-          <!-- White highlight -->
-          <path d="M 20 6 L 26 18 L 22 18 L 22 32 L 18 32 L 18 18 L 14 18 Z"
-                fill="white" opacity="0.3"/>
-          <!-- Center dot -->
-          <circle cx="20" cy="20" r="2.5" fill="white"/>
+
+        <!-- FIXED compass needle: white=North(top), red=South(bottom), never rotates -->
+        <rect x="24" y="8"  width="4" height="12" rx="2" fill="white"  opacity="0.9"/>
+        <rect x="24" y="32" width="4" height="12" rx="2" fill="#ef4444" opacity="0.9"/>
+
+        <!-- ROTATING blue travel arrow -->
+        <g transform="rotate(${arrowDeg} 26 26)">
+          <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
+                fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#sh)"/>
+          <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
+                fill="white" opacity="0.25"/>
+          <circle cx="26" cy="26" r="3" fill="white"/>
         </g>
       </svg>
     `;
@@ -43,9 +46,9 @@ export const useMapLiveLocation = (
     const icon = L.divIcon({
       className: 'marker-live-location-arrow',
       html: svg,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
-      popupAnchor: [0, -20],
+      iconSize: [52, 52],
+      iconAnchor: [26, 26],
+      popupAnchor: [0, -26],
     });
     return icon;
   };
@@ -75,6 +78,19 @@ export const useMapLiveLocation = (
       }).addTo(group);
     }
   }, [liveLocation, mapBearing]);
+
+  // Lock GPS to screen center during navigation
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !liveLocation || liveFollowDetachedRef.current) return;
+    if (!navigationRoute) return;
+
+    map.setView(
+      [liveLocation.lat, liveLocation.lon],
+      map.getZoom(),
+      { animate: false, noMoveStart: true } as L.ZoomPanOptions
+    );
+  }, [liveLocation, navigationRoute]);
 
   // Apply navigation zoom scale when selected
   useEffect(() => {

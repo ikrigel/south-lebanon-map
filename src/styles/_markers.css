@@ -262,9 +262,11 @@
   50% { opacity: .72; }
 }
 
-/* Waze-style live location marker */
+/* Composite live location marker (blue arrow + white/red compass needle) */
 .marker-live-location-arrow {
   pointer-events: none !important;
+  width: 52px !important;
+  height: 52px !important;
 }
 .marker-live-location-arrow svg {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
