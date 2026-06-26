@@ -873,6 +873,12 @@ export default function App() {
     showToast('התצוגה אופסה לברירת המחדל');
   }, [resetView, showToast]);
 
+  const poiDraftStyleMemo = useMemo(() => ({
+    markerColor: poiMarkerColor,
+    markerShape: poiMarkerShape,
+    markerSize: poiMarkerSize,
+  }), [poiMarkerColor, poiMarkerShape, poiMarkerSize]);
+
   const miniNavSvgMarkup = () => {
     const routePoints = navigationRoute?.path && navigationRoute.path.length >= 2
       ? navigationRoute.path
@@ -1177,11 +1183,7 @@ export default function App() {
           onUserRotationChange={handleUserRotationChange}
           rotationLocked={rotationLocked}
           poiDraft={poiDraft}
-          poiDraftStyle={{
-            markerColor: poiMarkerColor,
-            markerShape: poiMarkerShape,
-            markerSize: poiMarkerSize,
-          }}
+          poiDraftStyle={poiDraftStyleMemo}
           customPois={customPois}
           multiRouteDraft={multiRouteDraftPoints}
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
