@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.5.1 (STATIC ARROW UP, SMOOTH MAP PANNING)<br/>
+            <strong>🔧 Version:</strong> 4.5.2 (STATIC ARROW UP, SMOOTH MAP PANNING)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
