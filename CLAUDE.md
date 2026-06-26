@@ -1741,9 +1741,40 @@ interface CustomPoi {
 
 ---
 
-**Current Version:** v4.2.0 (2026-06-24)  
-**Latest Features:** Waze-style arrow marker + zoom fixes
+### v4.4.0: Custom POI Static Rendering (No Animation)
+
+**Release Date:** 2026-06-26  
+**Status:** Released ✅
+
+**Bug Fix:** Removed blinking animation from user-created POI (points of interest).
+
+**What was fixed:**
+- POI markers were animating with `poiDraftPulseInner` keyframe (1.35s opacity pulse cycle)
+- User complained: "points of interest set by user are blinking in 1pps rate. stop it. no need for that. keep them fixed on map, unless user delete them"
+- Removed animation from `.poi-pin-draft` class
+- Removed unused `@keyframes poiDraftPulseInner` definition
+
+**Files changed:**
+- `src/styles/_markers.css` — removed animation from `.poi-pin-draft` + removed keyframe
+- `src/styles/routes.css` — removed animation from `.poi-pin-draft` + removed keyframe  
+- `package.json` — bumped to v4.4.0
+- Component version displays (debugLog, DebugMenu, AboutDrawer) — updated to 4.4.0
+
+**Behavior:**
+- ✅ POI markers now static on map (no pulsing/blinking)
+- ✅ Draft POIs still show outline, just no animation
+- ✅ Deleted when user removes them (no lingering state)
+- ✅ All 519 tests pass (no regressions)
+
+**Test coverage:** No new tests needed — behavior is "do nothing" (removed animation). Existing UI tests still validate POI rendering.
+
+**Future versions:** If POI behavior needs changes, ensure they are explicitly intentional (e.g., selection highlight on click, not passive animation).
+
+---
+
+**Current Version:** v4.4.0 (2026-06-26)  
+**Latest Features:** Static POI rendering, composite compass arrow, screen-center navigation lock
 **Planned Phase 2:** Camera-to-Map Localization (unlimited range)
-**Status:** Stable ✅ - All navigation functions working correctly
+**Status:** Stable ✅ - All navigation and POI functions working correctly
 **Updated:** June 2026  
 **Maintainer:** ikrigel

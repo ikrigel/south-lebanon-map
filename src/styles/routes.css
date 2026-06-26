@@ -137,7 +137,6 @@
 .poi-pin-draft {
   outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 4px;
-  animation: poiDraftPulseInner 1.35s ease-in-out infinite;
 }
 .poi-draft-tooltip {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border-2));
@@ -145,10 +144,6 @@
 @keyframes poiDropInner {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@keyframes poiDraftPulseInner {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .72; }
 }
 @keyframes livePulse {
   0%, 100% { opacity: 1; }
