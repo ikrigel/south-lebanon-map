@@ -29,7 +29,7 @@ export function AboutDrawer(props: AboutDrawerProps) {
               <span>React + Leaflet</span>
               <span>RTL Hebrew UI</span>
               <span>Local-first privacy</span>
-              <span style={{ fontWeight: 600, color: 'var(--accent)' }}>v4.5.3</span>
+              <span style={{ fontWeight: 600, color: 'var(--accent)' }}>v4.5.4</span>
             </div>
             <div className="support-actions">
               <a className="btn primary" href="https://portfolio-dusky-eight-77.vercel.app/" target="_blank" rel="noopener noreferrer" data-testid="link-about-portfolio">
