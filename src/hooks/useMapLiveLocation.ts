@@ -17,11 +17,8 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Blue arrow always UP, white arrow rotates to North
-  const createArrowMarker = (mapBearingValue: number) => {
-    // White arrow rotates to always point North (need to rotate opposite to map)
-    const whiteArrowRotation = -mapBearingValue;
-
+  // Static blue arrow with white north indicator inside
+  const createArrowMarker = () => {
     const svg = `
       <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -36,11 +33,8 @@ export const useMapLiveLocation = (
         <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
               fill="white" opacity="0.25"/>
 
-        <!-- ROTATING white arrow - always points NORTH (rotates counter to map rotation) -->
-        <g transform="rotate(${whiteArrowRotation} 26 26)">
-          <path d="M 26 5 L 28 15 L 24 15 Z"
-                fill="white" stroke="none" opacity="0.9"/>
-        </g>
+        <!-- White north indicator at top -->
+        <rect x="25" y="8" width="2" height="8" fill="white" opacity="0.9"/>
 
         <circle cx="26" cy="26" r="3" fill="white"/>
       </svg>
@@ -56,7 +50,7 @@ export const useMapLiveLocation = (
     return icon;
   };
 
-  // Render live location marker (static blue arrow, rotating white arrow pointing North)
+  // Render live location marker (static blue arrow with white north indicator)
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -66,7 +60,7 @@ export const useMapLiveLocation = (
     }
     group.clearLayers();
 
-    const arrowIcon = createArrowMarker(mapBearing);
+    const arrowIcon = createArrowMarker();
     L.marker([liveLocation.lat, liveLocation.lon], { icon: arrowIcon, interactive: false }).addTo(group);
 
     const accuracy = liveLocation.accuracy ?? 0;
@@ -79,7 +73,7 @@ export const useMapLiveLocation = (
         interactive: false,
       }).addTo(group);
     }
-  }, [liveLocation, mapBearing]);
+  }, [liveLocation]);
 
   // Keep map centered on live location with smooth animation
   useEffect(() => {
