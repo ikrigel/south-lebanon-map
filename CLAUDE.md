@@ -1772,9 +1772,73 @@ interface CustomPoi {
 
 ---
 
-**Current Version:** v4.4.0 (2026-06-26)  
-**Latest Features:** Static POI rendering, composite compass arrow, screen-center navigation lock
+### v4.5.0: Navigation Bearing Fix - Arrow Points to Destination
+
+**Release Date:** 2026-06-26  
+**Status:** Released ✅
+
+**Major Feature: Intelligent Navigation Arrow Direction**
+
+The navigation marker (blue arrow) now points toward the destination, not the direction of travel. When users move away from their destination, the arrow flips to show the tail/back.
+
+**What Changed:**
+
+**1. Arrow Behavior:**
+- ✅ **Always points toward destination** (not device heading)
+- ✅ **Flips 180°** when moving away (distance to destination increasing)
+- ✅ **Fixed at screen center** - never moves
+- **Example:** If destination is East but user walks North, arrow still points East (on screen's right side as map rotates)
+
+**2. Map Rotation (compassMode):**
+- ✅ **Rotates to destination bearing** (not device heading)
+- ✅ **Destination always points up** (0° on screen)
+- ✅ **Smart repositioning** based on screen orientation:
+  - Portrait: destination points to top-center
+  - Landscape: destination points to top-center (width-wise)
+- ✅ **Smooth navigation** - user always sees destination ahead
+
+**3. Implementation Details:**
+
+Added two new calculations in `src/App.tsx`:
+```typescript
+const bearingToDestination = useMemo(() => {
+  if (!navigationRoute || !liveLocation) return 0;
+  return bearingDegrees(
+    [liveLocation.lat, liveLocation.lon],
+    [navigationRoute.end.lat, navigationRoute.end.lon]
+  );
+}, [liveLocation, navigationRoute]);
+
+const distanceToDestination = useMemo(() => {
+  if (!navigationRoute || !liveLocation) return 0;
+  return haversineKm([liveLocation.lat, liveLocation.lon], [navigationRoute.end.lat, navigationRoute.end.lon]);
+}, [liveLocation, navigationRoute]);
+```
+
+Modified hooks:
+- `useMapLiveLocation.ts` - arrow uses bearing to destination + detects if moving away
+- `useMapRotation.ts` - map rotates by bearing to destination (not device heading)
+- `mapTypes.ts` - added `bearingToDestination` and `distanceToDestination` to MapProps
+
+**Files Changed:**
+- `src/App.tsx` — bearing calculations
+- `src/mapTypes.ts` — MapProps interface
+- `src/hooks/useMapLiveLocation.ts` — arrow behavior
+- `src/hooks/useMapRotation.ts` — map rotation
+- `package.json` — version bumped to 4.5.0
+- Component version displays — updated to 4.5.0
+
+**Test Status:** ✅ All 519 tests passing
+
+**User Experience:**
+- **Before:** Arrow points where you're heading; map rotates by device heading (confusing if moving sideways)
+- **After:** Arrow always points where you want to go; map rotates to show destination ahead (intuitive, like Waze)
+
+---
+
+**Current Version:** v4.5.0 (2026-06-26)  
+**Latest Features:** Navigation arrow points to destination, map rotates to destination bearing
 **Planned Phase 2:** Camera-to-Map Localization (unlimited range)
-**Status:** Stable ✅ - All navigation and POI functions working correctly
+**Status:** Stable ✅ - Intelligent navigation with destination-focused bearing
 **Updated:** June 2026  
 **Maintainer:** ikrigel
