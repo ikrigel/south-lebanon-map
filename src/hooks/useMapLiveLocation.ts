@@ -17,10 +17,10 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Blue arrow static UP, white arrow rotates to North
+  // Blue arrow static UP, white/red arrows rotate to North/South
   const createArrowMarker = (mapBearingValue: number) => {
-    // White arrow rotates to always point North (opposite to map rotation)
-    const whiteArrowRotation = -mapBearingValue;
+    // White/red arrows rotate to always point North/South (opposite to map rotation)
+    const compassRotation = -mapBearingValue;
 
     const svg = `
       <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
@@ -36,9 +36,12 @@ export const useMapLiveLocation = (
         <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
               fill="white" opacity="0.25"/>
 
-        <!-- ROTATING white arrow - always points NORTH -->
-        <g transform="rotate(${whiteArrowRotation} 26 26)">
-          <rect x="25" y="6" width="2" height="10" fill="white" opacity="0.9"/>
+        <!-- ROTATING compass: white arrow NORTH, red arrow SOUTH -->
+        <g transform="rotate(${compassRotation} 26 26)">
+          <!-- White arrow pointing NORTH (top) -->
+          <rect x="25" y="6" width="2" height="8" fill="white" opacity="0.9"/>
+          <!-- Red arrow pointing SOUTH (bottom) -->
+          <rect x="25" y="38" width="2" height="8" fill="#ef4444" opacity="0.9"/>
         </g>
 
         <circle cx="26" cy="26" r="3" fill="white"/>
