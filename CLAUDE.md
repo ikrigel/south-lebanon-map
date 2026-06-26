@@ -1772,9 +1772,66 @@ interface CustomPoi {
 
 ---
 
-**Current Version:** v4.4.0 (2026-06-26)  
-**Latest Features:** Static POI rendering, composite compass arrow, screen-center navigation lock
+### v4.5.0: Navigation Marker Simplification - Static Arrow, Smooth Panning
+
+**Release Date:** 2026-06-26  
+**Status:** Released ✅
+
+**Core Navigation UX Improvement:**
+
+Simplified the navigation system to be more elegant and intuitive. The arrow stays fixed pointing up, the map rotates underneath, and movement is buttery smooth.
+
+**What Changed:**
+
+**1. Navigation Arrow:**
+- ✅ **Always points UP** (static, no rotation)
+- ✅ **Fixed at screen center** - never moves
+- ✅ **No animation complexity** - pure simplicity
+- Elegant visual design: blue arrow with white highlight
+
+**2. Map Rotation:**
+- Handled by `useMapRotation` hook (existing system)
+- **Map rotates to show route ahead** 
+- Bearing calculated per screen orientation
+- Compass mode rotates based on navigation direction
+
+**3. Map Movement:**
+- Changed from `setView()` → `panTo()` 
+- **Smooth animation** (0.5s duration)
+- **No jittery jumps** - buttery smooth panning
+- Follows GPS location continuously during navigation
+
+**Implementation Details:**
+
+`src/hooks/useMapLiveLocation.ts`:
+- `createArrowMarker()` - simplified SVG (no rotation)
+- `panTo()` with smooth animation instead of `setView()`
+- Clean, minimal code
+
+**Why This Approach:**
+- **Simpler:** Arrow doesn't rotate (less complexity)
+- **Cleaner:** Map rotation handled separately
+- **Smoother:** panTo() provides better UX than setView()
+- **Elegant:** Core principles - do one thing well
+
+**Files Changed:**
+- `src/hooks/useMapLiveLocation.ts` — simplified marker and panning
+- `package.json` — version 4.5.0
+- Component version displays — all updated to 4.5.0
+
+**Test Status:** ✅ All 519 tests passing
+
+**User Experience:**
+- Arrow stays fixed pointing up (intuitive reference)
+- Map rotates to show destination ahead
+- Smooth, natural movement while traveling
+- No visual jitter or lag
+
+---
+
+**Current Version:** v4.5.0 (2026-06-26)  
+**Latest Features:** Static navigation arrow, smooth map panning, elegant simplicity
 **Planned Phase 2:** Camera-to-Map Localization (unlimited range)
-**Status:** Stable ✅ - All navigation and POI functions working correctly
+**Status:** Stable ✅ - Clean, smooth navigation with minimal UI complexity
 **Updated:** June 2026  
 **Maintainer:** ikrigel

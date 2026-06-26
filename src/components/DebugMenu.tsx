@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.4.1 (COMPOSITE COMPASS & SCREEN-CENTER LOCK)<br/>
+            <strong>🔧 Version:</strong> 4.5.0 (STATIC ARROW UP, SMOOTH MAP PANNING)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
