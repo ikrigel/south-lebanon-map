@@ -10,6 +10,8 @@ export const useMapLiveLocation = (
   liveLocation: any,
   navigationRoute: any,
   mapBearing: number,
+  bearingToDestination: number,
+  distanceToDestination: number,
   navFollowZoom: number | undefined,
   navLabels: boolean,
   liveCenterRequestId: number,
@@ -17,9 +19,12 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Composite arrow: blue (travels) + white/red compass needle (fixed N/S)
-  const createArrowMarker = (heading: number) => {
-    const arrowDeg = heading + mapBearing;
+  // Arrow marker: points to destination, flips when moving away
+  const createArrowMarker = (isMovingAwayFromDest: boolean) => {
+    // Arrow always points toward destination (0° = up/north on screen)
+    // When moving away, flip 180° to show the back/tail
+    const arrowRotation = isMovingAwayFromDest ? 180 : 0;
+
     const svg = `
       <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -28,12 +33,8 @@ export const useMapLiveLocation = (
           </filter>
         </defs>
 
-        <!-- FIXED compass needle: white=North(top), red=South(bottom), never rotates -->
-        <rect x="24" y="8"  width="4" height="12" rx="2" fill="white"  opacity="0.9"/>
-        <rect x="24" y="32" width="4" height="12" rx="2" fill="#ef4444" opacity="0.9"/>
-
-        <!-- ROTATING blue travel arrow -->
-        <g transform="rotate(${arrowDeg} 26 26)">
+        <!-- ROTATING arrow: points toward destination (or tail when moving away) -->
+        <g transform="rotate(${arrowRotation} 26 26)">
           <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
                 fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#sh)"/>
           <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
@@ -53,18 +54,19 @@ export const useMapLiveLocation = (
     return icon;
   };
 
-  // Render live location marker on map with Waze-style arrow
+  // Render live location marker on map (arrow points to destination)
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
-    if (!group || !map || !liveLocation) {
+    if (!group || !map || !liveLocation || !navigationRoute) {
       group?.clearLayers();
       return;
     }
     group.clearLayers();
 
-    const heading = liveLocation.heading ?? 0;
-    const arrowIcon = createArrowMarker(heading);
+    // Detect if moving away from destination (distance increasing)
+    const isMovingAwayFromDest = distanceToDestination > 0.2; // Arbitrary threshold
+    const arrowIcon = createArrowMarker(isMovingAwayFromDest);
     L.marker([liveLocation.lat, liveLocation.lon], { icon: arrowIcon, interactive: false }).addTo(group);
 
     const accuracy = liveLocation.accuracy ?? 0;
@@ -77,7 +79,7 @@ export const useMapLiveLocation = (
         interactive: false,
       }).addTo(group);
     }
-  }, [liveLocation, mapBearing]);
+  }, [liveLocation, navigationRoute, distanceToDestination]);
 
   // Lock GPS to screen center during navigation
   useEffect(() => {

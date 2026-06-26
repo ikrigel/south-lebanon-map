@@ -4,7 +4,7 @@ export const useMapRotation = (
   containerRef: React.MutableRefObject<HTMLDivElement | null>,
   mapRef: React.MutableRefObject<any>,
   compassMode: boolean,
-  mapBearing: number,
+  bearingToDestination: number,
   userRotation: number,
   onUserRotationChange: (rotation: number) => void,
   userRotationRef: React.MutableRefObject<number>,
@@ -14,14 +14,14 @@ export const useMapRotation = (
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const compassDeg = compassMode ? -mapBearing : 0;
+    const compassDeg = compassMode ? -bearingToDestination : 0;
     const totalDeg = compassDeg + userRotation;
     el.style.setProperty('--map-rotation', `${totalDeg}deg`);
     el.classList.toggle('compass-follow', compassMode);
     el.classList.toggle('map-rotated', userRotation !== 0 || compassMode);
     userRotationRef.current = totalDeg;
     userOnlyRotationRef.current = userRotation;
-  }, [compassMode, mapBearing, userRotation]);
+  }, [compassMode, bearingToDestination, userRotation]);
 
   useEffect(() => {
     const el = containerRef.current;

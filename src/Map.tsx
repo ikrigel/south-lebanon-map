@@ -44,7 +44,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     containerRef,
     mapRef,
     props.compassMode,
-    props.mapBearing,
+    props.bearingToDestination,
     props.userRotation,
     props.onUserRotationChange,
     userRotationRef,
@@ -135,7 +135,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   const propsRef = useRef(props);
   propsRef.current = props;
 
-  useMapLiveLocation(mapRef, layersRef, liveFollowDetachedRef, lastLiveFollowRef, props.liveLocation, props.navigationRoute, props.mapBearing, props.navFollowZoom, props.visible.navLabels, props.liveCenterRequestId, props.onLiveFollowDetachedChange);
+  useMapLiveLocation(mapRef, layersRef, liveFollowDetachedRef, lastLiveFollowRef, props.liveLocation, props.navigationRoute, props.mapBearing, props.bearingToDestination, props.distanceToDestination, props.navFollowZoom, props.visible.navLabels, props.liveCenterRequestId, props.onLiveFollowDetachedChange);
 
   useMapClickHandler(containerRef, mapRef, propsRef);
 

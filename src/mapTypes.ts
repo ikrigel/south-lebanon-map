@@ -63,6 +63,8 @@ export type MapProps = {
   recordedTrack: [number, number][];
   compassMode: boolean;
   mapBearing: number;
+  bearingToDestination: number;
+  distanceToDestination: number;
   userRotation: number;
   onUserRotationChange: (deg: number) => void;
   rotationLocked?: boolean;

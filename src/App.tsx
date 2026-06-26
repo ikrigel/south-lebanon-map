@@ -420,6 +420,21 @@ export default function App() {
     return 0;
   }, [liveLocation, recordedTrack, navigationRoute]);
 
+  // Calculate bearing to destination (for navigation marker rotation)
+  const bearingToDestination = useMemo(() => {
+    if (!navigationRoute || !liveLocation) return 0;
+    return bearingDegrees(
+      [liveLocation.lat, liveLocation.lon],
+      [navigationRoute.end.lat, navigationRoute.end.lon]
+    );
+  }, [liveLocation, navigationRoute]);
+
+  // Calculate distance to destination (for backward arrow detection)
+  const distanceToDestination = useMemo(() => {
+    if (!navigationRoute || !liveLocation) return 0;
+    return haversineKm([liveLocation.lat, liveLocation.lon], [navigationRoute.end.lat, navigationRoute.end.lon]);
+  }, [liveLocation, navigationRoute]);
+
   const currentTurnInstruction = useCurrentTurnInstruction({
     navigationRoute, navPosition, mapBearing,
   });
@@ -1179,6 +1194,8 @@ export default function App() {
           recordedTrack={recordedTrack}
           compassMode={compassMode}
           mapBearing={mapBearing}
+          bearingToDestination={bearingToDestination}
+          distanceToDestination={distanceToDestination}
           userRotation={userMapRotation}
           onUserRotationChange={handleUserRotationChange}
           rotationLocked={rotationLocked}
