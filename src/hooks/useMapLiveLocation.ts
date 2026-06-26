@@ -17,9 +17,8 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Composite arrow: blue (travels) + white/red compass needle (fixed N/S)
-  const createArrowMarker = (heading: number) => {
-    const arrowDeg = heading + mapBearing;
+  // Static blue arrow pointing up - map rotates underneath
+  const createArrowMarker = () => {
     const svg = `
       <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -28,18 +27,12 @@ export const useMapLiveLocation = (
           </filter>
         </defs>
 
-        <!-- FIXED compass needle: white=North(top), red=South(bottom), never rotates -->
-        <rect x="24" y="8"  width="4" height="12" rx="2" fill="white"  opacity="0.9"/>
-        <rect x="24" y="32" width="4" height="12" rx="2" fill="#ef4444" opacity="0.9"/>
-
-        <!-- ROTATING blue travel arrow -->
-        <g transform="rotate(${arrowDeg} 26 26)">
-          <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
-                fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#sh)"/>
-          <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
-                fill="white" opacity="0.25"/>
-          <circle cx="26" cy="26" r="3" fill="white"/>
-        </g>
+        <!-- STATIC blue arrow - always points UP -->
+        <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
+              fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#sh)"/>
+        <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
+              fill="white" opacity="0.25"/>
+        <circle cx="26" cy="26" r="3" fill="white"/>
       </svg>
     `;
 
@@ -53,7 +46,7 @@ export const useMapLiveLocation = (
     return icon;
   };
 
-  // Render live location marker on map with Waze-style arrow
+  // Render live location marker (static arrow pointing up)
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -63,8 +56,7 @@ export const useMapLiveLocation = (
     }
     group.clearLayers();
 
-    const heading = liveLocation.heading ?? 0;
-    const arrowIcon = createArrowMarker(heading);
+    const arrowIcon = createArrowMarker();
     L.marker([liveLocation.lat, liveLocation.lon], { icon: arrowIcon, interactive: false }).addTo(group);
 
     const accuracy = liveLocation.accuracy ?? 0;
@@ -77,19 +69,16 @@ export const useMapLiveLocation = (
         interactive: false,
       }).addTo(group);
     }
-  }, [liveLocation, mapBearing]);
+  }, [liveLocation]);
 
-  // Lock GPS to screen center during navigation
+  // Keep map centered on live location with smooth animation
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !liveLocation || liveFollowDetachedRef.current) return;
     if (!navigationRoute) return;
 
-    map.setView(
-      [liveLocation.lat, liveLocation.lon],
-      map.getZoom(),
-      { animate: false, noMoveStart: true } as L.ZoomPanOptions
-    );
+    // Use panTo for smooth animation instead of setView
+    map.panTo([liveLocation.lat, liveLocation.lon], { animate: true, duration: 0.5 });
   }, [liveLocation, navigationRoute]);
 
   // Apply navigation zoom scale when selected
