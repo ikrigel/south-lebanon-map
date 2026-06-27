@@ -114,7 +114,66 @@ export function LeftPanel(props: LeftPanelProps) {
 
         <div className="panel-section">
           <h3>שכבות מידע</h3>
-          <div className="layer-group-title">שכבות בסיס, ביטחון ותבליט</div>
+
+          <div className="layer-group-title">סגנון מפה</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+            <button
+              onClick={() => {
+                if (props.visible.satellite) props.visibleKey('satellite')();
+                if (props.visible.topo) props.visibleKey('topo')();
+              }}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: !props.visible.satellite && !props.visible.topo ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                background: !props.visible.satellite && !props.visible.topo ? '#dbeafe' : '#f9fafb',
+                color: !props.visible.satellite && !props.visible.topo ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: !props.visible.satellite && !props.visible.topo ? 600 : 500,
+                fontSize: '13px',
+                transition: 'all 0.2s',
+              }}
+              data-testid="button-map-style-base"
+            >
+              🗺️ בסיס
+            </button>
+            <button
+              onClick={() => props.visibleKey('satellite')()}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: props.visible.satellite ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                background: props.visible.satellite ? '#dbeafe' : '#f9fafb',
+                color: props.visible.satellite ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: props.visible.satellite ? 600 : 500,
+                fontSize: '13px',
+                transition: 'all 0.2s',
+              }}
+              data-testid="button-map-style-satellite"
+            >
+              🛰️ לוויין
+            </button>
+            <button
+              onClick={() => props.visibleKey('topo')()}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: props.visible.topo ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                background: props.visible.topo ? '#dbeafe' : '#f9fafb',
+                color: props.visible.topo ? '#1e40af' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: props.visible.topo ? 600 : 500,
+                fontSize: '13px',
+                transition: 'all 0.2s',
+              }}
+              data-testid="button-map-style-topo"
+            >
+              ⛰️ תבליט
+            </button>
+          </div>
+
+          <div className="layer-group-title">שכבות בסיס, ביטחון</div>
           {[
             { key: 'pop' as const, label: 'תפוצת אוכלוסיה אזרחית', color: '#d0b58a' },
             { key: 'unifil' as const, label: 'יוניפי״ל — מטה ומגזרים', color: '#6da7d1' },
@@ -122,7 +181,6 @@ export function LeftPanel(props: LeftPanelProps) {
             { key: 'blueLine' as const, label: 'הקו הכחול (מקורב)', color: '#5a8fbf' },
             { key: 'litani' as const, label: 'נהר הליטני וגבול אזור החיץ', color: '#4e7fb0' },
             { key: 'rivers' as const, label: 'נהרות — זהרני, אוואלי', color: '#4a90c4' },
-            { key: 'topo' as const, label: 'טופוגרפיה — ניתוח תבליט וקרקע', color: '#88c37a' },
           ].map((l: any) => (
             <div
               key={l.key}
