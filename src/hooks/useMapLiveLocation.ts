@@ -63,6 +63,20 @@ export const useMapLiveLocation = (
     map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
   }, [liveLocation]);
 
+  // Ensure proper map centering when rotating in compass mode (with or without navigation)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !liveLocation) return;
+
+    // Invalidate map size when compass mode changes to recalculate transforms
+    // This ensures the map scaling and offset are correct for the new rotation center
+    setTimeout(() => {
+      map.invalidateSize({ animate: false });
+      // Recenter on GPS location after size invalidation
+      map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
+    }, 0);
+  }, [mapBearing]); // Trigger when bearing changes (compass rotation)
+
   // Apply navigation zoom scale when selected
   useEffect(() => {
     const map = mapRef.current;

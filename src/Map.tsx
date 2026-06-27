@@ -171,8 +171,8 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     if (props.visible.satellite) {
       base.setUrl(TILESETS.satellite);
       base.options.subdomains = '' as unknown as string; // ESRI has no subdomains
-      base.options.maxNativeZoom = 19;
-      base.options.maxZoom = 19;
+      base.options.maxNativeZoom = 18;
+      base.options.maxZoom = 18;
       base.getAttribution = () => '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, Earthstar Geographics, and others';
     } else if (props.visible.topo) {
       base.setUrl(TILESETS.topo);

@@ -120,7 +120,7 @@ export function LeftPanel(props: LeftPanelProps) {
             <button
               onClick={() => {
                 if (props.visible.satellite) props.visibleKey('satellite')();
-                if (props.visible.topo) props.visibleKey('topo')();
+                else if (props.visible.topo) props.visibleKey('topo')();
               }}
               style={{
                 padding: '8px 12px',
