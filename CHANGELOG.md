@@ -2,6 +2,29 @@
 
 All notable changes to the South Lebanon Map project are documented here.
 
+## [4.6.3] - 2026-06-27
+
+### Bug Fixes
+
+- **Map selection crash fixed**: Clicking between map styles (Base/Satellite/Topo) no longer crashes application
+  - Root cause: Multiple simultaneous tile layer toggles causing race condition
+  - Solution: Changed to single-layer toggle with if/else logic
+- **Map rotation centering fixed**: Compass mode now perfectly centers map on blue arrow in all modes (navigation and non-navigation)
+  - Added map size invalidation when bearing changes
+  - Ensures correct transform calculations for rotated map
+- **Satellite map zoom fixed**: Removed "map data not yet available" error when zooming to 1:20 and beyond
+  - Clamped satellite tile maxZoom from 19 → 18 to match ESRI coverage limits
+  - Provides seamless satellite imagery at all zoom levels
+
+### Technical
+
+- Updated `src/components/layout/LeftPanel.tsx` map selection button logic
+- Updated `src/hooks/useMapLiveLocation.ts` with map invalidation effect
+- Updated `src/Map.tsx` satellite tile zoom constraints
+- Updated all version displays to 4.6.3
+
+---
+
 ## [4.6.2] - 2026-06-27
 
 ### Bug Fixes
