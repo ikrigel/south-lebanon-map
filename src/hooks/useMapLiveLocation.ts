@@ -17,48 +17,7 @@ export const useMapLiveLocation = (
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
 
-  // Blue arrow static UP, white/red arrows rotate to North/South
-  const createArrowMarker = (mapBearingValue: number) => {
-    // White/red arrows rotate to always point North/South (opposite to map rotation)
-    const compassRotation = -mapBearingValue;
-
-    const svg = `
-      <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="sh">
-            <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.4"/>
-          </filter>
-        </defs>
-
-        <!-- STATIC blue arrow - always points UP -->
-        <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
-              fill="#1976D2" stroke="#0D47A1" stroke-width="1" filter="url(#sh)"/>
-        <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
-              fill="white" opacity="0.25"/>
-
-        <!-- ROTATING compass: white arrow NORTH, red arrow SOUTH -->
-        <g transform="rotate(${compassRotation} 26 26)">
-          <!-- White arrow pointing NORTH (top) -->
-          <rect x="25" y="6" width="2" height="8" fill="white" opacity="0.9"/>
-          <!-- Red arrow pointing SOUTH (bottom) -->
-          <rect x="25" y="38" width="2" height="8" fill="#ef4444" opacity="0.9"/>
-        </g>
-
-        <circle cx="26" cy="26" r="3" fill="white"/>
-      </svg>
-    `;
-
-    const icon = L.divIcon({
-      className: 'marker-live-location-arrow',
-      html: svg,
-      iconSize: [52, 52],
-      iconAnchor: [26, 26],
-      popupAnchor: [0, -26],
-    });
-    return icon;
-  };
-
-  // Render live location marker (static blue arrow, rotating white arrow pointing North)
+  // Render accuracy circle only (arrow is now an overlay in Map.tsx)
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -67,9 +26,6 @@ export const useMapLiveLocation = (
       return;
     }
     group.clearLayers();
-
-    const arrowIcon = createArrowMarker(mapBearing);
-    L.marker([liveLocation.lat, liveLocation.lon], { icon: arrowIcon, interactive: false }).addTo(group);
 
     const accuracy = liveLocation.accuracy ?? 0;
     if (accuracy > 0 && accuracy < 1000) {
@@ -81,7 +37,7 @@ export const useMapLiveLocation = (
         interactive: false,
       }).addTo(group);
     }
-  }, [liveLocation, mapBearing]);
+  }, [liveLocation]);
 
   // Keep map centered on live location with smooth animation
   useEffect(() => {

@@ -278,3 +278,15 @@
     opacity: 0.92;
   }
 }
+
+/* Navigation arrow overlay - always screen-center, not a Leaflet layer */
+.nav-arrow-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 500;
+  width: 52px;
+  height: 52px;
+}

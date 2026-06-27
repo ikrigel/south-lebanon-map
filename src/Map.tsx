@@ -397,12 +397,40 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   useMapMultiRoute(layersRef, props.multiRouteDraft, props.activeMultiRoute);
 
   return (
-    <div
-      id="map"
-      ref={containerRef}
-      className={props.largeLabels ? 'labels-large' : ''}
-      data-testid="map-canvas"
-    />
+    <>
+      <div
+        id="map"
+        ref={containerRef}
+        className={props.largeLabels ? 'labels-large' : ''}
+        data-testid="map-canvas"
+      />
+      {props.liveLocation && (
+        <div
+          className="nav-arrow-overlay"
+          aria-hidden="true"
+          style={{ display: props.compassMode || props.navigationRoute ? 'block' : 'none' }}
+        >
+          <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <filter id="sh2">
+                <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.4"/>
+              </filter>
+            </defs>
+            {/* Static blue arrow — always points UP */}
+            <path d="M 26 5 L 34 22 L 30 22 L 30 38 L 22 38 L 22 22 L 18 22 Z"
+                  fill="#1976D2" stroke="#0D47A1" strokeWidth="1" filter="url(#sh2)"/>
+            <path d="M 26 7 L 32 20 L 28 20 L 28 36 L 24 36 L 24 20 L 20 20 Z"
+                  fill="white" opacity="0.25"/>
+            {/* Rotating compass: white=North, red=South */}
+            <g style={{ transformOrigin: '26px 26px', transform: `rotate(${-props.mapBearing}deg)` }}>
+              <rect x="25" y="6" width="2" height="10" fill="white" opacity="0.9"/>
+              <rect x="25" y="36" width="2" height="10" fill="#ef4444" opacity="0.9"/>
+            </g>
+            <circle cx="26" cy="26" r="3" fill="white"/>
+          </svg>
+        </div>
+      )}
+    </>
   );
 });
 
