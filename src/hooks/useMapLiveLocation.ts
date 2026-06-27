@@ -16,7 +16,6 @@ export const useMapLiveLocation = (
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
-  const lastMapCenterRef = useRef<any>(null);
 
   // Render accuracy circle + location indicator dot
   useEffect(() => {
@@ -55,19 +54,14 @@ export const useMapLiveLocation = (
       .addTo(group);
   }, [liveLocation]);
 
-  // Keep map centered on live location with smooth animation
+  // Keep map centered on live location at all times (unless detached)
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !liveLocation || liveFollowDetachedRef.current) return;
 
-    // Pan to GPS location during navigation OR if this is the first location
-    const shouldPan = navigationRoute || !lastMapCenterRef.current;
-
-    if (shouldPan) {
-      map.panTo([liveLocation.lat, liveLocation.lon], { animate: true, duration: 0.5 });
-      lastMapCenterRef.current = [liveLocation.lat, liveLocation.lon];
-    }
-  }, [liveLocation, navigationRoute]);
+    // Always pan to GPS location to keep map centered on arrow
+    map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
+  }, [liveLocation]);
 
   // Apply navigation zoom scale when selected
   useEffect(() => {
