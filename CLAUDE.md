@@ -1829,9 +1829,165 @@ Simplified the navigation system to be more elegant and intuitive. The arrow sta
 
 ---
 
-**Current Version:** v4.5.0 (2026-06-26)  
-**Latest Features:** Static navigation arrow, smooth map panning, elegant simplicity
-**Planned Phase 2:** Camera-to-Map Localization (unlimited range)
-**Status:** Stable ✅ - Clean, smooth navigation with minimal UI complexity
+### v4.6.0: Bug Fixes + Satellite Map (2026-06-27)
+
+**Release:** Three major items completed.
+
+**Bug Fix 1: Debug Modal Background**
+- Changed from translucent `var(--bg-secondary)` to dark opaque `rgba(15, 22, 30, 0.97)`
+- Added explicit light text color `#e8edf2` for all modal elements
+- Text now clearly readable on white/dark map backgrounds
+- **File:** `src/styles/_debug-menu.css`
+
+**Bug Fix 2: GPS Arrow Always at Screen Center**
+- Replaced Leaflet marker (lat/lon-positioned) with CSS-fixed overlay
+- Arrow uses `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)`
+- Stays perfectly centered regardless of map rotation, screen size, device orientation
+- White/red compass indicators rotate to show North/South
+- **Files:** `src/Map.tsx`, `src/hooks/useMapLiveLocation.ts`, `src/styles/_markers.css`
+
+**Feature: Satellite Map**
+- Added ESRI World Imagery tileset (free, no API key, global coverage, zoom 1-19)
+- User-selectable toggle in layer controls: "לוויין 🛰️"
+- Satellite takes highest priority over topo/light/dark styles
+- Proper attribution: Esri, DigitalGlobe, Earthstar Geographics
+- **Files:** `src/mapHtml.ts`, `src/mapTypes.ts`, `src/constants.ts`, `src/Map.tsx`, `src/components/panels/left/LayerTogglesSection.tsx`, `src/storage/loaders.ts`
+
+**Status:** ✅ All 519 tests passing, TypeScript strict mode passes, build succeeds
+
+---
+
+## DevKit Console Library
+
+**Goal:** Standalone production-quality npm library for bidirectional debug level control between browser console and React UI. Generalizes the proven pattern from `src/utils/debugLog.ts` + `src/components/DebugMenu.tsx`.
+
+**Status:** Development plan approved; ready to create as separate GitHub repository.
+
+### Repo Structure
+
+```
+devkit-console/
+├── packages/
+│   ├── core/    → @devkit-console/core   (zero deps, pure TS)
+│   └── react/   → @devkit-console/react  (peer: react ≥17, core)
+├── apps/
+│   └── demo/    → Vite + React demo → Vercel
+├── docs/
+│   ├── README.md       Quick start + install
+│   ├── API.md          Full API reference
+│   ├── CHANGELOG.md
+│   └── CONTRIBUTING.md
+└── .github/workflows/
+    ├── ci.yml       tests + build on PR
+    └── release.yml  npm publish on git tag v*
+```
+
+### @devkit-console/core
+
+**Key Classes:**
+- `DebugManager` — central authority; owns level/enable state, localStorage, two emitters
+- `Logger` — namespace-scoped logger; inherits from DebugManager
+- `TypedEmitter<T>` — typed pub/sub (config changes vs log history channels)
+- `LogHistory` — ring buffer (default 500 entries), `exportJSON()` / `exportText()`
+
+**window.debug Surface:**
+```
+debug.trace() / .debug() / .info() / .warn() / .error()
+debug.disable() / .enable() / .all()
+debug.setLevel(L) / .status() / .version()
+debug.ns('Name') → NamespacedLogger
+debug.history() → LogEntry[]
+debug.exportLogs('json') → string
+debug.clearHistory()
+debug.getConfig()
+```
+
+**Key Features:**
+- Works directly in browser DevTools console — no extension required
+- Namespace-scoped loggers with per-namespace level override
+- Two emitter channels: config changes + log history (prevent cross-renders)
+- localStorage persistence (with graceful fallback)
+- Offline-first: works in SSR/test environments via noopStorageAdapter
+
+### @devkit-console/react
+
+**Hooks:**
+- `useDebugConfig()` — live config, re-renders on level/enable changes
+- `useLogHistory(filters?)` — filtered log entries, re-renders on new logs
+- `useLogger(namespace)` — stable memoized NamespacedLogger
+
+**Components:**
+- `<DebugPanel>` — floating panel, composable, controlled/uncontrolled open
+- `<LevelSelector>` — 5-pill group (ERROR/WARN/INFO/DEBUG/TRACE)
+- `<LogViewer>` — scrollable log list with auto-scroll, namespace/level filters
+- `<StatusBadge>` — tiny pill `● DEBUG` / `○ OFF`
+- `<ExportButton>` — JSON/text download
+- `<NamespaceList>` — active namespaces, per-ns level overrides
+
+**DebugPanel Props:**
+```typescript
+position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+defaultOpen?: boolean
+open?: boolean
+onOpenChange?: (open: boolean) => void
+showLogViewer?: boolean
+showExport?: boolean
+showNamespaces?: boolean
+showVersion?: boolean
+maxVisibleLogs?: number
+theme?: 'dark' | 'light' | 'auto'
+```
+
+### Demo App
+
+**Built with:** Vite + React, deployed to Vercel
+
+**Sections:**
+1. Hero — headline, StatusBadge, one-line install
+2. Console Sync — type `debug.debug()` in DevTools → LevelSelector updates live
+3. Namespace Demo — Auth/Network/Render services, filter by namespace
+4. Scenario Simulator — "10 INFO logs", "Error burst", "TRACE flood"
+5. Export Demo — JSON/text download
+6. Integration snippets — Vanilla JS, React, Vue code tabs
+
+### Documentation Website
+
+Pages: `/` overview, `/api` reference, `/guide` integration, `/demo` live demo
+
+**MD Files:**
+- `docs/README.md` — 3-line quickstart
+- `docs/API.md` — full reference
+- `packages/core/README.md` — npm page
+- `packages/react/README.md` — npm page
+
+### Build & Publish
+
+- **tsup** (ESM + CJS + .d.ts), core gzip ≤ 15KB
+- GitHub Action: on `git tag v*` → `pnpm publish --access public`
+- Vercel auto-deploy on main
+
+### Test Coverage
+
+**Core (6 test files):** manager, emitter, logger, history, storage, window-global, integration  
+**React (5 test files):** useDebugConfig, useLogHistory, DebugPanel, LevelSelector, LogViewer
+
+**Tools:** Vitest + happy-dom (same stack as south-lebanon-map)
+
+### Success Criteria
+
+1. `pnpm -r build` succeeds; core gzip ≤ 15KB
+2. All tests pass
+3. Console sync works: `debug.debug()` updates LevelSelector live
+4. Demo app on Vercel: all simulator buttons produce output
+5. Export works: JSON/text downloads
+6. Namespace filtering works
+7. `npm publish --dry-run` succeeds on both packages
+
+---
+
+**Current Version:** v4.6.0 (2026-06-27)  
+**Latest Features:** Debug modal readability, GPS arrow screen-centering (CSS overlay), satellite map tiles
+**Next Phase:** DevKit Console Library (separate repo)
+**Status:** Stable ✅ - Bug fixes complete, satellite map ready, library plan documented
 **Updated:** June 2026  
 **Maintainer:** ikrigel
