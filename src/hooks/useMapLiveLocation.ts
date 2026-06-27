@@ -16,8 +16,9 @@ export const useMapLiveLocation = (
   onLiveFollowDetachedChange: (detached: boolean) => void,
 ) => {
   const lastAppliedZoomRef = useRef<number | undefined>(undefined);
+  const lastMapCenterRef = useRef<any>(null);
 
-  // Render accuracy circle only (arrow is now an overlay in Map.tsx)
+  // Render accuracy circle + location indicator dot
   useEffect(() => {
     const group = layersRef.current.live;
     const map = mapRef.current;
@@ -37,16 +38,35 @@ export const useMapLiveLocation = (
         interactive: false,
       }).addTo(group);
     }
+
+    // Add location indicator dot (visible even when not in navigation mode)
+    const dotIcon = L.icon({
+      iconUrl:
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSI2IiBmaWxsPSIjMWY3YmY2IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiLz48Y2lyY2xlIGN4PSIxMCIgY3k9IjEwIiByPSIzIiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==',
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+      popupAnchor: [0, -10],
+      className: 'location-indicator-dot',
+    });
+    L.marker([liveLocation.lat, liveLocation.lon], {
+      icon: dotIcon,
+      interactive: false,
+    })
+      .addTo(group);
   }, [liveLocation]);
 
   // Keep map centered on live location with smooth animation
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !liveLocation || liveFollowDetachedRef.current) return;
-    if (!navigationRoute) return;
 
-    // Use panTo for smooth animation instead of setView
-    map.panTo([liveLocation.lat, liveLocation.lon], { animate: true, duration: 0.5 });
+    // Pan to GPS location during navigation OR if this is the first location
+    const shouldPan = navigationRoute || !lastMapCenterRef.current;
+
+    if (shouldPan) {
+      map.panTo([liveLocation.lat, liveLocation.lon], { animate: true, duration: 0.5 });
+      lastMapCenterRef.current = [liveLocation.lat, liveLocation.lon];
+    }
   }, [liveLocation, navigationRoute]);
 
   // Apply navigation zoom scale when selected
