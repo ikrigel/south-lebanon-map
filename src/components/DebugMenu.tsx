@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.6.3 (THREE CRITICAL BUG FIXES)<br/>
+            <strong>🔧 Version:</strong> 4.6.4 (MAP STYLE SWITCHING FIX)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>

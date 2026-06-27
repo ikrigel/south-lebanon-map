@@ -167,26 +167,44 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
 
   useEffect(() => {
     const base = layersRef.current.base;
-    if (!base) return;
+    const map = mapRef.current;
+    if (!base || !map) return;
+
+    let newUrl = TILESETS[props.theme];
+    let newSubdomains = 'abcd';
+    let newMaxNativeZoom = 19;
+    let newMaxZoom = 19;
+    let newAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
     if (props.visible.satellite) {
-      base.setUrl(TILESETS.satellite);
-      base.options.subdomains = '' as unknown as string; // ESRI has no subdomains
-      base.options.maxNativeZoom = 18;
-      base.options.maxZoom = 18;
-      base.getAttribution = () => '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, Earthstar Geographics, and others';
+      newUrl = TILESETS.satellite;
+      newSubdomains = 'abcd'; // ESRI tiles can use standard subdomains
+      newMaxNativeZoom = 18;
+      newMaxZoom = 18;
+      newAttribution = '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, Earthstar Geographics, and others';
     } else if (props.visible.topo) {
-      base.setUrl(TILESETS.topo);
-      base.options.subdomains = ['a', 'b', 'c'] as unknown as string;
-      base.options.maxNativeZoom = 17;
-      base.options.maxZoom = 19;
-      base.getAttribution = () => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://opentopomap.org/">OpenTopoMap</a>';
-    } else {
-      base.setUrl(TILESETS[props.theme]);
-      base.options.subdomains = 'abcd';
-      base.options.maxNativeZoom = 19;
-      base.options.maxZoom = 19;
-      base.getAttribution = () => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+      newUrl = TILESETS.topo;
+      newSubdomains = 'abc';
+      newMaxNativeZoom = 17;
+      newMaxZoom = 19;
+      newAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://opentopomap.org/">OpenTopoMap</a>';
     }
+
+    // Remove old tile layer and create new one to properly switch tilesets
+    if (map.hasLayer(base)) {
+      map.removeLayer(base);
+    }
+
+    // Create fresh tile layer with new URL and options
+    const newTileLayer = L.tileLayer(newUrl, {
+      attribution: newAttribution,
+      subdomains: newSubdomains,
+      maxZoom: newMaxZoom,
+      maxNativeZoom: newMaxNativeZoom,
+    }).addTo(map);
+
+    // Update the reference
+    layersRef.current.base = newTileLayer;
   }, [props.theme, props.visible.topo, props.visible.satellite]);
 
   useEffect(() => {
