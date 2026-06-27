@@ -10,7 +10,28 @@ export const LayerTogglesSection: React.FC<{
       <h3>שכבות מידע</h3>
 
       <div className="layer-group-title">סגנון מפה</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+        <button
+          onClick={() => {
+            // Deselect both satellite and topo to show base map
+            if (visible.satellite) onToggle('satellite')();
+            if (visible.topo) onToggle('topo')();
+          }}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: !visible.satellite && !visible.topo ? '2px solid #3b82f6' : '1px solid #d1d5db',
+            background: !visible.satellite && !visible.topo ? '#dbeafe' : '#f9fafb',
+            color: !visible.satellite && !visible.topo ? '#1e40af' : '#6b7280',
+            cursor: 'pointer',
+            fontWeight: !visible.satellite && !visible.topo ? 600 : 500,
+            fontSize: '13px',
+            transition: 'all 0.2s',
+          }}
+          data-testid="button-map-style-base"
+        >
+          🗺️ בסיס
+        </button>
         <button
           onClick={onToggle('satellite')}
           style={{
