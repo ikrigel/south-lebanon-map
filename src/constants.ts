@@ -41,6 +41,7 @@ export const DEFAULT_LAYER_VISIBILITY: LayerVis = {
   litani: true,
   rivers: true,
   topo: false,
+  satellite: false,
   cityLabels: true,
   settlementLabels: true,
   ridgeLabels: true,

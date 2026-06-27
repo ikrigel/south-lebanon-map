@@ -13,6 +13,7 @@ export type LayerVis = {
   litani: boolean;
   rivers: boolean;
   topo: boolean;
+  satellite: boolean;
   cityLabels: boolean;
   settlementLabels: boolean;
   ridgeLabels: boolean;

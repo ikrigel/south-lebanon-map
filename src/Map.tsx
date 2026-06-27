@@ -168,7 +168,13 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
   useEffect(() => {
     const base = layersRef.current.base;
     if (!base) return;
-    if (props.visible.topo) {
+    if (props.visible.satellite) {
+      base.setUrl(TILESETS.satellite);
+      base.options.subdomains = '' as unknown as string; // ESRI has no subdomains
+      base.options.maxNativeZoom = 19;
+      base.options.maxZoom = 19;
+      base.getAttribution = () => '&copy; <a href="https://www.esri.com/">Esri</a>, DigitalGlobe, Earthstar Geographics, and others';
+    } else if (props.visible.topo) {
       base.setUrl(TILESETS.topo);
       base.options.subdomains = ['a', 'b', 'c'] as unknown as string;
       base.options.maxNativeZoom = 17;
@@ -181,7 +187,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
       base.options.maxZoom = 19;
       base.getAttribution = () => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
     }
-  }, [props.theme, props.visible.topo]);
+  }, [props.theme, props.visible.topo, props.visible.satellite]);
 
   useEffect(() => {
     const map = mapRef.current;

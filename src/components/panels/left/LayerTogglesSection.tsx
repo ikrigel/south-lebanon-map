@@ -18,6 +18,7 @@ export const LayerTogglesSection: React.FC<{
         { key: 'litani' as const, label: 'נהר הליטני וגבול אזור החיץ', color: '#4e7fb0' },
         { key: 'rivers' as const, label: 'נהרות — זהרני, אוואלי', color: '#4a90c4' },
         { key: 'topo' as const, label: 'טופוגרפיה — ניתוח תבליט וקרקע', color: '#88c37a' },
+        { key: 'satellite' as const, label: 'לוויין 🛰️', color: '#6b7280' },
       ].map(l => (
         <div
           key={l.key}

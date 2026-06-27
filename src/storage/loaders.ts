@@ -38,6 +38,7 @@ export const loadLocalLayerVisibility = (): LayerVis => {
       litani: typeof candidate.litani === 'boolean' ? candidate.litani : DEFAULT_LAYER_VISIBILITY.litani,
       rivers: typeof candidate.rivers === 'boolean' ? candidate.rivers : DEFAULT_LAYER_VISIBILITY.rivers,
       topo: typeof candidate.topo === 'boolean' ? candidate.topo : DEFAULT_LAYER_VISIBILITY.topo,
+      satellite: typeof candidate.satellite === 'boolean' ? candidate.satellite : DEFAULT_LAYER_VISIBILITY.satellite,
       cityLabels: typeof candidate.cityLabels === 'boolean' ? candidate.cityLabels : DEFAULT_LAYER_VISIBILITY.cityLabels,
       settlementLabels: typeof candidate.settlementLabels === 'boolean' ? candidate.settlementLabels : DEFAULT_LAYER_VISIBILITY.settlementLabels,
       ridgeLabels: typeof candidate.ridgeLabels === 'boolean' ? candidate.ridgeLabels : DEFAULT_LAYER_VISIBILITY.ridgeLabels,
