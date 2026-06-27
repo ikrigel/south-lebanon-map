@@ -1985,9 +1985,44 @@ Pages: `/` overview, `/api` reference, `/guide` integration, `/demo` live demo
 
 ---
 
-**Current Version:** v4.6.0 (2026-06-27)  
-**Latest Features:** Debug modal readability, GPS arrow screen-centering (CSS overlay), satellite map tiles
+## v4.6.1: Arrow Always Visible + Complete Map Style Selector (2026-06-27)
+
+**Release:** UX improvements for location tracking and map selection.
+
+**Feature 1: GPS Arrow Always Visible**
+- Arrow now shows your location **100% of the time** (when GPS is on)
+- Not just during active navigation - any time device location is enabled
+- Map auto-centers on you in all modes: navigation, browsing, compass, etc.
+- Behavior identical whether driving with destination or just browsing
+
+**Feature 2: Complete Map Style Selector**
+- New dedicated "Map Style" section with three mutually exclusive buttons:
+  - 🗺️ **Base** — Regular dark/light theme map (default)
+  - 🛰️ **Satellite** — ESRI satellite imagery
+  - ⛰️ **Topo** — Topographic/terrain map
+- Visual feedback: Selected style highlighted with blue border
+- Easy switching between map styles with one click
+- Only one style active at a time (radio-button behavior)
+
+**Files Changed:**
+- `src/Map.tsx` — Remove display condition on arrow overlay
+- `src/components/panels/left/LayerTogglesSection.tsx` — Add base map button + 3-column layout
+- `package.json` — Version 4.6.1
+- All component version displays — updated to 4.6.1
+
+**Test Status:** ✅ All 519 tests passing
+
+**User Benefits:**
+- Always know where you are on the map
+- Easy map style selection without searching
+- Clear visual indication of current map style
+- Professional radio-button UI for map selection
+
+---
+
+**Current Version:** v4.6.1 (2026-06-27)  
+**Latest Features:** Arrow always visible when GPS on, complete map style selector with base/satellite/topo
 **Next Phase:** DevKit Console Library (separate repo)
-**Status:** Stable ✅ - Bug fixes complete, satellite map ready, library plan documented
+**Status:** Stable ✅ - GPS tracking and map selection fully implemented
 **Updated:** June 2026  
 **Maintainer:** ikrigel

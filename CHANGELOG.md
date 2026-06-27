@@ -2,6 +2,54 @@
 
 All notable changes to the South Lebanon Map project are documented here.
 
+## [4.6.1] - 2026-06-27
+
+### Features
+
+- **GPS Arrow Always Visible**: Arrow now shows your location 100% of the time when GPS is enabled, not just during active navigation
+- **Complete Map Style Selector**: New dedicated "Map Style" section with three mutually exclusive options:
+  - 🗺️ Base — Regular dark/light theme map
+  - 🛰️ Satellite — ESRI satellite imagery  
+  - ⛰️ Topo — Topographic/terrain map
+- Visual feedback with blue borders indicating selected map style
+- Easy one-click switching between map styles
+
+### Bug Fixes
+
+- Map now auto-centers on GPS location in all modes (navigation, browsing, compass, etc.)
+- Arrow visibility no longer conditional on navigation mode
+
+### Technical
+
+- Removed display condition on arrow overlay in Map.tsx
+- Enhanced LayerTogglesSection with 3-column button layout
+- Updated all version displays to 4.6.1
+
+---
+
+## [4.6.0] - 2026-06-27
+
+### Features
+
+- **Satellite Map Layer**: Added ESRI World Imagery tileset for satellite view
+- **Location Indicator**: Blue pulsing dot shows your GPS location at all times
+- **GPS Tracking Fix**: Map continuously pans to keep location under arrow in all modes
+
+### Bug Fixes
+
+- Fixed map drift during rotation - arrow now stays perfectly centered
+- Arrow positioned using CSS overlay instead of Leaflet marker
+- Continuous GPS tracking ensures map follows your location
+
+### Technical
+
+- New CSS overlay system for arrow positioning (.nav-arrow-overlay)
+- Added location indicator dot with pulsing animation
+- Continuous panTo() effect for GPS tracking
+- All 519 tests passing
+
+---
+
 ## [2.0.0] - 2025-06-06
 
 ### Major Changes - Complete Architecture Refactoring
