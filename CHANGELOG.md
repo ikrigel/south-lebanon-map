@@ -2,6 +2,21 @@
 
 All notable changes to the South Lebanon Map project are documented here.
 
+## [4.6.2] - 2026-06-27
+
+### Bug Fixes
+
+- **Modal responsiveness fix**: All modals (Help, About, Support) now display fully without being cut off at bottom
+- Fixed drawer-panel max-height calculation to account for header margin: `max-height: calc(100vh - 56px)`
+- Modals now properly scroll on all screen sizes (mobile, tablet, desktop) and orientations
+
+### Technical
+
+- Updated `src/styles/_dialogs.css` line 665 with corrected max-height calculation
+- Updated all version displays to 4.6.2
+
+---
+
 ## [4.6.1] - 2026-06-27
 
 ### Features

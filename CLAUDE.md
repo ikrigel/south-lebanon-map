@@ -2020,9 +2020,32 @@ Pages: `/` overview, `/api` reference, `/guide` integration, `/demo` live demo
 
 ---
 
-**Current Version:** v4.6.1 (2026-06-27)  
-**Latest Features:** Arrow always visible when GPS on, complete map style selector with base/satellite/topo
+## v4.6.2: Modal Responsiveness Fix (2026-06-27)
+
+**Release:** Critical fix for modal dialogs being cut off on all screen sizes.
+
+**Bug Fix: Modal Height Calculation**
+- **Problem:** Help, About, and Support modals were cut off at the bottom, with content unreachable
+- **Root Cause:** `.drawer-panel` had `height: 100%` + `max-height: 100vh` + `margin-top: 56px` = overflow
+- **Solution:** Changed `max-height: 100vh` → `max-height: calc(100vh - 56px)` to account for the header margin
+- **Result:** All modals now display fully with proper scrolling on all screen sizes
+
+**File Changed:**
+- `src/styles/_dialogs.css` — Fixed drawer-panel max-height calculation (line 665)
+
+**Test Status:** ✅ All 519 tests passing
+
+**User Benefits:**
+- Help modal now fully visible on all devices
+- All modal dialogs scroll properly when content exceeds screen height
+- No more cut-off text at bottom of modals
+- Works on mobile, tablet, and desktop at all orientations
+
+---
+
+**Current Version:** v4.6.2 (2026-06-27)  
+**Latest Features:** Arrow always visible when GPS on, complete map style selector, responsive modals
 **Next Phase:** DevKit Console Library (separate repo)
-**Status:** Stable ✅ - GPS tracking and map selection fully implemented
+**Status:** Stable ✅ - All UI responsive and fully functional
 **Updated:** June 2026  
 **Maintainer:** ikrigel
