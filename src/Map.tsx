@@ -414,7 +414,6 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
         <div
           className="nav-arrow-overlay"
           aria-hidden="true"
-          style={{ display: props.compassMode || props.navigationRoute ? 'block' : 'none' }}
         >
           <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
             <defs>
