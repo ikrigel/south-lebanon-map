@@ -52,12 +52,13 @@
 .mini-tile {
   display: flex;
   flex-direction: column;
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 3px;
   text-align: right;
   min-width: 0; /* Allow text to shrink */
+  gap: 1px;
 }
 
 .mini-tile small {
@@ -65,8 +66,8 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin-bottom: 1px;
-  line-height: 1.2;
+  margin-bottom: 0;
+  line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -100,19 +101,22 @@
 }
 
 .mini-grid.font-large .mini-tile small {
-  font-size: 10px;
-}
-
-.mini-grid.font-large .mini-tile b {
-  font-size: 14px;
-}
-
-.mini-grid.font-xlarge .mini-tile small {
   font-size: 11px;
 }
 
+.mini-grid.font-large .mini-tile b {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.mini-grid.font-xlarge .mini-tile small {
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
 .mini-grid.font-xlarge .mini-tile b {
-  font-size: 16px;
+  font-size: 22px;
+  line-height: 1.1;
   padding: 2px 0;
 }
 
@@ -348,19 +352,19 @@
   }
 
   .mini-grid.font-large .mini-tile small {
-    font-size: 9px;
-  }
-
-  .mini-grid.font-large .mini-tile b {
-    font-size: 13px;
-  }
-
-  .mini-grid.font-xlarge .mini-tile small {
     font-size: 10px;
   }
 
+  .mini-grid.font-large .mini-tile b {
+    font-size: 16px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 11px;
+  }
+
   .mini-grid.font-xlarge .mini-tile b {
-    font-size: 14px;
+    font-size: 19px;
   }
 }
 
@@ -407,19 +411,19 @@
   }
 
   .mini-grid.font-large .mini-tile small {
-    font-size: 8px;
-  }
-
-  .mini-grid.font-large .mini-tile b {
-    font-size: 12px;
-  }
-
-  .mini-grid.font-xlarge .mini-tile small {
     font-size: 9px;
   }
 
+  .mini-grid.font-large .mini-tile b {
+    font-size: 14px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 10px;
+  }
+
   .mini-grid.font-xlarge .mini-tile b {
-    font-size: 13px;
+    font-size: 17px;
   }
 
   .mini-settings-panel {
@@ -532,19 +536,19 @@
   }
 
   .mini-grid.font-large .mini-tile small {
-    font-size: 7px;
-  }
-
-  .mini-grid.font-large .mini-tile b {
-    font-size: 11px;
-  }
-
-  .mini-grid.font-xlarge .mini-tile small {
     font-size: 8px;
   }
 
+  .mini-grid.font-large .mini-tile b {
+    font-size: 13px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 9px;
+  }
+
   .mini-grid.font-xlarge .mini-tile b {
-    font-size: 12px;
+    font-size: 16px;
   }
 
   .mini-settings-panel {
