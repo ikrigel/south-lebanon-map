@@ -179,7 +179,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  🔧 Version: 4.6.8 (XXL FONTS & MAP BOUNDARY FIX)            ║
+║  🔧 Version: 4.6.9 (REMAINING DISTANCE CLARITY)              ║
 ║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║
