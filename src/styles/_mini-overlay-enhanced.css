@@ -329,6 +329,39 @@
   .mini-tile b {
     font-size: 11px;
   }
+
+  /* Font size variants for 900px+ */
+  .mini-grid.font-small .mini-tile small {
+    font-size: 7px;
+  }
+
+  .mini-grid.font-small .mini-tile b {
+    font-size: 10px;
+  }
+
+  .mini-grid.font-medium .mini-tile small {
+    font-size: 8px;
+  }
+
+  .mini-grid.font-medium .mini-tile b {
+    font-size: 11px;
+  }
+
+  .mini-grid.font-large .mini-tile small {
+    font-size: 9px;
+  }
+
+  .mini-grid.font-large .mini-tile b {
+    font-size: 13px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 10px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile b {
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -354,6 +387,39 @@
 
   .mini-tile b {
     font-size: 10px;
+  }
+
+  /* Font size variants for 600px and below */
+  .mini-grid.font-small .mini-tile small {
+    font-size: 6px;
+  }
+
+  .mini-grid.font-small .mini-tile b {
+    font-size: 9px;
+  }
+
+  .mini-grid.font-medium .mini-tile small {
+    font-size: 7px;
+  }
+
+  .mini-grid.font-medium .mini-tile b {
+    font-size: 10px;
+  }
+
+  .mini-grid.font-large .mini-tile small {
+    font-size: 8px;
+  }
+
+  .mini-grid.font-large .mini-tile b {
+    font-size: 12px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 9px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile b {
+    font-size: 13px;
   }
 
   .mini-settings-panel {
@@ -446,6 +512,39 @@
 
   .mini-turn b {
     font-size: 11px;
+  }
+
+  /* Font size variants for 420px and below */
+  .mini-grid.font-small .mini-tile small {
+    font-size: 5px;
+  }
+
+  .mini-grid.font-small .mini-tile b {
+    font-size: 8px;
+  }
+
+  .mini-grid.font-medium .mini-tile small {
+    font-size: 6px;
+  }
+
+  .mini-grid.font-medium .mini-tile b {
+    font-size: 9px;
+  }
+
+  .mini-grid.font-large .mini-tile small {
+    font-size: 7px;
+  }
+
+  .mini-grid.font-large .mini-tile b {
+    font-size: 11px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile small {
+    font-size: 8px;
+  }
+
+  .mini-grid.font-xlarge .mini-tile b {
+    font-size: 12px;
   }
 
   .mini-settings-panel {
