@@ -97,10 +97,21 @@ export function MiniOverlay(props: MiniOverlayProps) {
           </span>
         );
       case 'time':
+        const formatTime = (minutes: number) => {
+          const totalSeconds = Math.round(minutes * 60);
+          const hours = Math.floor(totalSeconds / 3600);
+          const mins = Math.floor((totalSeconds % 3600) / 60);
+          const secs = totalSeconds % 60;
+          if (hours > 0) {
+            return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+          } else {
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+          }
+        };
         return (
           <span {...baseProps}>
             <small>זמן</small>
-            <b>{props.navigationRoute ? `${remainingTime} דק׳` : '—'}</b>
+            <b>{props.navigationRoute ? formatTime(remainingTime) : '—'}</b>
           </span>
         );
       case 'location':
