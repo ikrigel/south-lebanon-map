@@ -54,28 +54,8 @@ export const useMapLiveLocation = (
       .addTo(group);
   }, [liveLocation]);
 
-  // Keep map centered on live location at all times (unless detached)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !liveLocation || liveFollowDetachedRef.current) return;
-
-    // Always pan to GPS location to keep map centered on arrow
-    map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
-  }, [liveLocation]);
-
-  // Ensure proper map centering when rotating in compass mode (with or without navigation)
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !liveLocation) return;
-
-    // Invalidate map size when compass mode changes to recalculate transforms
-    // This ensures the map scaling and offset are correct for the new rotation center
-    setTimeout(() => {
-      map.invalidateSize({ animate: false });
-      // Recenter on GPS location after size invalidation
-      map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
-    }, 0);
-  }, [mapBearing]); // Trigger when bearing changes (compass rotation)
+  // Map auto-pan disabled: only pan to live location when "center me" is clicked
+  // User can move around the map freely without being pulled back to live location
 
   // Apply navigation zoom scale when selected
   useEffect(() => {
