@@ -193,11 +193,13 @@ export function MiniOverlay(props: MiniOverlayProps) {
           </span>
         );
       case 'grid-coords':
+        const targetLat = props.navigationRoute?.end?.lat ?? props.liveLocation?.lat;
+        const targetLon = props.navigationRoute?.end?.lon ?? props.liveLocation?.lon;
         return (
           <span {...baseProps}>
             <small>📊 קואורדינטות</small>
             <b>
-              {props.liveLocation ? `${Math.round(props.liveLocation.lat)}, ${Math.round(props.liveLocation.lon)}` : '—'}
+              {targetLat && targetLon ? `${targetLat.toFixed(5)}, ${targetLon.toFixed(5)}` : '—'}
             </b>
           </span>
         );
