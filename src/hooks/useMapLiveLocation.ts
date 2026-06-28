@@ -54,8 +54,14 @@ export const useMapLiveLocation = (
       .addTo(group);
   }, [liveLocation]);
 
-  // Map auto-pan disabled: only pan to live location when "center me" is clicked
-  // User can move around the map freely without being pulled back to live location
+  // Keep map centered on live location ONLY during active navigation (not when just browsing)
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) return;
+
+    // Only pan to GPS location during active navigation with route
+    map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
+  }, [liveLocation, navigationRoute]);
 
   // Apply navigation zoom scale when selected
   useEffect(() => {
