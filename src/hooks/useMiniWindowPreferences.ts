@@ -25,6 +25,7 @@ const DEFAULT_PREFS: MiniWindowPreferences = {
   compactMode: false,
   showCompass: true,
   updateInterval: 500, // milliseconds
+  fontSize: 'medium', // small=2+ tiles/line, medium=1-2, large=1, xlarge=1
 };
 
 export const useMiniWindowPreferences = () => {
@@ -74,6 +75,10 @@ export const useMiniWindowPreferences = () => {
     setPrefs(p => ({ ...p, tiles }));
   };
 
+  const setFontSize = (size: 'small' | 'medium' | 'large' | 'xlarge') => {
+    setPrefs(p => ({ ...p, fontSize: size }));
+  };
+
   const getEnabledTiles = () => {
     return prefs.tiles.filter(t => t.enabled).sort((a, b) => a.order - b.order);
   };
@@ -83,6 +88,7 @@ export const useMiniWindowPreferences = () => {
     setPrefs,
     toggleTile,
     setTileOrder,
+    setFontSize,
     getEnabledTiles,
     loaded,
   };

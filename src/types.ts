@@ -196,12 +196,15 @@ export type MiniWindowTile = {
   category: 'basic' | 'navigation' | 'military' | 'advanced';
 };
 
+export type FontSizePreference = 'small' | 'medium' | 'large' | 'xlarge';
+
 export type MiniWindowPreferences = {
   tiles: MiniWindowTile[];
   rotateToHeading: boolean;
   compactMode: boolean;
   showCompass: boolean;
   updateInterval: number; // milliseconds
+  fontSize: FontSizePreference;
 };
 
 export type SunTimes = {

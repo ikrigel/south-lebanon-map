@@ -22,7 +22,7 @@ interface MiniOverlayProps {
 
 export function MiniOverlay(props: MiniOverlayProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const { prefs, toggleTile, getEnabledTiles } = useMiniWindowPreferences();
+  const { prefs, toggleTile, setFontSize, getEnabledTiles } = useMiniWindowPreferences();
 
   // Calculate bearing to target
   const bearingInfo = useBearingInfo(
@@ -240,6 +240,40 @@ export function MiniOverlay(props: MiniOverlayProps) {
               </label>
             ))}
           </div>
+
+          <div className="mini-font-size-section">
+            <h4>גודל גופן</h4>
+            <div className="mini-font-size-buttons">
+              <button
+                className={`mini-font-btn ${prefs.fontSize === 'small' ? 'active' : ''}`}
+                onClick={() => setFontSize('small')}
+                title="קטן"
+              >
+                S
+              </button>
+              <button
+                className={`mini-font-btn ${prefs.fontSize === 'medium' ? 'active' : ''}`}
+                onClick={() => setFontSize('medium')}
+                title="בינוני"
+              >
+                M
+              </button>
+              <button
+                className={`mini-font-btn ${prefs.fontSize === 'large' ? 'active' : ''}`}
+                onClick={() => setFontSize('large')}
+                title="גדול"
+              >
+                L
+              </button>
+              <button
+                className={`mini-font-btn ${prefs.fontSize === 'xlarge' ? 'active' : ''}`}
+                onClick={() => setFontSize('xlarge')}
+                title="גדול מאד"
+              >
+                XL
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <>
@@ -258,7 +292,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
             <small>הוראת פנייה במסלול</small>
             <b>{props.currentTurnInstruction?.text ?? 'אין הוראת פנייה זמינה'}</b>
           </div>
-          <div className={`mini-grid ${prefs.compactMode ? 'compact' : ''}`}>
+          <div className={`mini-grid ${prefs.compactMode ? 'compact' : ''} font-${prefs.fontSize}`}>
             {enabledTiles.map(tile => renderTile(tile.id as MiniWindowTileId))}
           </div>
         </>
