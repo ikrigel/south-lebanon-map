@@ -1,6 +1,14 @@
 /* Enhanced Mini Overlay with Customizable Tiles and Rotation */
 
-/* Container rotation support */
+/* Container rotation support and scrolling */
+.mini-overlay {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .mini-overlay.rotate-enabled {
   perspective: 1000px;
   transform-style: preserve-3d;
@@ -202,6 +210,10 @@
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
+  .mini-overlay {
+    max-height: 80vh;
+  }
+
   .mini-grid {
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 5px;
@@ -224,7 +236,7 @@
 @media (max-width: 600px) {
   .mini-overlay {
     max-width: 90vw !important;
-    max-height: 85vh !important;
+    max-height: 75vh !important;
   }
 
   .mini-grid {
@@ -247,12 +259,12 @@
   }
 
   .mini-settings-panel {
-    max-height: 60vh;
+    max-height: 65vh;
     padding: 8px;
   }
 
   .mini-tile-list {
-    max-height: calc(60vh - 80px);
+    max-height: calc(65vh - 90px);
   }
 
   .mini-tile-toggle {
@@ -270,6 +282,7 @@
 @media (max-width: 420px) {
   .mini-overlay {
     max-width: 95vw !important;
+    max-height: 70vh !important;
   }
 
   .mini-grid {
@@ -292,6 +305,7 @@
 
   .mini-overlay-head {
     gap: 4px;
+    flex-shrink: 0;
   }
 
   .mini-overlay-head strong {
@@ -310,8 +324,22 @@
     font-size: 18px;
   }
 
+  .mini-route {
+    flex-shrink: 0;
+    padding: 6px 0;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .mini-nav-panel {
+    flex-shrink: 0;
+    min-height: 80px;
+    max-height: 120px;
+  }
+
   .mini-turn {
     padding: 6px;
+    flex-shrink: 0;
   }
 
   .mini-turn small {
@@ -321,6 +349,71 @@
   .mini-turn b {
     font-size: 11px;
   }
+
+  .mini-settings-panel {
+    max-height: 60vh;
+  }
+
+  .mini-tile-list {
+    max-height: calc(60vh - 90px);
+  }
+
+  .mini-info-text {
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+}
+
+/* Scrollbar styling */
+.mini-overlay::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mini-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mini-overlay::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-radius: 3px;
+}
+
+.mini-overlay::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 60%, transparent);
+}
+
+.mini-settings-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mini-settings-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mini-settings-panel::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  border-radius: 3px;
+}
+
+.mini-settings-panel::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+.mini-tile-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.mini-tile-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mini-tile-list::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  border-radius: 2px;
+}
+
+.mini-tile-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-muted) 55%, transparent);
 }
 
 /* Dark theme adjustments */
