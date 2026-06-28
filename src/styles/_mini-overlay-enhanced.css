@@ -49,6 +49,10 @@
   grid-template-columns: 1fr;
 }
 
+.mini-grid.font-xxlarge {
+  grid-template-columns: 1fr;
+}
+
 .mini-tile {
   display: flex;
   flex-direction: column;
@@ -120,6 +124,18 @@
   font-size: 22px;
   line-height: 1.1;
   padding: 2px 0;
+}
+
+.mini-grid.font-xxlarge .mini-tile small {
+  font-size: 14px;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.mini-grid.font-xxlarge .mini-tile b {
+  font-size: 26px;
+  line-height: 1.1;
+  padding: 3px 0;
 }
 
 /* Settings panel */
@@ -213,7 +229,7 @@
 
 .mini-font-size-buttons {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
 }
 
@@ -302,6 +318,22 @@
   transform: scale(0.95);
 }
 
+/* Mini map panel - prevent boundary overflow */
+.mini-nav-panel {
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 150px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.mini-nav-panel svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 100%;
+}
+
 /* Info text styling */
 .mini-info-text {
   font-size: 11px;
@@ -369,6 +401,15 @@
   .mini-grid.font-xlarge .mini-tile b {
     font-size: 19px;
   }
+
+  .mini-grid.font-xxlarge .mini-tile small {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mini-grid.font-xxlarge .mini-tile b {
+    font-size: 23px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -428,6 +469,15 @@
 
   .mini-grid.font-xlarge .mini-tile b {
     font-size: 17px;
+  }
+
+  .mini-grid.font-xxlarge .mini-tile small {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .mini-grid.font-xxlarge .mini-tile b {
+    font-size: 21px;
   }
 
   .mini-settings-panel {
@@ -554,6 +604,15 @@
 
   .mini-grid.font-xlarge .mini-tile b {
     font-size: 16px;
+  }
+
+  .mini-grid.font-xxlarge .mini-tile small {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .mini-grid.font-xxlarge .mini-tile b {
+    font-size: 19px;
   }
 
   .mini-settings-panel {

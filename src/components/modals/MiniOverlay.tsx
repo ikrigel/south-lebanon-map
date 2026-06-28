@@ -272,6 +272,13 @@ export function MiniOverlay(props: MiniOverlayProps) {
               >
                 XL
               </button>
+              <button
+                className={`mini-font-btn ${prefs.fontSize === 'xxlarge' ? 'active' : ''}`}
+                onClick={() => setFontSize('xxlarge')}
+                title="גדול במאד מאד"
+              >
+                XXL
+              </button>
             </div>
           </div>
         </div>

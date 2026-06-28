@@ -196,7 +196,7 @@ export type MiniWindowTile = {
   category: 'basic' | 'navigation' | 'military' | 'advanced';
 };
 
-export type FontSizePreference = 'small' | 'medium' | 'large' | 'xlarge';
+export type FontSizePreference = 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge';
 
 export type MiniWindowPreferences = {
   tiles: MiniWindowTile[];

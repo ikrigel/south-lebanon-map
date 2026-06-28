@@ -25,7 +25,7 @@ const DEFAULT_PREFS: MiniWindowPreferences = {
   compactMode: false,
   showCompass: true,
   updateInterval: 500, // milliseconds
-  fontSize: 'medium', // small=2+ tiles/line, medium=1-2, large=1, xlarge=1
+  fontSize: 'medium', // small=2+ tiles/line, medium=1-2, large=1, xlarge=1, xxlarge=1
 };
 
 export const useMiniWindowPreferences = () => {
