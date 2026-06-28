@@ -1,0 +1,224 @@
+/* Enhanced Mini Overlay with Customizable Tiles and Rotation */
+
+/* Container rotation support */
+.mini-overlay.rotate-enabled {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+/* Mini grid for customizable tiles */
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-2);
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.mini-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.mini-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  text-align: right;
+}
+
+.mini-tile small {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.mini-tile b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Settings panel */
+.mini-settings-panel {
+  padding: 12px;
+  background: var(--bg-2);
+  border-radius: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.mini-settings-panel h4 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.mini-tile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mini-tile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s ease;
+}
+
+.mini-tile-toggle:hover {
+  background: var(--bg-3);
+}
+
+.mini-tile-toggle input[type='checkbox'] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.mini-tile-toggle span {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mini-tile-toggle em {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.mini-settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.mini-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mini-checkbox input[type='checkbox'] {
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+/* Header with settings button */
+.mini-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mini-head-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mini-settings-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-settings-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.mini-settings-btn:active {
+  transform: scale(0.95);
+}
+
+/* Info text styling */
+.mini-info-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 8px 0 0;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Responsive adjustments for compact modes */
+@media (max-width: 600px) {
+  .mini-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .mini-tile {
+    padding: 6px 8px;
+  }
+
+  .mini-tile small {
+    font-size: 9px;
+  }
+
+  .mini-tile b {
+    font-size: 12px;
+  }
+
+  .mini-settings-panel {
+    max-height: 300px;
+  }
+}
+
+/* Dark theme adjustments */
+:root.theme-dark .mini-tile {
+  background: color-mix(in srgb, var(--bg-1) 70%, var(--bg-2));
+}
+
+:root.theme-dark .mini-settings-panel {
+  background: color-mix(in srgb, var(--bg-2) 80%, var(--bg-1));
+}
+
+:root.theme-dark .mini-tile-toggle {
+  background: color-mix(in srgb, var(--bg-1) 60%, var(--bg-2));
+}
+
+:root.theme-dark .mini-tile-toggle:hover {
+  background: color-mix(in srgb, var(--bg-1) 50%, var(--bg-2));
+}

@@ -170,6 +170,53 @@ export type SafeZone = {
   adjustedBearing: number | null;
 };
 
+// Mini-window navigation tile types (v4.6.5)
+export type MiniWindowTileId =
+  | 'distance'
+  | 'time'
+  | 'location'
+  | 'recording'
+  | 'bearing-target'
+  | 'bearing-current'
+  | 'sunrise'
+  | 'sunset'
+  | 'waypoint-distance'
+  | 'elapsed-time'
+  | 'speed'
+  | 'eta'
+  | 'grid-coords';
+
+export type MiniWindowTile = {
+  id: MiniWindowTileId;
+  label: string;
+  labelHe: string;
+  icon: string;
+  enabled: boolean;
+  order: number;
+  category: 'basic' | 'navigation' | 'military' | 'advanced';
+};
+
+export type MiniWindowPreferences = {
+  tiles: MiniWindowTile[];
+  rotateToHeading: boolean;
+  compactMode: boolean;
+  showCompass: boolean;
+  updateInterval: number; // milliseconds
+};
+
+export type SunTimes = {
+  sunrise: Date;
+  sunset: Date;
+  daylightDuration: number; // in minutes
+};
+
+export type BearingInfo = {
+  toBearing: number; // 0-359 degrees
+  fromBearing: number; // 0-359 degrees
+  relativeBearing: number; // -180 to 180 degrees
+  direction: 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW'; // Direction to target
+};
+
 // Re-exports from other modules
 export type { Incident, Town } from './data/geo';
 export type { RecordingPayload } from './TransferModal';
