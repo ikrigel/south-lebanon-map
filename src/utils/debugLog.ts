@@ -179,7 +179,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  🔧 Version: 4.6.7 (ENHANCED MINI-WINDOW NAVIGATION)         ║
+║  🔧 Version: 4.6.8 (XXL FONTS & MAP BOUNDARY FIX)            ║
 ║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║
