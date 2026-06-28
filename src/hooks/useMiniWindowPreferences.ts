@@ -75,7 +75,7 @@ export const useMiniWindowPreferences = () => {
     setPrefs(p => ({ ...p, tiles }));
   };
 
-  const setFontSize = (size: 'small' | 'medium' | 'large' | 'xlarge') => {
+  const setFontSize = (size: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge') => {
     setPrefs(p => ({ ...p, fontSize: size }));
   };
 
