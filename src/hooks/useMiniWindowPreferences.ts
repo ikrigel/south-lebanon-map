@@ -4,7 +4,7 @@ import type { MiniWindowPreferences, MiniWindowTile, MiniWindowTileId } from '..
 const PREFS_STORAGE_KEY = 'south-lebanon-map:mini-window-prefs:v1';
 
 const DEFAULT_TILES: MiniWindowTile[] = [
-  { id: 'distance', label: 'Distance', labelHe: 'מרחק', icon: '📏', enabled: true, order: 1, category: 'basic' },
+  { id: 'distance', label: 'Distance to Target', labelHe: 'מרחק ליעד', icon: '📏', enabled: true, order: 1, category: 'basic' },
   { id: 'time', label: 'Time Remaining', labelHe: 'זמן', icon: '⏱', enabled: true, order: 2, category: 'basic' },
   { id: 'location', label: 'Live Location', labelHe: 'מיקום חי', icon: '📍', enabled: true, order: 3, category: 'basic' },
   { id: 'recording', label: 'Recording', labelHe: 'הקלטה', icon: '⏺', enabled: true, order: 4, category: 'basic' },
