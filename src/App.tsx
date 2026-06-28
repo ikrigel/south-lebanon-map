@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
+﻿import { useMemo, useState, useCallback, useEffect, useRef, type CSSProperties } from 'react';
 import MapView, { LayerVis, MapHandle } from './Map';
 import TransferModal, { type CustomPoi as TransferPoi, type SavedRoute as TransferRoute, type MultiPointRoute as TransferMultiRoute, type RecordingPayload } from './TransferModal';
 import { incidents, blueLine, Incident, towns, unifilPoints, influenceZones, terrainFeatures } from './data/geo';
