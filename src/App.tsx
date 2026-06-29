@@ -405,8 +405,12 @@ export default function App() {
   // Set navigation start time when route becomes ready
   useEffect(() => {
     if (navigationRoute && !navigationStartTime) {
+      console.log(
+        `[NAV ROUTE] ✅ Route became ready: ${navigationRoute.start.label} → ${navigationRoute.end.label} (${navigationRoute.km.toFixed(1)}km)`
+      );
       setNavigationStartTime(Date.now());
     } else if (!navigationRoute && navigationStartTime) {
+      console.log(`[NAV ROUTE] ✗ Route cleared`);
       setNavigationStartTime(null);
     }
   }, [navigationRoute, navigationStartTime, setNavigationStartTime]);

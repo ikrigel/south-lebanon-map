@@ -57,11 +57,43 @@ export const useMapLiveLocation = (
   // Keep map centered on live location ONLY during active navigation (not when just browsing)
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) return;
+
+    // DIAGNOSTIC LOGGING - Check each condition
+    const hasMap = !!map;
+    const hasLiveLocation = !!liveLocation;
+    const isDetached = liveFollowDetachedRef.current;
+    const hasRoute = !!navigationRoute;
+
+    console.log(
+      `[MAP PAN EFFECT] map=${hasMap ? '✓' : '✗'}, liveLocation=${hasLiveLocation ? '✓' : '✗'}, ` +
+      `detached=${isDetached ? '✓' : '✗'}, route=${hasRoute ? '✓' : '✗'}`
+    );
+
+    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) {
+      console.log(`[MAP PAN EFFECT] ⏭ Skipping: condition failed`);
+      return;
+    }
 
     // Only pan to GPS location during active navigation with route
+    console.log(
+      `[MAP PAN EFFECT] ✅ Panning to live location: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`
+    );
     map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
   }, [liveLocation, navigationRoute]);
+
+  // CRITICAL FIX: When navigationRoute becomes available, immediately pan to live location if GPS is active
+  // This handles the race condition where navigationRoute is set BEFORE liveLocation updates
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) {
+      return;
+    }
+
+    console.log(
+      `[MAP PAN NAV-ROUTE-CHANGE] ✅ Navigation route changed, panning to live location: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`
+    );
+    map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
+  }, [navigationRoute]); // ONLY depend on navigationRoute, not liveLocation
 
   // Apply navigation zoom scale when selected
   useEffect(() => {
