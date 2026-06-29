@@ -22,7 +22,8 @@ interface MiniOverlayProps {
 
 export function MiniOverlay(props: MiniOverlayProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const { prefs, toggleTile, setFontSize, getEnabledTiles } = useMiniWindowPreferences();
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const { prefs, toggleTile, setFontSize, getEnabledTiles, moveTile, resetToDefault } = useMiniWindowPreferences();
 
   // Calculate bearing to target
   const bearingInfo = useBearingInfo(
@@ -70,9 +71,29 @@ export function MiniOverlay(props: MiniOverlayProps) {
   }, [props.navigationRoute, props.liveLocation]);
 
   const remainingTime = useMemo(() => {
-    if (!props.navigationRoute || !props.currentSpeed || props.currentSpeed === 0)
-      return props.navigationRoute?.durationMin || 0;
-    return Math.round((remainingDistance / props.currentSpeed) * 60);
+    if (!props.navigationRoute) return 0;
+
+    // If we have current speed and it's realistic (> 0.1 m/s), use it for calculation
+    if (props.currentSpeed && props.currentSpeed > 0.1) {
+      // Speed is in m/s, distance is in km, result should be in minutes
+      return Math.round((remainingDistance / props.currentSpeed) * 60);
+    }
+
+    // Fallback to estimated speed based on route type
+    // For driving routes: assume 60 km/h average (accounting for traffic, turns, etc.)
+    // For foot routes: assume 5 km/h
+    // For aerial routes: assume 100 km/h
+    let estimatedSpeedKmh = 60; // default for road routes
+
+    if (props.navigationRoute.id === 'foot') {
+      estimatedSpeedKmh = 5;
+    } else if (props.navigationRoute.id === 'aerial') {
+      estimatedSpeedKmh = 100;
+    }
+
+    // Convert estimated speed from km/h to km/min, then calculate time
+    const estimatedSpeedKmMin = estimatedSpeedKmh / 60;
+    return Math.round(remainingDistance / estimatedSpeedKmMin);
   }, [remainingDistance, props.currentSpeed, props.navigationRoute]);
 
   const eta = useMemo(() => {
@@ -241,16 +262,42 @@ export function MiniOverlay(props: MiniOverlayProps) {
 
       {showSettings ? (
         <div className="mini-settings-panel">
-          <h4>הגדרות תוויות</h4>
+          <div className="mini-settings-header">
+            <h4>הגדרות תוויות</h4>
+            <button
+              className="mini-reset-btn"
+              onClick={resetToDefault}
+              title="איפוס לברירת המחדל"
+              aria-label="איפוס סדר תוויות לברירת המחדל"
+            >
+              🔄 איפוס
+            </button>
+          </div>
           <div className="mini-tile-list">
-            {prefs.tiles.map(tile => (
-              <label key={tile.id} className="mini-tile-toggle">
-                <input type="checkbox" checked={tile.enabled} onChange={() => toggleTile(tile.id as MiniWindowTileId)} />
-                <span>
-                  {tile.icon} {tile.labelHe}
-                  <em>({tile.category})</em>
-                </span>
-              </label>
+            {prefs.tiles.map((tile, idx) => (
+              <div
+                key={tile.id}
+                className={`mini-tile-item ${draggedIndex === idx ? 'dragging' : ''}`}
+                draggable
+                onDragStart={() => setDraggedIndex(idx)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (draggedIndex !== null && draggedIndex !== idx) {
+                    moveTile(draggedIndex, idx);
+                    setDraggedIndex(null);
+                  }
+                }}
+                onDragEnd={() => setDraggedIndex(null)}
+              >
+                <div className="mini-drag-handle">⋮⋮</div>
+                <label className="mini-tile-toggle">
+                  <input type="checkbox" checked={tile.enabled} onChange={() => toggleTile(tile.id as MiniWindowTileId)} />
+                  <span>
+                    {tile.icon} {tile.labelHe}
+                    <em>({tile.category})</em>
+                  </span>
+                </label>
+              </div>
             ))}
           </div>
 

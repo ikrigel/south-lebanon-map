@@ -150,6 +150,24 @@
   gap: 8px;
 }
 
+.mini-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mini-settings-header h4 {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+  font-weight: 600;
+  flex: 1;
+}
+
 .mini-settings-panel h4 {
   margin: 0 0 6px;
   font-size: 11px;
@@ -165,7 +183,44 @@
   gap: 4px;
   margin-bottom: 0;
   overflow-y: auto;
-  max-height: calc(70vh - 100px);
+  max-height: calc(70vh - 130px);
+}
+
+.mini-tile-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 3px;
+  cursor: move;
+  transition: all 0.15s ease;
+  background: var(--bg-2);
+}
+
+.mini-tile-item:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.mini-tile-item.dragging {
+  opacity: 0.5;
+  background: var(--accent);
+  transform: scale(0.98);
+}
+
+.mini-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 24px;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: -2px;
+  flex-shrink: 0;
+  user-select: none;
+  opacity: 0.6;
+  padding: 2px 0;
 }
 
 .mini-tile-toggle {
@@ -255,6 +310,30 @@
   background: var(--accent);
   color: var(--text-inverse);
   border-color: var(--accent);
+}
+
+.mini-reset-btn {
+  padding: 4px 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mini-reset-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mini-reset-btn:active {
+  transform: scale(0.95);
 }
 
 .mini-settings-options {
@@ -620,7 +699,28 @@
   }
 
   .mini-tile-list {
-    max-height: calc(60vh - 90px);
+    max-height: calc(60vh - 120px);
+  }
+
+  .mini-tile-item {
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .mini-drag-handle {
+    width: 14px;
+    height: 20px;
+    font-size: 9px;
+  }
+
+  .mini-reset-btn {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .mini-settings-header {
+    gap: 4px;
+    margin-bottom: 6px;
   }
 
   .mini-info-text {

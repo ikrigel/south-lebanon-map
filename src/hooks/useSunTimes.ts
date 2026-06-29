@@ -3,7 +3,8 @@ import type { SunTimes } from '../types';
 
 /**
  * Calculate sunrise and sunset times for a given latitude and longitude
- * Uses simplified algorithm (good enough for military navigation)
+ * Uses simplified SPA algorithm with Israeli timezone handling (UTC+2/UTC+3)
+ * Accurate for locations in Israel (South Lebanon region)
  */
 export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | null => {
   const [sunTimes, setSunTimes] = useState<SunTimes | null>(null);
@@ -16,6 +17,8 @@ export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | 
 
     // Simplified sunrise/sunset calculation (SPA algorithm simplified)
     const now = new Date();
+
+    // Get current UTC offset to determine if we're in DST (Israel uses UTC+2 or UTC+3)
     const J2000 = 2451545.0; // Julian Day number for 2000-01-01
     const JD = now.getTime() / 86400000 + 2440587.5; // Current Julian Day
     const n = JD - J2000 - 0.0008; // Days since J2000
@@ -43,8 +46,7 @@ export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | 
 
     // Hour angle at sunrise/sunset
     const lat_rad = (lat * Math.PI) / 180;
-    const cosH =
-      -Math.tan(lat_rad) * Math.tan(delta);
+    const cosH = -Math.tan(lat_rad) * Math.tan(delta);
 
     // Clamp to valid range
     const H =
@@ -58,13 +60,24 @@ export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | 
     const Jrise = J + (H * 180) / (Math.PI * 360) - C / 360;
     const Jset = J - (H * 180) / (Math.PI * 360) - C / 360;
 
-    // Convert to local time
-    const timeOffset = now.getTimezoneOffset() * 60000;
-    const baseDate = new Date(now);
-    baseDate.setHours(12, 0, 0, 0);
+    // Israeli timezone: UTC+2 (winter) or UTC+3 (summer DST)
+    // JavaScript's getTimezoneOffset() returns the offset in minutes
+    // Negative offset for zones ahead of UTC (Israel is UTC+2/3, so getTimezoneOffset is -120/-180)
+    const israeliOffsetMinutes = now.getTimezoneOffset(); // negative for Israel (UTC+ zones)
+    const israeliOffsetMs = israeliOffsetMinutes * 60000;
 
-    const sunrise = new Date(baseDate.getTime() + (Jrise - Math.floor(Jrise)) * 86400000 - timeOffset);
-    const sunset = new Date(baseDate.getTime() + (Jset - Math.floor(Jset)) * 86400000 - timeOffset);
+    // Create base date for calculation
+    const baseDate = new Date(now);
+    baseDate.setUTCHours(12, 0, 0, 0);
+
+    // Calculate sunrise and sunset in local Israeli time
+    // The fractional day part (Jrise - floor(Jrise)) represents the time within the day
+    const sunrise = new Date(
+      baseDate.getTime() + (Jrise - Math.floor(Jrise)) * 86400000 + israeliOffsetMs
+    );
+    const sunset = new Date(
+      baseDate.getTime() + (Jset - Math.floor(Jset)) * 86400000 + israeliOffsetMs
+    );
 
     // Calculate daylight duration
     const daylightMs = sunset.getTime() - sunrise.getTime();

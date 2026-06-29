@@ -6,15 +6,15 @@ const PREFS_STORAGE_KEY = 'south-lebanon-map:mini-window-prefs:v1';
 const DEFAULT_TILES: MiniWindowTile[] = [
   { id: 'distance', label: 'Distance to Target', labelHe: 'מרחק ליעד', icon: '📏', enabled: true, order: 1, category: 'basic' },
   { id: 'time', label: 'Time Remaining', labelHe: 'זמן', icon: '⏱', enabled: true, order: 2, category: 'basic' },
-  { id: 'location', label: 'Live Location', labelHe: 'מיקום חי', icon: '📍', enabled: true, order: 3, category: 'basic' },
-  { id: 'recording', label: 'Recording', labelHe: 'הקלטה', icon: '⏺', enabled: true, order: 4, category: 'basic' },
-  { id: 'bearing-target', label: 'Target Bearing', labelHe: 'כיוון יעד', icon: '🧭', enabled: true, order: 5, category: 'navigation' },
-  { id: 'bearing-current', label: 'Current Bearing', labelHe: 'כיוון נוכחי', icon: '📍', enabled: false, order: 6, category: 'navigation' },
-  { id: 'sunrise', label: 'Sunrise', labelHe: 'זריחה', icon: '🌅', enabled: false, order: 7, category: 'advanced' },
-  { id: 'sunset', label: 'Sunset', labelHe: 'שקיעה', icon: '🌆', enabled: false, order: 8, category: 'advanced' },
-  { id: 'waypoint-distance', label: 'Waypoint Distance', labelHe: 'מרחק לתחנה', icon: '🚩', enabled: false, order: 9, category: 'military' },
-  { id: 'elapsed-time', label: 'Elapsed Time', labelHe: 'זמן שחלף', icon: '⏳', enabled: false, order: 10, category: 'military' },
-  { id: 'speed', label: 'Speed', labelHe: 'מהירות', icon: '⚡', enabled: false, order: 11, category: 'military' },
+  { id: 'speed', label: 'Speed', labelHe: 'מהירות', icon: '⚡', enabled: true, order: 3, category: 'basic' },
+  { id: 'location', label: 'Live Location', labelHe: 'מיקום חי', icon: '📍', enabled: true, order: 4, category: 'basic' },
+  { id: 'recording', label: 'Recording', labelHe: 'הקלטה', icon: '⏺', enabled: true, order: 5, category: 'basic' },
+  { id: 'bearing-target', label: 'Target Bearing', labelHe: 'כיוון יעד', icon: '🧭', enabled: true, order: 6, category: 'navigation' },
+  { id: 'bearing-current', label: 'Current Bearing', labelHe: 'כיוון נוכחי', icon: '📍', enabled: false, order: 7, category: 'navigation' },
+  { id: 'sunrise', label: 'Sunrise', labelHe: 'זריחה', icon: '🌅', enabled: false, order: 8, category: 'advanced' },
+  { id: 'sunset', label: 'Sunset', labelHe: 'שקיעה', icon: '🌆', enabled: false, order: 9, category: 'advanced' },
+  { id: 'waypoint-distance', label: 'Waypoint Distance', labelHe: 'מרחק לתחנה', icon: '🚩', enabled: false, order: 10, category: 'military' },
+  { id: 'elapsed-time', label: 'Elapsed Time', labelHe: 'זמן שחלף', icon: '⏳', enabled: false, order: 11, category: 'military' },
   { id: 'eta', label: 'ETA', labelHe: 'שעת הגעה משוער', icon: '🎯', enabled: false, order: 12, category: 'advanced' },
   { id: 'grid-coords', label: 'Grid Coords', labelHe: 'קואורדינטות רשת', icon: '📊', enabled: false, order: 13, category: 'military' },
 ];
@@ -75,6 +75,22 @@ export const useMiniWindowPreferences = () => {
     setPrefs(p => ({ ...p, tiles }));
   };
 
+  const moveTile = (fromIndex: number, toIndex: number) => {
+    setPrefs(p => {
+      const newTiles = [...p.tiles];
+      const [movedTile] = newTiles.splice(fromIndex, 1);
+      newTiles.splice(toIndex, 0, movedTile);
+
+      // Recalculate order values
+      const reorderedTiles = newTiles.map((t, idx) => ({ ...t, order: idx + 1 }));
+      return { ...p, tiles: reorderedTiles };
+    });
+  };
+
+  const resetToDefault = () => {
+    setPrefs({ ...DEFAULT_PREFS });
+  };
+
   const setFontSize = (size: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge') => {
     setPrefs(p => ({ ...p, fontSize: size }));
   };
@@ -88,6 +104,8 @@ export const useMiniWindowPreferences = () => {
     setPrefs,
     toggleTile,
     setTileOrder,
+    moveTile,
+    resetToDefault,
     setFontSize,
     getEnabledTiles,
     loaded,
