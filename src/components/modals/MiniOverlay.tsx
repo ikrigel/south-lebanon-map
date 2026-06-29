@@ -116,6 +116,9 @@ export function MiniOverlay(props: MiniOverlayProps) {
   if (!props.miniOverlayOpen) return null;
 
   const enabledTiles = getEnabledTiles();
+  console.log(`[MiniOverlay] Enabled tiles:`, enabledTiles.map(t => t.id));
+  const speedTileEnabled = enabledTiles.some(t => t.id === 'speed');
+  console.log(`[MiniOverlay] Speed tile enabled:`, speedTileEnabled);
 
   const renderTile = (tileId: MiniWindowTileId) => {
     const baseProps = { className: 'mini-tile' };
@@ -205,14 +208,20 @@ export function MiniOverlay(props: MiniOverlayProps) {
         );
       case 'speed':
         // Speed is provided in km/h (calculated from GPS position deltas)
-        const speedInKmh = props.currentSpeed ? Math.round(props.currentSpeed) : null;
-        if (props.currentSpeed !== undefined && props.currentSpeed !== null) {
-          console.log(`[MiniOverlay] Speed: ${props.currentSpeed} km/h (calculated from GPS)`);
-        }
+        console.log(`[MiniOverlay-Speed] props.currentSpeed:`, props.currentSpeed);
+        console.log(`[MiniOverlay-Speed] props.liveLocation:`, props.liveLocation);
+        console.log(`[MiniOverlay-Speed] props.liveLocation?.speed:`, props.liveLocation?.speed);
+
+        const speedValue = props.currentSpeed ?? props.liveLocation?.speed ?? null;
+        console.log(`[MiniOverlay-Speed] Final speedValue:`, speedValue);
+
+        const speedInKmh = (speedValue !== null && speedValue !== undefined && speedValue >= 0) ? Math.round(speedValue) : null;
+        console.log(`[MiniOverlay-Speed] speedInKmh (rounded):`, speedInKmh);
+
         return (
           <span {...baseProps}>
             <small>⚡ מהירות</small>
-            <b>{speedInKmh ? `${speedInKmh} קמ״ש` : '—'}</b>
+            <b>{speedInKmh !== null ? `${speedInKmh} קמ״ש` : '—'}</b>
           </span>
         );
       case 'eta':
