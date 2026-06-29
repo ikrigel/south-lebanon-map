@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { fmtKm } from '../../util';
 import { useSunTimes } from '../../hooks/useSunTimes';
 import { useBearingInfo } from '../../hooks/useBearingInfo';
@@ -103,6 +103,15 @@ export function MiniOverlay(props: MiniOverlayProps) {
     const etaMs = Date.now() + remainingTime * 60000;
     return new Date(etaMs).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   }, [remainingTime, props.navigationRoute]);
+
+  // Debug logging for speed
+  useEffect(() => {
+    if (props.liveLocation || props.currentSpeed !== undefined) {
+      console.log(`[MiniOverlay DEBUG] liveLocation:`, props.liveLocation);
+      console.log(`[MiniOverlay DEBUG] currentSpeed prop:`, props.currentSpeed);
+      console.log(`[MiniOverlay DEBUG] liveLocation.speed:`, props.liveLocation?.speed);
+    }
+  }, [props.currentSpeed, props.liveLocation]);
 
   if (!props.miniOverlayOpen) return null;
 

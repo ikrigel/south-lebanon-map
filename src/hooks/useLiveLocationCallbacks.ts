@@ -67,13 +67,15 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           timestamp: newTimestamp,
         };
 
-        props.setLiveLocation({
+        const newLocState = {
           lat: newLat,
           lon: newLon,
           accuracy: pos.coords.accuracy,
           heading: pos.coords.heading,
           speed: calculatedSpeed !== null ? calculatedSpeed : (pos.coords.speed ?? null),
-        });
+        };
+        console.log(`[useLiveLocationCallbacks] Setting location:`, newLocState);
+        props.setLiveLocation(newLocState);
         props.setLocationStatus('watching');
         if (!props.liveToastShownRef.current) {
           props.liveToastShownRef.current = true;
