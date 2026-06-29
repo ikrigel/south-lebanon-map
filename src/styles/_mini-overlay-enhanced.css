@@ -221,6 +221,8 @@
   user-select: none;
   opacity: 0.6;
   padding: 2px 0;
+  cursor: grab;
+  pointer-events: auto;
 }
 
 .mini-tile-toggle {
@@ -235,6 +237,7 @@
   font-size: 11px;
   transition: background 0.15s ease;
   flex-shrink: 0;
+  pointer-events: auto;
 }
 
 .mini-tile-toggle:hover {

@@ -278,6 +278,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
                 draggable
                 onDragStart={() => setDraggedIndex(idx)}
                 onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => e.preventDefault()}
                 onDrop={() => {
                   if (draggedIndex !== null && draggedIndex !== idx) {
                     moveTile(draggedIndex, idx);
@@ -288,7 +289,15 @@ export function MiniOverlay(props: MiniOverlayProps) {
               >
                 <div className="mini-drag-handle">⋮⋮</div>
                 <label className="mini-tile-toggle">
-                  <input type="checkbox" checked={tile.enabled} onChange={() => toggleTile(tile.id as MiniWindowTileId)} />
+                  <input
+                    type="checkbox"
+                    checked={tile.enabled}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleTile(tile.id as MiniWindowTileId);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  />
                   <span>
                     {tile.icon} {tile.labelHe}
                     <em>({tile.category})</em>
