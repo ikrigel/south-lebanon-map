@@ -25,6 +25,7 @@ interface PreviousLocationSnapshot {
   lat: number;
   lon: number;
   timestamp: number;
+  accuracy: number;
 }
 
 export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
@@ -42,35 +43,51 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
         const newLat = pos.coords.latitude;
         const newLon = pos.coords.longitude;
         const newTimestamp = Date.now();
+        const newAccuracy = pos.coords.accuracy ?? 0;
 
-        // Calculate speed from position movement
+        // Improved GPS speed calculation with accuracy-based jitter filtering
         let calculatedSpeed: number | null = null;
         const prevLoc = previousLocationRef.current;
 
         if (prevLoc) {
           const distanceKm = haversineKm([prevLoc.lat, prevLoc.lon], [newLat, newLon]);
-          const timeElapsedHours = (newTimestamp - prevLoc.timestamp) / (1000 * 60 * 60);
+          const timeElapsedMs = newTimestamp - prevLoc.timestamp;
+          const timeElapsedSeconds = timeElapsedMs / 1000;
+          const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
 
-          // Only use calculated speed if movement is significant (> 5m) to avoid GPS jitter
-          if (distanceKm > 0.005 && timeElapsedHours > 0) {
-            calculatedSpeed = distanceKm / timeElapsedHours;
-          } else if (distanceKm <= 0.005) {
-            // Stationary
-            calculatedSpeed = 0;
+          // Only consider position "new" if time elapsed > 2 seconds (avoid duplicate timestamps)
+          if (timeElapsedSeconds > 2) {
+            // Accuracy circle validation: movement must exceed accuracy + 1m threshold
+            // This filters GPS jitter (random wandering within accuracy circle)
+            const accuracyThresholdKm = (Math.max(prevLoc.accuracy, newAccuracy) + 1) / 1000;
+
+            if (distanceKm > accuracyThresholdKm && timeElapsedHours > 0) {
+              // Significant movement detected: calculate real speed (even if very slow)
+              calculatedSpeed = distanceKm / timeElapsedHours;
+              console.log(`[GPS Speed] Distance: ${(distanceKm * 1000).toFixed(0)}m, Time: ${timeElapsedSeconds.toFixed(1)}s, Speed: ${calculatedSpeed.toFixed(2)} km/h, Accuracy threshold: ${(accuracyThresholdKm * 1000).toFixed(0)}m`);
+            } else if (distanceKm <= accuracyThresholdKm) {
+              // Movement within accuracy circle: truly stationary
+              calculatedSpeed = 0;
+              console.log(`[GPS Speed] Stationary (within accuracy circle: ${(distanceKm * 1000).toFixed(0)}m ≤ ${(accuracyThresholdKm * 1000).toFixed(0)}m threshold)`);
+            }
+          } else {
+            // Too soon to calculate speed (likely duplicate timestamp or rapid fire updates)
+            console.log(`[GPS Speed] Skipped - time elapsed ${timeElapsedSeconds.toFixed(1)}s < 2s minimum`);
           }
         }
 
-        // Update reference for next calculation
+        // Update reference for next calculation (now includes accuracy)
         previousLocationRef.current = {
           lat: newLat,
           lon: newLon,
           timestamp: newTimestamp,
+          accuracy: newAccuracy,
         };
 
         const newLocState = {
           lat: newLat,
           lon: newLon,
-          accuracy: pos.coords.accuracy,
+          accuracy: newAccuracy,
           heading: pos.coords.heading,
           speed: calculatedSpeed !== null ? calculatedSpeed : (pos.coords.speed ?? null),
         };
