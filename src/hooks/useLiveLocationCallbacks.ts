@@ -45,8 +45,7 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
         const newTimestamp = Date.now();
         const newAccuracy = pos.coords.accuracy ?? 0;
 
-        // Ultra-low speed detection for slow pedestrian movement (0.1 km/h+)
-        // Replaces accuracy-based threshold with fixed low-distance threshold
+        // SIMPLE SPEED CALCULATION: distance / time for every GPS update
         let calculatedSpeed: number | null = null;
         const prevLoc = previousLocationRef.current;
 
@@ -57,35 +56,21 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           const timeElapsedSeconds = timeElapsedMs / 1000;
           const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
 
-          console.log(`[GPS Speed] New update - distance: ${distanceMeters.toFixed(1)}m, time: ${timeElapsedSeconds.toFixed(1)}s, timeHours: ${timeElapsedHours.toFixed(6)}`);
+          // SIMPLE: Always calculate speed = distance / time (in km/h)
+          if (timeElapsedHours > 0 && distanceMeters > 0.1) {
+            calculatedSpeed = distanceKm / timeElapsedHours;
+            console.log(`[GPS Speed SIMPLE] ${distanceMeters.toFixed(1)}m in ${timeElapsedSeconds.toFixed(1)}s = ${calculatedSpeed.toFixed(2)} km/h`);
 
-          // Only consider position "new" if time elapsed > 1 second (avoid duplicate timestamps)
-          if (timeElapsedSeconds > 1) {
-            // Fixed threshold: 1.5 meters minimum distance
-            // This captures slow walking (0.1-0.5 km/h) while filtering GPS jitter
-            // GPS jitter is typically 5-10m, so 1.5m threshold accepts real foot movement
-            const MINIMUM_DISTANCE_METERS = 1.5;
-            const MINIMUM_DISTANCE_KM = MINIMUM_DISTANCE_METERS / 1000;
-
-            console.log(`[GPS Speed] Time > 1s, checking distance: ${distanceKm.toFixed(6)} km vs threshold ${MINIMUM_DISTANCE_KM.toFixed(6)} km`);
-
-            if (distanceKm > MINIMUM_DISTANCE_KM && timeElapsedHours > 0) {
-              // Real movement detected: calculate speed (captures ultra-low speeds)
-              calculatedSpeed = distanceKm / timeElapsedHours;
-              console.log(`[GPS Speed] ✓ MOVEMENT: ${calculatedSpeed.toFixed(3)} km/h (${(calculatedSpeed * 1000 / 3.6).toFixed(1)} m/s)`);
-            } else if (distanceKm <= MINIMUM_DISTANCE_KM) {
-              // Movement within 1.5m: stationary or minimal movement
-              calculatedSpeed = 0;
-              console.log(`[GPS Speed] ✓ STATIONARY: distance within threshold`);
-            } else {
-              console.log(`[GPS Speed] ✗ REJECTED: distance > threshold but timeHours <= 0`);
+            // Filter out GPS noise: reject if speed seems impossible (>300 km/h)
+            if (calculatedSpeed > 300) {
+              console.log(`[GPS Speed] Rejected impossible speed ${calculatedSpeed.toFixed(2)} km/h`);
+              calculatedSpeed = null;
             }
-          } else {
-            // Too soon to calculate speed (likely duplicate timestamp)
-            console.log(`[GPS Speed] ⊘ Skipped - time elapsed ${timeElapsedSeconds.toFixed(2)}s < 1s minimum`);
+          } else if (distanceMeters <= 0.1) {
+            // No movement
+            calculatedSpeed = 0;
+            console.log(`[GPS Speed] Stationary: ${distanceMeters.toFixed(2)}m < 0.1m threshold`);
           }
-        } else {
-          console.log(`[GPS Speed] First GPS update - no previous location yet`);
         }
 
         // Update reference for next calculation (now includes accuracy)
