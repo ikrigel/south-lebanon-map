@@ -57,6 +57,8 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           const timeElapsedSeconds = timeElapsedMs / 1000;
           const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
 
+          console.log(`[GPS Speed] New update - distance: ${distanceMeters.toFixed(1)}m, time: ${timeElapsedSeconds.toFixed(1)}s, timeHours: ${timeElapsedHours.toFixed(6)}`);
+
           // Only consider position "new" if time elapsed > 1 second (avoid duplicate timestamps)
           if (timeElapsedSeconds > 1) {
             // Fixed threshold: 1.5 meters minimum distance
@@ -65,19 +67,25 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
             const MINIMUM_DISTANCE_METERS = 1.5;
             const MINIMUM_DISTANCE_KM = MINIMUM_DISTANCE_METERS / 1000;
 
+            console.log(`[GPS Speed] Time > 1s, checking distance: ${distanceKm.toFixed(6)} km vs threshold ${MINIMUM_DISTANCE_KM.toFixed(6)} km`);
+
             if (distanceKm > MINIMUM_DISTANCE_KM && timeElapsedHours > 0) {
               // Real movement detected: calculate speed (captures ultra-low speeds)
               calculatedSpeed = distanceKm / timeElapsedHours;
-              console.log(`[GPS Speed] Distance: ${distanceMeters.toFixed(1)}m, Time: ${timeElapsedSeconds.toFixed(1)}s, Speed: ${calculatedSpeed.toFixed(3)} km/h (${(calculatedSpeed * 1000 / 3.6).toFixed(1)} m/s) — PEDESTRIAN MOVEMENT DETECTED`);
+              console.log(`[GPS Speed] ✓ MOVEMENT: ${calculatedSpeed.toFixed(3)} km/h (${(calculatedSpeed * 1000 / 3.6).toFixed(1)} m/s)`);
             } else if (distanceKm <= MINIMUM_DISTANCE_KM) {
               // Movement within 1.5m: stationary or minimal movement
               calculatedSpeed = 0;
-              console.log(`[GPS Speed] Stationary (${distanceMeters.toFixed(1)}m ≤ ${MINIMUM_DISTANCE_METERS}m threshold)`);
+              console.log(`[GPS Speed] ✓ STATIONARY: distance within threshold`);
+            } else {
+              console.log(`[GPS Speed] ✗ REJECTED: distance > threshold but timeHours <= 0`);
             }
           } else {
             // Too soon to calculate speed (likely duplicate timestamp)
-            console.log(`[GPS Speed] Skipped - time elapsed ${timeElapsedSeconds.toFixed(2)}s < 1s minimum`);
+            console.log(`[GPS Speed] ⊘ Skipped - time elapsed ${timeElapsedSeconds.toFixed(2)}s < 1s minimum`);
           }
+        } else {
+          console.log(`[GPS Speed] First GPS update - no previous location yet`);
         }
 
         // Update reference for next calculation (now includes accuracy)
@@ -88,13 +96,16 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           accuracy: newAccuracy,
         };
 
+        const deviceSpeed = pos.coords.speed ?? null;
+        const finalSpeed = calculatedSpeed !== null ? calculatedSpeed : deviceSpeed;
         const newLocState = {
           lat: newLat,
           lon: newLon,
           accuracy: newAccuracy,
           heading: pos.coords.heading,
-          speed: calculatedSpeed !== null ? calculatedSpeed : (pos.coords.speed ?? null),
+          speed: finalSpeed,
         };
+        console.log(`[useLiveLocationCallbacks] Speed sources - calculated: ${calculatedSpeed}, device: ${deviceSpeed}, final: ${finalSpeed}`);
         console.log(`[useLiveLocationCallbacks] Setting location:`, newLocState);
         props.setLiveLocation(newLocState);
         props.setLocationStatus('watching');

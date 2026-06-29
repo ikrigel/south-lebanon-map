@@ -11,6 +11,7 @@ export const MiniOverlay: React.FC<{
   recordedKm: number;
   miniStatus: 'idle' | 'pip' | 'fallback' | 'popup' | 'mobile';
   miniNavSvgMarkup: () => string;
+  currentSpeed?: number | null;
 }> = ({
   isOpen,
   onClose,
@@ -21,7 +22,15 @@ export const MiniOverlay: React.FC<{
   recordedKm,
   miniStatus,
   miniNavSvgMarkup,
+  currentSpeed,
 }) => {
+  React.useEffect(() => {
+    if (liveLocation) {
+      console.log(`[MiniOverlay] liveLocation:`, liveLocation);
+      console.log(`[MiniOverlay] currentSpeed prop:`, currentSpeed);
+      console.log(`[MiniOverlay] liveLocation.speed:`, liveLocation.speed);
+    }
+  }, [liveLocation, currentSpeed]);
   if (!isOpen) return null;
 
   return (
@@ -65,7 +74,7 @@ export const MiniOverlay: React.FC<{
         </span>
         <span>
           <small>מהירות</small>
-          <b>{liveLocation && liveLocation.speed !== null ? `${Math.round(liveLocation.speed)} קמ״ש` : '—'}</b>
+          <b>{currentSpeed !== null && currentSpeed !== undefined ? `${Math.round(currentSpeed)} קמ״ש` : '—'}</b>
         </span>
         <span>
           <small>הקלטה</small>
