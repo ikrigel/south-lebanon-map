@@ -206,13 +206,6 @@ export function MiniOverlay(props: MiniOverlayProps) {
             <b>{eta || '—'}</b>
           </span>
         );
-      case 'waypoint-distance':
-        return (
-          <span {...baseProps}>
-            <small>🚩 מרחק לתחנה</small>
-            <b>{'—'}</b>
-          </span>
-        );
       case 'grid-coords':
         const targetLat = props.navigationRoute?.end?.lat ?? props.liveLocation?.lat;
         const targetLon = props.navigationRoute?.end?.lon ?? props.liveLocation?.lon;

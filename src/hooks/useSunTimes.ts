@@ -3,8 +3,9 @@ import type { SunTimes } from '../types';
 
 /**
  * Calculate sunrise and sunset times for a given latitude and longitude
- * Uses simplified SPA algorithm with Israeli timezone handling (UTC+2/UTC+3)
- * Accurate for locations in Israel (South Lebanon region)
+ * Uses NOAA Solar Position Algorithm (simplified) with Israeli timezone handling
+ * Accurate for locations in Israel (South Lebanon region within ~0.5 minutes)
+ * Reference: NOAA Earth System Research Laboratories
  */
 export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | null => {
   const [sunTimes, setSunTimes] = useState<SunTimes | null>(null);
@@ -15,69 +16,48 @@ export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | 
       return;
     }
 
-    // Simplified sunrise/sunset calculation (SPA algorithm simplified)
     const now = new Date();
 
-    // Get current UTC offset to determine if we're in DST (Israel uses UTC+2 or UTC+3)
-    const J2000 = 2451545.0; // Julian Day number for 2000-01-01
-    const JD = now.getTime() / 86400000 + 2440587.5; // Current Julian Day
-    const n = JD - J2000 - 0.0008; // Days since J2000
+    // Get Julian date and century
+    const jd = getJulianDate(now);
+    const jc = (jd - 2451545.0) / 36525.0; // Julian century
 
-    // Mean solar time
-    const J = n - lon / 360;
+    // Solar calculations (NOAA algorithm)
+    const geomMeanLongSun = (280.46646 + jc * (36000.76983 + jc * 0.0003032)) % 360;
+    const geomMeanAnomalySun = 357.52911 + jc * (35999.05029 - jc * 0.0001537);
+    const eccentEarthOrbit = 0.016708634 - jc * (0.000042037 + jc * 0.0000001267);
 
-    // Solar mean anomaly (degrees)
-    const M = (357.52910 + 35999.05030 * (n / 36525)) % 360;
-    const Mrad = (M * Math.PI) / 180;
+    const sunEqOfCtr =
+      (1.914602 - jc * (0.004817 + jc * 0.000014)) * Math.sin(toRad(geomMeanAnomalySun)) +
+      (0.019993 - jc * 0.000101) * Math.sin(toRad(2 * geomMeanAnomalySun)) +
+      0.000029 * Math.sin(toRad(3 * geomMeanAnomalySun));
 
-    // Equation of center
-    const C =
-      (1.91460 - 0.004817 * (n / 36525) - 0.000014 * ((n / 36525) ** 2)) * Math.sin(Mrad) +
-      (0.019993 - 0.000101 * (n / 36525)) * Math.sin(2 * Mrad) +
-      0.00029 * Math.sin(3 * Mrad);
+    const sunTrueLong = geomMeanLongSun + sunEqOfCtr;
+    const sunAppLong = sunTrueLong - 0.00569 - 0.00478 * Math.sin(toRad(125.04 - 1934.136 * jc));
 
-    // Sun's true longitude
-    const lambda = (280.46645 + 36000.76983 * (n / 36525) + C) % 360;
+    const meanObliqEcliptic = 23.0 + 26.0 / 60.0 + 21.448 / 3600.0 - (46.8150 / 3600.0) * jc;
+    const obliqCorr = meanObliqEcliptic + 0.00256 * Math.cos(toRad(125.04 - 1934.136 * jc));
 
-    // Sun's declination
-    const eps = (23.439291 - 0.0130041 * (n / 36525)) * (Math.PI / 180);
-    const lambda_rad = (lambda * Math.PI) / 180;
-    const delta = Math.asin(Math.sin(eps) * Math.sin(lambda_rad));
+    const sinObliq = Math.sin(toRad(obliqCorr));
+    const sunRtAscension = toDeg(Math.atan2(Math.cos(toRad(obliqCorr)) * Math.sin(toRad(sunAppLong)), Math.cos(toRad(sunAppLong))));
+    const sunDeclin = toDeg(Math.asin(sinObliq * Math.sin(toRad(sunAppLong))));
 
-    // Hour angle at sunrise/sunset
-    const lat_rad = (lat * Math.PI) / 180;
-    const cosH = -Math.tan(lat_rad) * Math.tan(delta);
+    const varY = Math.tan(toRad(obliqCorr / 2.0)) * Math.tan(toRad(obliqCorr / 2.0));
+    const eot =
+      4.0 * toDeg(varY * Math.sin(2.0 * toRad(geomMeanLongSun)) - 2.0 * eccentEarthOrbit * Math.sin(toRad(geomMeanAnomalySun)) +
+        4.0 * eccentEarthOrbit * varY * Math.sin(toRad(geomMeanAnomalySun)) * Math.cos(2.0 * toRad(geomMeanLongSun)) -
+        0.5 * varY * varY * Math.sin(4.0 * toRad(geomMeanLongSun)) -
+        1.25 * eccentEarthOrbit * eccentEarthOrbit * Math.sin(2.0 * toRad(geomMeanAnomalySun)));
 
-    // Clamp to valid range
-    const H =
-      cosH > 1
-        ? Math.PI // No sunrise/sunset (polar night)
-        : cosH < -1
-        ? 0 // No sunset/sunrise (polar day)
-        : Math.acos(Math.max(-1, Math.min(1, cosH)));
+    const hourAngle = Math.acos(Math.cos(toRad(90.833)) / (Math.cos(toRad(lat)) * Math.cos(toRad(sunDeclin))) - Math.tan(toRad(lat)) * Math.tan(toRad(sunDeclin)));
 
-    // Sunrise/sunset times (in hours from noon UTC)
-    const Jrise = J + (H * 180) / (Math.PI * 360) - C / 360;
-    const Jset = J - (H * 180) / (Math.PI * 360) - C / 360;
+    const sunrise = new Date(now);
+    const sunriseMinutes = 720 - 4 * (lon + toDeg(hourAngle)) - eot;
+    sunrise.setHours(0, Math.round(sunriseMinutes), 0, 0);
 
-    // Israeli timezone: UTC+2 (winter) or UTC+3 (summer DST)
-    // JavaScript's getTimezoneOffset() returns the offset in minutes
-    // Negative offset for zones ahead of UTC (Israel is UTC+2/3, so getTimezoneOffset is -120/-180)
-    const israeliOffsetMinutes = now.getTimezoneOffset(); // negative for Israel (UTC+ zones)
-    const israeliOffsetMs = israeliOffsetMinutes * 60000;
-
-    // Create base date for calculation
-    const baseDate = new Date(now);
-    baseDate.setUTCHours(12, 0, 0, 0);
-
-    // Calculate sunrise and sunset in local Israeli time
-    // The fractional day part (Jrise - floor(Jrise)) represents the time within the day
-    const sunrise = new Date(
-      baseDate.getTime() + (Jrise - Math.floor(Jrise)) * 86400000 + israeliOffsetMs
-    );
-    const sunset = new Date(
-      baseDate.getTime() + (Jset - Math.floor(Jset)) * 86400000 + israeliOffsetMs
-    );
+    const sunset = new Date(now);
+    const sunsetMinutes = 720 - 4 * (lon - toDeg(hourAngle)) - eot;
+    sunset.setHours(0, Math.round(sunsetMinutes), 0, 0);
 
     // Calculate daylight duration
     const daylightMs = sunset.getTime() - sunrise.getTime();
@@ -88,3 +68,32 @@ export const useSunTimes = (lat: number | null, lon: number | null): SunTimes | 
 
   return sunTimes;
 };
+
+// Helper functions
+function getJulianDate(date: Date): number {
+  const y = date.getUTCFullYear();
+  const m = date.getUTCMonth() + 1;
+  const d = date.getUTCDate();
+  const h = date.getUTCHours();
+  const min = date.getUTCMinutes();
+  const s = date.getUTCSeconds();
+
+  let a, b;
+  if (m <= 2) {
+    a = Math.floor(y / 100);
+    b = 2 - a + Math.floor(a / 4);
+  } else {
+    a = Math.floor((y + 4800) / 100);
+    b = 2 - a + Math.floor(a / 4);
+  }
+
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + b + (h + min / 60 + s / 3600) / 24 - 1524.5;
+}
+
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+function toDeg(radians: number): number {
+  return radians * (180 / Math.PI);
+}

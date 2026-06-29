@@ -109,7 +109,7 @@ export default function App() {
   const { multiRouteBuildMode, setMultiRouteBuildMode, multiRouteDraftPoints, setMultiRouteDraftPoints, multiRouteName, setMultiRouteName, multiRouteDescription, setMultiRouteDescription, multiRouteDifficulty, setMultiRouteDifficulty, multiRoutePassability, setMultiRoutePassability, savedMultiRoutes, setSavedMultiRoutes, activeMultiRoute, setActiveMultiRoute } = multiRouteState;
   const { visible, setVisible, largeLabels, setLargeLabels, allLabels, setAllLabels, focusTarget, setFocusTarget, liveFollowDetached, setLiveFollowDetached, liveCenterRequestId, setLiveCenterRequestId, mapSearchQuery, setMapSearchQuery } = mapDisplayState;
   const { themeMode, setThemeMode, autoDay, setAutoDay, panelsCollapsed, setPanelsCollapsed, panelHeightPct, setPanelHeightPct, panelDragRef, panelRef, miniOverlayOpen, setMiniOverlayOpen, miniStatus, setMiniStatus, drawerOpen, setDrawerOpen, helpOpen, setHelpOpen, aboutOpen, setAboutOpen, transferOpen, setTransferOpen, supportOpen, setSupportOpen, donationCopied, setDonationCopied, toastMessage, setToastMessage, resumeNavDialog, setResumeNavDialog, measureMode, setMeasureMode, manualMeasure, setManualMeasure, miniExternalWindowRef } = uiState;
-  const { initialNavSessionRef, navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel } = navState;
+  const { initialNavSessionRef, navStartId, setNavStartId, navEndId, setNavEndId, navStartQuery, setNavStartQuery, navEndQuery, setNavEndQuery, roadRoute, setRoadRoute, footRoute, setFootRoute, alternativeRoute, setAlternativeRoute, activeRouteIndex, setActiveRouteIndex, routeStatus, setRouteStatus, footRouteStatus, setFootRouteStatus, routeName, setRouteName, savedRoutes, setSavedRoutes, activeSavedRoute, setActiveSavedRoute, liveLocation, setLiveLocation, navPosition, setNavPosition, navPositionRef, locationStatus, setLocationStatus, watchId, setWatchId, compassMode, setCompassMode, userMapRotation, setUserMapRotation, handleUserRotationChange, resetMapRotation, rotationLocked, setRotationLocked, snapPickerOpen, setSnapPickerOpen, handleSnapRotation, toggleRotationLock, routeDisplayMode, setRouteDisplayMode, activeRouteId, setActiveRouteId, navCustomEnd, setNavCustomEnd, navCustomStart, setNavCustomStart, navScaleLabel, setNavScaleLabel, navigationStartTime, setNavigationStartTime } = navState;
 
   const mapViewRef = useRef<MapHandle>(null);
   const panelsCollapseIsFirstMount = useRef(true);
@@ -401,6 +401,15 @@ export default function App() {
       lastDistToDestMRef.current = undefined;
     }
   }, [navPosition, navigationRoute]);
+
+  // Set navigation start time when route becomes ready
+  useEffect(() => {
+    if (navigationRoute && !navigationStartTime) {
+      setNavigationStartTime(Date.now());
+    } else if (!navigationRoute && navigationStartTime) {
+      setNavigationStartTime(null);
+    }
+  }, [navigationRoute, navigationStartTime, setNavigationStartTime]);
 
   const mapBearing = useMemo(() => {
     if (typeof liveLocation?.heading === 'number' && isFinite(liveLocation.heading)) {
@@ -1226,7 +1235,7 @@ export default function App() {
       {/* ===== Resume-navigation dialog ===== */}
       <ResumeNavDialog resumeNavDialog={resumeNavDialog} onClose={() => setResumeNavDialog(null)} onContinue={() => { setResumeNavDialog(null); document.getElementById("nav-section")?.scrollIntoView({ behavior: "smooth" }); }} onDiscard={() => { setResumeNavDialog(null); setNavStartId(""); setNavEndId(""); setNavStartQuery(""); setNavEndQuery(""); setNavCustomStart(null); setNavCustomEnd(null); setRoadRoute(null); setFootRoute(null); setActiveRouteId("drive"); setRouteDisplayMode("road"); }} />
 
-      <MiniOverlay miniOverlayOpen={miniOverlayOpen} onClose={() => setMiniOverlayOpen(false)} navigationRoute={navigationRoute} currentTurnInstruction={currentTurnInstruction} liveLocation={liveLocation} recordedTrack={recordedTrack} recordedKm={recordedKm} miniStatus={miniStatus} miniNavSvgMarkup={miniNavSvgMarkup} />
+      <MiniOverlay miniOverlayOpen={miniOverlayOpen} onClose={() => setMiniOverlayOpen(false)} navigationRoute={navigationRoute} currentTurnInstruction={currentTurnInstruction} liveLocation={liveLocation} recordedTrack={recordedTrack} recordedKm={recordedKm} miniStatus={miniStatus} miniNavSvgMarkup={miniNavSvgMarkup} mapBearing={mapBearing} startTime={navigationStartTime} currentSpeed={liveLocation?.speed} />
 
       {/* ============ Right panel: analytics + selected ============ */}
       <AnalyticsPanel

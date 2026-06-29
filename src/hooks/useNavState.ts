@@ -59,6 +59,7 @@ export const useNavState = () => {
   const [navCustomEnd, setNavCustomEnd] = useState(() => initialNavSessionRef.current?.navCustomEnd ?? null);
   const [navCustomStart, setNavCustomStart] = useState(() => initialNavSessionRef.current?.navCustomStart ?? null);
   const [navScaleLabel, setNavScaleLabel] = useState<string>(DEFAULT_NAV_SCALE_LABEL);
+  const [navigationStartTime, setNavigationStartTime] = useState<number | null>(null);
 
   return {
     initialNavSessionRef,
@@ -88,5 +89,6 @@ export const useNavState = () => {
     navCustomEnd, setNavCustomEnd,
     navCustomStart, setNavCustomStart,
     navScaleLabel, setNavScaleLabel,
+    navigationStartTime, setNavigationStartTime,
   };
 };

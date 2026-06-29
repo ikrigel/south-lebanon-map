@@ -13,10 +13,9 @@ const DEFAULT_TILES: MiniWindowTile[] = [
   { id: 'bearing-current', label: 'Current Bearing', labelHe: 'כיוון נוכחי', icon: '📍', enabled: false, order: 7, category: 'navigation' },
   { id: 'sunrise', label: 'Sunrise', labelHe: 'זריחה', icon: '🌅', enabled: false, order: 8, category: 'advanced' },
   { id: 'sunset', label: 'Sunset', labelHe: 'שקיעה', icon: '🌆', enabled: false, order: 9, category: 'advanced' },
-  { id: 'waypoint-distance', label: 'Waypoint Distance', labelHe: 'מרחק לתחנה', icon: '🚩', enabled: false, order: 10, category: 'military' },
-  { id: 'elapsed-time', label: 'Elapsed Time', labelHe: 'זמן שחלף', icon: '⏳', enabled: false, order: 11, category: 'military' },
-  { id: 'eta', label: 'ETA', labelHe: 'שעת הגעה משוער', icon: '🎯', enabled: false, order: 12, category: 'advanced' },
-  { id: 'grid-coords', label: 'Grid Coords', labelHe: 'קואורדינטות רשת', icon: '📊', enabled: false, order: 13, category: 'military' },
+  { id: 'elapsed-time', label: 'Elapsed Time', labelHe: 'זמן שחלף', icon: '⏳', enabled: false, order: 10, category: 'military' },
+  { id: 'eta', label: 'ETA', labelHe: 'שעת הגעה משוער', icon: '🎯', enabled: false, order: 11, category: 'advanced' },
+  { id: 'grid-coords', label: 'Grid Coords', labelHe: 'קואורדינטות רשת', icon: '📊', enabled: false, order: 12, category: 'military' },
 ];
 
 const DEFAULT_PREFS: MiniWindowPreferences = {

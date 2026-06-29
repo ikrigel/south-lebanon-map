@@ -36,6 +36,7 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           lon: pos.coords.longitude,
           accuracy: pos.coords.accuracy,
           heading: pos.coords.heading,
+          speed: pos.coords.speed,
         });
         props.setLocationStatus('watching');
         if (!props.liveToastShownRef.current) {
