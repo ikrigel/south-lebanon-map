@@ -24,7 +24,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [longPressIndex, setLongPressIndex] = useState<number | null>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { prefs, toggleTile, setFontSize, getEnabledTiles, moveTile, resetToDefault } = useMiniWindowPreferences();
 
   // Calculate bearing to target
