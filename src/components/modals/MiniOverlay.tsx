@@ -73,10 +73,12 @@ export function MiniOverlay(props: MiniOverlayProps) {
   const remainingTime = useMemo(() => {
     if (!props.navigationRoute) return 0;
 
-    // If we have current speed and it's realistic (> 0.1 m/s), use it for calculation
-    if (props.currentSpeed && props.currentSpeed > 0.1) {
-      // Speed is in m/s, distance is in km, result should be in minutes
-      return Math.round((remainingDistance / props.currentSpeed) * 60);
+    // If we have current speed and it's realistic (> 0.5 km/h), use it for calculation
+    // Speed is now provided in km/h (calculated from GPS position deltas)
+    if (props.currentSpeed && props.currentSpeed > 0.5) {
+      // Speed is in km/h, distance is in km, result should be in minutes
+      const speedKmPerMin = props.currentSpeed / 60;
+      return Math.round(remainingDistance / speedKmPerMin);
     }
 
     // Fallback to estimated speed based on route type
@@ -193,9 +195,10 @@ export function MiniOverlay(props: MiniOverlayProps) {
           </span>
         );
       case 'speed':
-        const speedInKmh = props.currentSpeed ? Math.round(props.currentSpeed * 3.6) : null;
+        // Speed is provided in km/h (calculated from GPS position deltas)
+        const speedInKmh = props.currentSpeed ? Math.round(props.currentSpeed) : null;
         if (props.currentSpeed !== undefined && props.currentSpeed !== null) {
-          console.log(`[MiniOverlay] Speed: raw=${props.currentSpeed}m/s, converted=${speedInKmh}km/h`);
+          console.log(`[MiniOverlay] Speed: ${props.currentSpeed} km/h (calculated from GPS)`);
         }
         return (
           <span {...baseProps}>

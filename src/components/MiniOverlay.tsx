@@ -64,6 +64,10 @@ export const MiniOverlay: React.FC<{
           <b>{liveLocation ? `${liveLocation.lat.toFixed(5)}, ${liveLocation.lon.toFixed(5)}` : 'לא פעיל'}</b>
         </span>
         <span>
+          <small>מהירות</small>
+          <b>{liveLocation && liveLocation.speed !== null ? `${Math.round(liveLocation.speed)} קמ״ש` : '—'}</b>
+        </span>
+        <span>
           <small>הקלטה</small>
           <b>{recordedTrack.length ? `${recordedTrack.length} נק׳ · ${fmtKm(recordedKm)}` : 'לא פעילה'}</b>
         </span>

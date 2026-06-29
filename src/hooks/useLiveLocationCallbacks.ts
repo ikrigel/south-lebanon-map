@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { haversineKm } from '../util';
 
 interface UseLiveLocationCallbacksProps {
   liveLocation: { lat: number; lon: number } | null;
@@ -20,8 +21,15 @@ interface UseLiveLocationCallbacksProps {
   showToast: (msg: string) => void;
 }
 
+interface PreviousLocationSnapshot {
+  lat: number;
+  lon: number;
+  timestamp: number;
+}
+
 export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
   const resumedLiveRef = useRef(false);
+  const previousLocationRef = useRef<PreviousLocationSnapshot | null>(null);
 
   const beginLiveLocationWatch = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -31,12 +39,40 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
     }
     const id = navigator.geolocation.watchPosition(
       pos => {
+        const newLat = pos.coords.latitude;
+        const newLon = pos.coords.longitude;
+        const newTimestamp = Date.now();
+
+        // Calculate speed from position movement
+        let calculatedSpeed: number | null = null;
+        const prevLoc = previousLocationRef.current;
+
+        if (prevLoc) {
+          const distanceKm = haversineKm([prevLoc.lat, prevLoc.lon], [newLat, newLon]);
+          const timeElapsedHours = (newTimestamp - prevLoc.timestamp) / (1000 * 60 * 60);
+
+          // Only use calculated speed if movement is significant (> 5m) to avoid GPS jitter
+          if (distanceKm > 0.005 && timeElapsedHours > 0) {
+            calculatedSpeed = distanceKm / timeElapsedHours;
+          } else if (distanceKm <= 0.005) {
+            // Stationary
+            calculatedSpeed = 0;
+          }
+        }
+
+        // Update reference for next calculation
+        previousLocationRef.current = {
+          lat: newLat,
+          lon: newLon,
+          timestamp: newTimestamp,
+        };
+
         props.setLiveLocation({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
+          lat: newLat,
+          lon: newLon,
           accuracy: pos.coords.accuracy,
           heading: pos.coords.heading,
-          speed: pos.coords.speed,
+          speed: calculatedSpeed !== null ? calculatedSpeed : (pos.coords.speed ?? null),
         });
         props.setLocationStatus('watching');
         if (!props.liveToastShownRef.current) {
@@ -63,6 +99,7 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
       props.setLiveLocation(null);
       props.setLiveFollowDetached(false);
       props.liveToastShownRef.current = false;
+      previousLocationRef.current = null; // Reset speed calculation reference
       props.showToast('מיקום חי כובה');
       return;
     }
