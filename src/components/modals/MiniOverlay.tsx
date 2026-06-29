@@ -315,9 +315,9 @@ export function MiniOverlay(props: MiniOverlayProps) {
                   }
                 }}
               >
-                <div className="mini-drag-handle">
+                <div className="mini-drag-handle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '30px' }}>
                   {longPressIndex === idx ? (
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
                       <button
                         onClick={() => {
                           if (idx > 0) moveTile(idx, idx - 1);
@@ -328,8 +328,12 @@ export function MiniOverlay(props: MiniOverlayProps) {
                           border: 'none',
                           color: '#4da6ff',
                           cursor: 'pointer',
-                          fontSize: '16px',
-                          padding: '0 4px'
+                          fontSize: '14px',
+                          padding: '2px',
+                          lineHeight: '1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
                         title="Move up"
                       >
@@ -345,8 +349,12 @@ export function MiniOverlay(props: MiniOverlayProps) {
                           border: 'none',
                           color: '#4da6ff',
                           cursor: 'pointer',
-                          fontSize: '16px',
-                          padding: '0 4px'
+                          fontSize: '14px',
+                          padding: '2px',
+                          lineHeight: '1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
                         title="Move down"
                       >

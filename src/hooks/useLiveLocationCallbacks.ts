@@ -45,7 +45,7 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
         const newTimestamp = Date.now();
         const newAccuracy = pos.coords.accuracy ?? 0;
 
-        // SIMPLE SPEED CALCULATION: distance / time for every GPS update
+        // SPEED CALCULATION: Always calculate distance / time like test app
         let calculatedSpeed: number | null = null;
         const prevLoc = previousLocationRef.current;
 
@@ -56,21 +56,19 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           const timeElapsedSeconds = timeElapsedMs / 1000;
           const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
 
-          // SIMPLE: Always calculate speed = distance / time (in km/h)
-          // Ultra-low threshold (0.01m) to catch even tiny movements on phone
-          if (timeElapsedHours > 0 && distanceMeters > 0.01) {
+          // Always calculate: speed = distance / time (same as test app)
+          if (timeElapsedHours > 0) {
             calculatedSpeed = distanceKm / timeElapsedHours;
-            console.log(`[GPS Speed SIMPLE] ${distanceMeters.toFixed(2)}m in ${timeElapsedSeconds.toFixed(1)}s = ${calculatedSpeed.toFixed(2)} km/h`);
+            console.log(`[GPS Speed] ${distanceMeters.toFixed(1)}m in ${timeElapsedSeconds.toFixed(1)}s = ${calculatedSpeed.toFixed(2)} km/h`);
 
-            // Filter out GPS noise: reject if speed seems impossible (>300 km/h)
+            // Reject impossible speeds (>300 km/h = GPS noise)
             if (calculatedSpeed > 300) {
               console.log(`[GPS Speed] Rejected impossible speed ${calculatedSpeed.toFixed(2)} km/h`);
               calculatedSpeed = null;
             }
-          } else if (distanceMeters <= 0.01) {
-            // No movement
-            calculatedSpeed = 0;
-            console.log(`[GPS Speed] Stationary: ${distanceMeters.toFixed(3)}m < 0.01m threshold`);
+          } else {
+            // No time elapsed yet
+            calculatedSpeed = null;
           }
         }
 
