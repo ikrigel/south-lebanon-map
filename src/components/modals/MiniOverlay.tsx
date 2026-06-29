@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { fmtKm } from '../../util';
 import { useSunTimes } from '../../hooks/useSunTimes';
 import { useBearingInfo } from '../../hooks/useBearingInfo';
@@ -23,6 +23,8 @@ interface MiniOverlayProps {
 export function MiniOverlay(props: MiniOverlayProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [longPressIndex, setLongPressIndex] = useState<number | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { prefs, toggleTile, setFontSize, getEnabledTiles, moveTile, resetToDefault } = useMiniWindowPreferences();
 
   // Calculate bearing to target
@@ -301,18 +303,60 @@ export function MiniOverlay(props: MiniOverlayProps) {
                   }
                 }}
                 onDragEnd={() => setDraggedIndex(null)}
-                onTouchStart={() => setDraggedIndex(idx)}
-                onTouchMove={(e) => {
-                  if (draggedIndex !== null) e.preventDefault();
+                onTouchStart={() => {
+                  longPressTimerRef.current = setTimeout(() => {
+                    setLongPressIndex(idx);
+                  }, 500);
                 }}
-                onTouchEnd={(e) => {
-                  if (draggedIndex !== null && draggedIndex !== idx) {
-                    moveTile(draggedIndex, idx);
+                onTouchEnd={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
                   }
-                  setDraggedIndex(null);
                 }}
               >
-                <div className="mini-drag-handle">⋮⋮</div>
+                <div className="mini-drag-handle">
+                  {longPressIndex === idx ? (
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={() => {
+                          if (idx > 0) moveTile(idx, idx - 1);
+                          setLongPressIndex(null);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4da6ff',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '0 4px'
+                        }}
+                        title="Move up"
+                      >
+                        ⬆️
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (idx < prefs.tiles.length - 1) moveTile(idx, idx + 1);
+                          setLongPressIndex(null);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4da6ff',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '0 4px'
+                        }}
+                        title="Move down"
+                      >
+                        ⬇️
+                      </button>
+                    </div>
+                  ) : (
+                    '⋮⋮'
+                  )}
+                </div>
                 <label className="mini-tile-toggle">
                   <input
                     type="checkbox"

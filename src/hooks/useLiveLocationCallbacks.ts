@@ -104,7 +104,7 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
         props.setLocationStatus('error');
         props.showToast('לא ניתן לקרוא מיקום. בדוק הרשאת מיקום בדפדפן');
       },
-      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 15_000 }
+      { enableHighAccuracy: true, maximumAge: 1_000, timeout: 5_000 }
     );
     props.setWatchId(id);
     props.setLocationStatus('watching');
