@@ -149,6 +149,18 @@
     </div>
   </div>
 
+  <div class="container">
+    <h2>Real GPS Speed Test</h2>
+    <p style="color: #999; font-size: 14px;">Uses your actual device location. Walk or drive to see real speed.</p>
+    <button onclick="startRealGPSTest()">Start Real GPS Test</button>
+    <button onclick="stopRealGPSTest()">Stop Real GPS Test</button>
+    <div id="realGpsStatus" class="status calculating" style="display:none;"></div>
+    <div id="realGpsResult" style="display:none;">
+      <div class="speed-display" id="realGpsSpeed">0 קמ״ש</div>
+      <div class="small" id="realGpsDetails"></div>
+    </div>
+  </div>
+
   <script>
     let simulationInterval = null;
     let lastLat = 33.47503;
@@ -249,6 +261,94 @@
         simulationInterval = null;
       }
       document.getElementById('gpsStatus').style.display = 'none';
+    }
+
+    // Real GPS Speed Test
+    let realGpsWatch = null;
+    let lastRealGpsLat = null;
+    let lastRealGpsLon = null;
+    let lastRealGpsTime = null;
+
+    function startRealGPSTest() {
+      if (!navigator.geolocation) {
+        document.getElementById('realGpsStatus').textContent = '❌ Geolocation not supported';
+        document.getElementById('realGpsStatus').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('realGpsStatus').style.display = 'block';
+      document.getElementById('realGpsStatus').textContent = '📍 Waiting for GPS...';
+      document.getElementById('realGpsResult').style.display = 'block';
+
+      realGpsWatch = navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          const timestamp = Date.now();
+
+          document.getElementById('realGpsStatus').textContent = `📍 GPS locked (±${Math.round(accuracy)}m) - Move to calculate speed`;
+
+          if (lastRealGpsLat !== null && lastRealGpsLon !== null && lastRealGpsTime !== null) {
+            // Calculate distance using Haversine
+            const distanceKm = haversineKm(lastRealGpsLat, lastRealGpsLon, lat, lon);
+            const distanceMeters = distanceKm * 1000;
+            const timeElapsedMs = timestamp - lastRealGpsTime;
+            const timeElapsedSeconds = timeElapsedMs / 1000;
+            const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
+
+            // Calculate speed
+            let calculatedSpeed = null;
+            if (timeElapsedHours > 0 && distanceMeters > 0.1) {
+              calculatedSpeed = distanceKm / timeElapsedHours;
+
+              // Reject impossible speeds (GPS error)
+              if (calculatedSpeed > 300) {
+                calculatedSpeed = null;
+              }
+            } else if (distanceMeters <= 0.1) {
+              calculatedSpeed = 0;
+            }
+
+            // Display
+            const displaySpeed = calculatedSpeed !== null ? Math.round(calculatedSpeed) : '—';
+            document.getElementById('realGpsSpeed').textContent = `${displaySpeed} קמ״ש`;
+            document.getElementById('realGpsDetails').innerHTML = `
+              <strong>Real Movement Detected:</strong><br>
+              Latitude: ${lat.toFixed(5)}<br>
+              Longitude: ${lon.toFixed(5)}<br>
+              Distance: ${distanceMeters.toFixed(1)}m<br>
+              Time: ${timeElapsedSeconds.toFixed(1)}s<br>
+              Accuracy: ±${Math.round(accuracy)}m<br>
+              Calculated: ${calculatedSpeed !== null ? calculatedSpeed.toFixed(2) : 'N/A'} km/h
+            `;
+          }
+
+          lastRealGpsLat = lat;
+          lastRealGpsLon = lon;
+          lastRealGpsTime = timestamp;
+        },
+        (error) => {
+          document.getElementById('realGpsStatus').textContent = `❌ GPS Error: ${error.message}`;
+          document.getElementById('realGpsStatus').style.color = '#ff6666';
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        }
+      );
+    }
+
+    function stopRealGPSTest() {
+      if (realGpsWatch !== null) {
+        navigator.geolocation.clearWatch(realGpsWatch);
+        realGpsWatch = null;
+      }
+      document.getElementById('realGpsStatus').style.display = 'none';
+      lastRealGpsLat = null;
+      lastRealGpsLon = null;
+      lastRealGpsTime = null;
     }
   </script>
 </body>
