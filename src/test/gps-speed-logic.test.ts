@@ -194,11 +194,11 @@ describe('GPS Speed Calculation Logic', () => {
       expect(display).toBe('0 קמ״ש');
     });
 
-    it('should format 42.5 km/h as "42 קמ״ש"', () => {
+    it('should format 42.5 km/h as "43 קמ״ש"', () => {
       const speed: number | null = 42.5;
       const display = speed !== null ? `${Math.round(speed)} קמ״ש` : '—';
 
-      expect(display).toBe('42 קמ״ש');
+      expect(display).toBe('43 קמ״ש');
     });
   });
 });
