@@ -207,21 +207,15 @@ export function MiniOverlay(props: MiniOverlayProps) {
           </span>
         );
       case 'speed':
-        // Speed is provided in km/h (calculated from GPS position deltas)
-        console.log(`[MiniOverlay-Speed] props.currentSpeed:`, props.currentSpeed);
-        console.log(`[MiniOverlay-Speed] props.liveLocation:`, props.liveLocation);
-        console.log(`[MiniOverlay-Speed] props.liveLocation?.speed:`, props.liveLocation?.speed);
-
+        // Speed calculated from GPS position deltas (real GPS movement)
+        // Displays in Hebrew RTL format: קמ״ש (units) then number
         const speedValue = props.currentSpeed ?? props.liveLocation?.speed ?? null;
-        console.log(`[MiniOverlay-Speed] Final speedValue:`, speedValue);
-
         const speedInKmh = (speedValue !== null && speedValue !== undefined && speedValue >= 0) ? Math.round(speedValue) : null;
-        console.log(`[MiniOverlay-Speed] speedInKmh (rounded):`, speedInKmh);
 
         return (
           <span {...baseProps}>
             <small>⚡ מהירות</small>
-            <b>{speedInKmh !== null ? `${speedInKmh} קמ״ש` : '—'}</b>
+            <b>{speedInKmh !== null ? `קמ״ש ${speedInKmh}` : '—'}</b>
           </span>
         );
       case 'eta':
