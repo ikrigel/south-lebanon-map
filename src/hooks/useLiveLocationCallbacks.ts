@@ -57,19 +57,20 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           const timeElapsedHours = timeElapsedMs / (1000 * 60 * 60);
 
           // SIMPLE: Always calculate speed = distance / time (in km/h)
-          if (timeElapsedHours > 0 && distanceMeters > 0.1) {
+          // Ultra-low threshold (0.01m) to catch even tiny movements on phone
+          if (timeElapsedHours > 0 && distanceMeters > 0.01) {
             calculatedSpeed = distanceKm / timeElapsedHours;
-            console.log(`[GPS Speed SIMPLE] ${distanceMeters.toFixed(1)}m in ${timeElapsedSeconds.toFixed(1)}s = ${calculatedSpeed.toFixed(2)} km/h`);
+            console.log(`[GPS Speed SIMPLE] ${distanceMeters.toFixed(2)}m in ${timeElapsedSeconds.toFixed(1)}s = ${calculatedSpeed.toFixed(2)} km/h`);
 
             // Filter out GPS noise: reject if speed seems impossible (>300 km/h)
             if (calculatedSpeed > 300) {
               console.log(`[GPS Speed] Rejected impossible speed ${calculatedSpeed.toFixed(2)} km/h`);
               calculatedSpeed = null;
             }
-          } else if (distanceMeters <= 0.1) {
+          } else if (distanceMeters <= 0.01) {
             // No movement
             calculatedSpeed = 0;
-            console.log(`[GPS Speed] Stationary: ${distanceMeters.toFixed(2)}m < 0.1m threshold`);
+            console.log(`[GPS Speed] Stationary: ${distanceMeters.toFixed(3)}m < 0.01m threshold`);
           }
         }
 

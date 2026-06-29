@@ -35,7 +35,7 @@ export function AboutDrawer(props: AboutDrawerProps) {
               <a className="btn primary" href="https://portfolio-dusky-eight-77.vercel.app/" target="_blank" rel="noopener noreferrer" data-testid="link-about-portfolio">
                 פורטפוליו
               </a>
-              <a className="btn" href="/speed-test.html" target="_blank" rel="noopener noreferrer" data-testid="link-about-speed-test">
+              <a className="btn" href="https://south-lebanon-map.vercel.app/gps-speed-test.html" target="_blank" rel="noopener noreferrer" data-testid="link-about-speed-test">
                 🧪 בדיקת מהירות
               </a>
               <button className="btn" onClick={() => props.onShareApp().catch(() => undefined)} data-testid="button-about-share">

@@ -301,6 +301,16 @@ export function MiniOverlay(props: MiniOverlayProps) {
                   }
                 }}
                 onDragEnd={() => setDraggedIndex(null)}
+                onTouchStart={() => setDraggedIndex(idx)}
+                onTouchMove={(e) => {
+                  if (draggedIndex !== null) e.preventDefault();
+                }}
+                onTouchEnd={(e) => {
+                  if (draggedIndex !== null && draggedIndex !== idx) {
+                    moveTile(draggedIndex, idx);
+                  }
+                  setDraggedIndex(null);
+                }}
               >
                 <div className="mini-drag-handle">⋮⋮</div>
                 <label className="mini-tile-toggle">
