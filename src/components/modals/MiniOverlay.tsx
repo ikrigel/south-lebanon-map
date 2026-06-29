@@ -193,10 +193,14 @@ export function MiniOverlay(props: MiniOverlayProps) {
           </span>
         );
       case 'speed':
+        const speedInKmh = props.currentSpeed ? Math.round(props.currentSpeed * 3.6) : null;
+        if (props.currentSpeed !== undefined && props.currentSpeed !== null) {
+          console.log(`[MiniOverlay] Speed: raw=${props.currentSpeed}m/s, converted=${speedInKmh}km/h`);
+        }
         return (
           <span {...baseProps}>
             <small>⚡ מהירות</small>
-            <b>{props.currentSpeed ? `${Math.round(props.currentSpeed * 3.6)} קמ״ש` : '—'}</b>
+            <b>{speedInKmh ? `${speedInKmh} קמ״ש` : '—'}</b>
           </span>
         );
       case 'eta':
@@ -224,8 +228,8 @@ export function MiniOverlay(props: MiniOverlayProps) {
 
   return (
     <div
-      className={`mini-overlay ${prefs.rotateToHeading ? 'rotate-enabled' : ''}`}
-      style={{ transform: prefs.rotateToHeading ? `rotate(${props.mapBearing || 0}deg)` : 'none' }}
+      className="mini-overlay"
+      style={{ transform: 'none' }}
       data-testid="mini-overlay"
       role="dialog"
       aria-live="polite"
