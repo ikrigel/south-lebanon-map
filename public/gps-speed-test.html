@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real GPS Speed Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1620;
+      color: #fff;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .container {
+      background: #1a2332;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    h1 {
+      text-align: center;
+      color: #4da6ff;
+      margin-bottom: 20px;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-size: 16px;
+      font-weight: bold;
+      background: #2a3f4a;
+      color: #90ee90;
+    }
+    .error {
+      background: #3a1a1a;
+      color: #ff6666;
+    }
+    .speed-display {
+      font-size: 48px;
+      font-weight: bold;
+      color: #00ff00;
+      text-align: center;
+      padding: 30px;
+      background: #1a2a1a;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-family: monospace;
+    }
+    .details {
+      font-size: 12px;
+      color: #999;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      line-height: 1.6;
+    }
+    button {
+      background: #4da6ff;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      margin: 5px;
+    }
+    button:hover {
+      background: #66b3ff;
+    }
+    .info {
+      color: #999;
+      font-size: 13px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌍 Real GPS Speed Test</h1>
+
+  <div class="container">
+    <p class="info">This test uses your actual device GPS location to calculate real speed.</p>
+    <button onclick="startTest()">📍 Start GPS Test</button>
+    <button onclick="stopTest()">⏹️ Stop Test</button>
+
+    <div id="status" class="status" style="display:none;"></div>
+    <div id="result" style="display:none;">
+      <div class="speed-display" id="speedDisplay">0 קמ״ש</div>
+      <div class="details" id="details"></div>
+    </div>
+  </div>
+
+  <script>
+    let watchId = null;
+    let lastLat = null;
+    let lastLon = null;
+    let lastTime = null;
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const toRad = d => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function startTest() {
+      if (!navigator.geolocation) {
+        showError('❌ Geolocation not supported on this browser');
+        return;
+      }
+
+      document.getElementById('status').style.display = 'block';
+      document.getElementById('status').textContent = '⏳ Waiting for GPS...';
+      document.getElementById('result').style.display = 'block';
+
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const acc = pos.coords.accuracy;
+          const now = Date.now();
+
+          document.getElementById('status').textContent = `✅ GPS locked (±${Math.round(acc)}m) - Walk or drive to test`;
+
+          if (lastLat && lastLon && lastTime) {
+            const distKm = haversineKm(lastLat, lastLon, lat, lon);
+            const distM = distKm * 1000;
+            const timeS = (now - lastTime) / 1000;
+            const timeH = timeS / 3600;
+
+            let speed = null;
+            if (timeH > 0 && distM > 0.1) {
+              speed = distKm / timeH;
+              if (speed > 300) speed = null;
+            } else if (distM <= 0.1) {
+              speed = 0;
+            }
+
+            const displaySpeed = speed !== null ? Math.round(speed) : '—';
+            document.getElementById('speedDisplay').textContent = `${displaySpeed} קמ״ש`;
+            document.getElementById('details').textContent =
+              `Lat: ${lat.toFixed(5)}\nLon: ${lon.toFixed(5)}\nDistance: ${distM.toFixed(1)}m\nTime: ${timeS.toFixed(1)}s\nAccuracy: ±${Math.round(acc)}m\nCalculated Speed: ${speed !== null ? speed.toFixed(2) : 'N/A'} km/h`;
+          }
+
+          lastLat = lat;
+          lastLon = lon;
+          lastTime = now;
+        },
+        (err) => showError(`❌ GPS Error: ${err.message}`),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+
+    function stopTest() {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      document.getElementById('status').style.display = 'none';
+      lastLat = lastLon = lastTime = null;
+    }
+
+    function showError(msg) {
+      const status = document.getElementById('status');
+      status.textContent = msg;
+      status.classList.add('error');
+      status.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
