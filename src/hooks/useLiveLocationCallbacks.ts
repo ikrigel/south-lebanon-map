@@ -89,9 +89,9 @@ export function useLiveLocationCallbacks(props: UseLiveLocationCallbacksProps) {
           heading: pos.coords.heading,
           speed: finalSpeed,
         };
-        console.log(`[useLiveLocationCallbacks] Speed sources - calculated: ${calculatedSpeed}, device: ${deviceSpeed}, final: ${finalSpeed}`);
-        console.log(`[useLiveLocationCallbacks] Setting location:`, newLocState);
+        console.log(`[GPS] Speed: calculated=${calculatedSpeed?.toFixed(2)}, device=${deviceSpeed}, final=${finalSpeed?.toFixed(2)}`);
         props.setLiveLocation(newLocState);
+        console.log(`[GPS] Location updated with speed=${newLocState.speed}`);
         props.setLocationStatus('watching');
         if (!props.liveToastShownRef.current) {
           props.liveToastShownRef.current = true;

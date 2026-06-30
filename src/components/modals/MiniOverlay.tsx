@@ -213,6 +213,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
         // Displays in Hebrew RTL format: קמ״ש (units) then number
         const speedValue = props.currentSpeed ?? props.liveLocation?.speed ?? null;
         const speedInKmh = (speedValue !== null && speedValue !== undefined && speedValue >= 0) ? Math.round(speedValue) : null;
+        console.log(`[Speed Tile] currentSpeed=${props.currentSpeed}, liveLocation.speed=${props.liveLocation?.speed}, speedValue=${speedValue}, display=${speedInKmh}`);
 
         return (
           <span {...baseProps}>
