@@ -540,6 +540,8 @@ export default function App() {
     showToast(`המסלול “${route.name}” נטען למפה`);
   };
 
+  const previousLocationRef = useRef<{lat: number; lon: number; time: number} | null>(null);
+
   const beginLiveLocationWatch = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setLocationStatus('error');
@@ -548,11 +550,29 @@ export default function App() {
     }
     const id = navigator.geolocation.watchPosition(
       pos => {
+        const newLat = pos.coords.latitude;
+        const newLon = pos.coords.longitude;
+        const newTime = Date.now();
+
+        // Calculate speed from consecutive GPS updates
+        let calculatedSpeed: number | null = null;
+        const prevLoc = previousLocationRef.current;
+        if (prevLoc) {
+          const distKm = Math.sqrt(Math.pow(newLat - prevLoc.lat, 2) + Math.pow(newLon - prevLoc.lon, 2)) * 111; // Rough km estimate
+          const timeHours = (newTime - prevLoc.time) / (1000 * 60 * 60);
+          if (timeHours > 0) {
+            calculatedSpeed = distKm / timeHours;
+            if (calculatedSpeed > 300) calculatedSpeed = null;
+          }
+        }
+        previousLocationRef.current = { lat: newLat, lon: newLon, time: newTime };
+
         setLiveLocation({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
+          lat: newLat,
+          lon: newLon,
           accuracy: pos.coords.accuracy,
           heading: pos.coords.heading,
+          speed: calculatedSpeed,
         });
         setLocationStatus('watching');
         if (!liveToastShownRef.current) {
@@ -564,12 +584,12 @@ export default function App() {
         setLocationStatus('error');
         showToast('לא ניתן לקרוא מיקום. בדוק הרשאת מיקום בדפדפן');
       },
-      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 15_000 }
+      { enableHighAccuracy: true, maximumAge: 1_000, timeout: 5_000 }
     );
     setWatchId(id);
     setLocationStatus('watching');
     return id;
-  }, [liveToastShownRef, showToast]);
+  }, [liveToastShownRef, showToast, setLocationStatus, setLiveLocation, setWatchId]);
 
   const toggleLiveLocation = () => {
     if (watchId !== null) {
@@ -578,6 +598,7 @@ export default function App() {
       setLocationStatus('idle');
       setLiveLocation(null);
       setLiveFollowDetached(false);
+      previousLocationRef.current = null;
       liveToastShownRef.current = false;
       showToast('מיקום חי כובה');
       return;
