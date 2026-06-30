@@ -44,14 +44,35 @@ export const useRecording = ({
         setRecordedTrack([]);
         recordedTrackRef.current = [];
       }
+      // Store previous location for speed calculation
+      let lastRecordingPos: { lat: number; lon: number; time: number } | null = null;
+
       const id = navigator.geolocation.watchPosition(
         pos => {
           const point: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          const newLat = pos.coords.latitude;
+          const newLon = pos.coords.longitude;
+          const newTime = Date.now();
+
+          // Calculate speed from consecutive GPS updates
+          let recordingSpeed: number | null = null;
+          if (lastRecordingPos) {
+            const distKm = haversineKm([lastRecordingPos.lat, lastRecordingPos.lon], [newLat, newLon]);
+            const timeMs = newTime - lastRecordingPos.time;
+            const timeHours = timeMs / (1000 * 60 * 60);
+            if (timeHours > 0) {
+              recordingSpeed = distKm / timeHours;
+              if (recordingSpeed > 300) recordingSpeed = null; // Filter GPS noise
+            }
+          }
+          lastRecordingPos = { lat: newLat, lon: newLon, time: newTime };
+
           setLiveLocation({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
+            lat: newLat,
+            lon: newLon,
             accuracy: pos.coords.accuracy,
             heading: pos.coords.heading,
+            speed: recordingSpeed,
           });
           setRecordedTrack(prev => {
             const last = prev[prev.length - 1];
@@ -68,7 +89,7 @@ export const useRecording = ({
           setRecordingStatus('error');
           showToast('לא ניתן להקליט מיקום. בדוק הרשאת GPS בדפדפן');
         },
-        { enableHighAccuracy: true, maximumAge: 2_000, timeout: 15_000 }
+        { enableHighAccuracy: true, maximumAge: 1_000, timeout: 5_000 }
       );
       recordingWatchId.current = id;
       setRecordingWatchId(id);
