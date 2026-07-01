@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.9.1 (TILE ARROWS)<br/>
+            <strong>🔧 Version:</strong> 4.9.2 (TILE FOLLOW)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
