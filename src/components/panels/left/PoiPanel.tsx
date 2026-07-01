@@ -221,9 +221,9 @@ export const PoiPanel: React.FC<PoiPanelProps> = ({
                     onClick={() => {
                       setPoiName(poi.name);
                       setPoiDescription(poi.description || '');
-                      setPoiMarkerSize(poi.size || 'medium');
-                      setPoiMarkerShape(poi.shape || 'pin');
-                      setPoiMarkerColor(poi.color || 'blue');
+                      setPoiMarkerSize(poi.markerSize || 'md');
+                      setPoiMarkerShape(poi.markerShape || 'circle');
+                      setPoiMarkerColor(poi.markerColor || '#6aa7d8');
                       setPoiDraft({ lat: poi.lat, lon: poi.lon });
                       setAddPoiMode(true);
                       setCustomPois(customPois.filter(p => p.id !== poi.id));
