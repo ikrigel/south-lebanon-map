@@ -428,7 +428,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
             aria-label="מפת מיני ניווט"
             dangerouslySetInnerHTML={{ __html: props.miniNavSvgMarkup() }}
           />
-          <div className="mini-turn" data-testid="mini-turn-instruction">
+          <div className={`mini-turn font-${prefs.fontSize}`} data-testid="mini-turn-instruction">
             <small>הוראת פנייה במסלול</small>
             <b>{props.currentTurnInstruction?.text ?? 'אין הוראת פנייה זמינה'}</b>
           </div>
