@@ -383,3 +383,16 @@
   border-top: 1px solid var(--border);
   padding-top: 10px;
 }
+
+/* === Ghost Route Animation (during rerouting) === */
+@keyframes ghostRoutePulse {
+  0%   { opacity: 0.70; }
+  50%  { opacity: 0.30; }
+  100% { opacity: 0.70; }
+}
+
+.route-line-ghost {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: ghostRoutePulse 0.7s ease-in-out infinite;
+}

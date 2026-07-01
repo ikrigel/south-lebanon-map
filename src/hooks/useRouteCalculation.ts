@@ -8,6 +8,7 @@ export const useRouteCalculation = ({
   navEndId,
   navPoints,
   initialNavSessionRef,
+  recalcTrigger,
   setRoadRoute,
   setAlternativeRoute,
   setActiveRouteIndex,
@@ -20,6 +21,7 @@ export const useRouteCalculation = ({
   navEndId: string;
   navPoints: NavPoint[];
   initialNavSessionRef: React.MutableRefObject<any>;
+  recalcTrigger: number;
   setRoadRoute: (route: any) => void;
   setAlternativeRoute: (route: any) => void;
   setActiveRouteIndex: (index: number) => void;
@@ -41,7 +43,8 @@ export const useRouteCalculation = ({
     const isRestoredSession =
       navStartId === restoredStart &&
       navEndId === restoredEnd &&
-      !!initialNavSessionRef.current?.roadRoute;
+      !!initialNavSessionRef.current?.roadRoute &&
+      recalcTrigger === 0;
     if (isRestoredSession) {
       initialNavSessionRef.current = { ...initialNavSessionRef.current, roadRoute: undefined };
       return;
@@ -162,5 +165,5 @@ export const useRouteCalculation = ({
       driveCtrl.abort();
       footCtrl.abort();
     };
-  }, [navStartId, navEndId]);
+  }, [navStartId, navEndId, recalcTrigger]);
 };

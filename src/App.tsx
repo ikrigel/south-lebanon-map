@@ -44,6 +44,7 @@ import { useLiveLocation } from './hooks/useLiveLocation';
 import { useRouteOptions } from './hooks/useRouteOptions';
 import { useRecording } from './hooks/useRecording';
 import { useRouteCalculation } from './hooks/useRouteCalculation';
+import { useRouteDeviation } from './hooks/useRouteDeviation';
 import { usePersistence } from './hooks/usePersistence';
 import { useVoiceGuidance } from './hooks/useVoiceGuidance';
 import { useFilterState } from './hooks/useFilterState';
@@ -124,6 +125,10 @@ export default function App() {
   const [voiceGuidance, setVoiceGuidance] = useState<VoiceGuidanceMode>(() => loadLocalNavSession()?.voiceGuidance ?? 'off');
   const [voiceLanguage, setVoiceLanguage] = useState<VoiceLanguage>(() => loadLocalNavSession()?.voiceLanguage ?? 'he');
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'speaking' | 'unsupported'>('idle');
+
+  // Route recalculation on deviation
+  const [recalcTrigger, setRecalcTrigger] = useState(0);
+  const [ghostRoutePath, setGhostRoutePath] = useState<[number, number][] | null>(null);
 
   useEffect(() => {
     return () => {
@@ -321,6 +326,7 @@ export default function App() {
     navEndId,
     navPoints,
     initialNavSessionRef,
+    recalcTrigger,
     setRoadRoute,
     setAlternativeRoute,
     setActiveRouteIndex,
@@ -338,6 +344,30 @@ export default function App() {
     footRouteStatus: footRouteStatus,
     activeRouteId,
   });
+
+  // Handle route deviation: capture current route, then trigger recalc
+  const handleDeviation = useCallback(() => {
+    const currentPath = activeRouteOption?.path ?? null;
+    if (currentPath && currentPath.length >= 2) {
+      setGhostRoutePath(currentPath);
+    }
+    setRecalcTrigger(n => n + 1);
+    window.setTimeout(() => setGhostRoutePath(null), 2500);
+  }, [activeRouteOption]);
+
+  // Monitor for route deviation during GPS-led navigation
+  useRouteDeviation({
+    navPosition,
+    liveLocation,
+    activeRoutePath: activeRouteOption?.path ?? null,
+    activeRouteId,
+    navStartId,
+    navEndId,
+    onDeviation: handleDeviation,
+    onRouteTypeChange: setActiveRouteId,
+    showToast,
+  });
+
   const navFollowZoom = NAV_SCALES.find(s => s.label === navScaleLabel)?.zoom ?? 15;
   const routePointMatches = (q: string) => {
     const term = clean(q);
@@ -1233,6 +1263,7 @@ export default function App() {
           multiRouteDraft={multiRouteDraftPoints}
           activeMultiRoute={activeMultiRoute ? { points: activeMultiRoute.points, name: activeMultiRoute.name } : null}
           navFollowZoom={navFollowZoom}
+          ghostRoutePath={ghostRoutePath}
           onNavigateToPoint={navigateFromCurrentPosition}
           onSetNavStart={setMapPointAsNavStart}
         />

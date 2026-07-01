@@ -61,6 +61,7 @@ const MapView = forwardRef<MapHandle, MapProps>(function MapView(props, ref) {
     props.routeDisplayMode,
     props.liveLocation,
     props.visible.navLabels,
+    props.ghostRoutePath ?? null,
   );
 
   useMapLabels(layersRef, props.largeLabels, props.allLabels, props.visible);

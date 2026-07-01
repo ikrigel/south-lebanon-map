@@ -85,4 +85,5 @@ export type MapProps = {
   onNavigateToPoint?: (lat: number, lon: number, label: string) => void;
   onSetNavStart?: (lat: number, lon: number, label: string) => void;
   navFollowZoom?: number;
+  ghostRoutePath?: [number, number][] | null;
 };

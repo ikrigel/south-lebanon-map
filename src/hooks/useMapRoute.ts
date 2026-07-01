@@ -11,6 +11,7 @@ export const useMapRoute = (
   routeDisplayMode: string | undefined,
   liveLocation: any | null,
   navLabels: boolean,
+  ghostRoutePath: [number, number][] | null,
 ) => {
   useEffect(() => {
     const group = layersRef.current.route;
@@ -18,6 +19,20 @@ export const useMapRoute = (
     if (!group || !map) return;
     group.clearLayers();
     routePolylineRefs.current.clear();
+
+    // Ghost route: old path shown briefly during recalculation
+    if (ghostRoutePath && ghostRoutePath.length >= 2) {
+      const ghostPl = L.polyline(ghostRoutePath, {
+        color: '#e8933a',
+        weight: 6,
+        opacity: 0.65,
+        className: 'route-line-ghost',
+      }).addTo(group);
+      const ghostSvgEl = (ghostPl as any)._path as SVGPathElement | undefined;
+      if (ghostSvgEl) {
+        ghostSvgEl.setAttribute('stroke-dasharray', '28 4');
+      }
+    }
 
     if (!navigationRoute) return;
 
@@ -159,6 +174,7 @@ export const useMapRoute = (
     routeDisplayMode,
     Boolean(liveLocation),
     navLabels,
+    ghostRoutePath?.length ?? 0,
   ]);
 
   useEffect(() => {
