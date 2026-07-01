@@ -540,6 +540,17 @@ export default function App() {
     showToast(`המסלול “${route.name}” נטען למפה`);
   };
 
+  const startRouteNavigation = (route: SavedRoute) => {
+    loadSavedRoute(route);
+    setNavCustomStart({ lat: route.start.lat, lon: route.start.lon, label: route.start.label });
+    setNavCustomEnd({ lat: route.end.lat, lon: route.end.lon, label: route.end.label });
+    setNavStartId('custom-nav-start');
+    setNavEndId('custom-nav-end');
+    setNavigationStartTime(Date.now());
+    setRouteDisplayMode('road');
+    showToast(`ניווט לפי מסלול: ${route.name}`);
+  };
+
   const previousLocationRef = useRef<{lat: number; lon: number; time: number} | null>(null);
 
   const beginLiveLocationWatch = useCallback(() => {
@@ -1152,7 +1163,7 @@ export default function App() {
     navigationRoute, routeOptions, currentTurnInstruction, navPoints, startMatches, endMatches, showToast, beginLiveLocationWatch,
     toggleLiveLocation, downloadJson, testVoiceGuidance, liveToastShownRef, setLiveFollowDetached: mapDisplayState.setLiveFollowDetached,
     voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
-    loadSavedRoute, saveCurrentRoute, importRoutes,
+    loadSavedRoute, startRouteNavigation, saveCurrentRoute, importRoutes,
     ...multiRouteState,
     ...poiState,
     savePoi, importPois,

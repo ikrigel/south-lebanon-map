@@ -47,6 +47,7 @@ interface NavigationPanelProps {
   voiceStatus: 'idle' | 'speaking' | 'unsupported';
   currentTurnInstruction: TurnInstruction | null;
   navPoints: any[];
+  startRouteNavigation: (route: SavedRoute) => void;
   showToast: (msg: string) => void;
   beginLiveLocationWatch: () => void;
   toggleLiveLocation: () => void;
@@ -121,6 +122,7 @@ export function NavigationPanel(props: NavigationPanelProps) {
         downloadJson={props.downloadJson}
         importRoutes={props.importRoutes}
         loadSavedRoute={props.loadSavedRoute}
+        startRouteNavigation={props.startRouteNavigation}
         showToast={props.showToast}
       />
     </div>

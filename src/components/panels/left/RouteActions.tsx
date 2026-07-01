@@ -13,6 +13,7 @@ interface RouteActionsProps {
   downloadJson: (name: string, data: any) => void;
   importRoutes: (file: File | undefined) => Promise<void>;
   loadSavedRoute: (route: SavedRoute) => void;
+  startRouteNavigation: (route: SavedRoute) => void;
   showToast: (msg: string) => void;
 }
 
@@ -87,6 +88,18 @@ export function RouteActions(props: RouteActionsProps) {
                 <small>{fmtKm(route.km)}{route.durationMin ? ` · ${Math.round(route.durationMin)} דק׳` : ''}</small>
               </button>
               <div style={{ display: 'flex', gap: '2px' }}>
+                <button
+                  className="mini-delete"
+                  onClick={() => {
+                    props.startRouteNavigation(route);
+                  }}
+                  data-testid={`button-navigate-route-${route.id}`}
+                  aria-label={`ניווט ב${route.name}`}
+                  title="ניווט"
+                  style={{ color: '#4da6ff' }}
+                >
+                  🧭
+                </button>
                 <button
                   className="mini-delete"
                   onClick={() => {
