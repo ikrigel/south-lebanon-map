@@ -23,14 +23,14 @@ interface MiniOverlayProps {
 export function MiniOverlay(props: MiniOverlayProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [longPressIndex, setLongPressIndex] = useState<number | null>(null);
+  const [longPressTileId, setLongPressTileId] = useState<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { prefs, toggleTile, setFontSize, getEnabledTiles, moveTile, resetToDefault } = useMiniWindowPreferences();
 
   // Clear tile selection when closing settings
   useEffect(() => {
     if (!showSettings) {
-      setLongPressIndex(null);
+      setLongPressTileId(null);
     }
   }, [showSettings]);
 
@@ -302,10 +302,10 @@ export function MiniOverlay(props: MiniOverlayProps) {
                 onDragEnd={() => setDraggedIndex(null)}
                 onTouchStart={() => {
                   longPressTimerRef.current = setTimeout(() => {
-                    if (longPressIndex === idx) {
-                      setLongPressIndex(null);
+                    if (longPressTileId === tile.id) {
+                      setLongPressTileId(null);
                     } else {
-                      setLongPressIndex(idx);
+                      setLongPressTileId(tile.id);
                     }
                   }, 500);
                 }}
@@ -317,7 +317,7 @@ export function MiniOverlay(props: MiniOverlayProps) {
                 }}
               >
                 <div className="mini-drag-handle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '30px' }}>
-                  {longPressIndex === idx ? (
+                  {longPressTileId === tile.id ? (
                     <div style={{ display: 'flex', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
                       <button
                         onClick={() => {
