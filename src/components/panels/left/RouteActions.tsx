@@ -86,17 +86,34 @@ export function RouteActions(props: RouteActionsProps) {
                 <strong>{route.name}</strong>
                 <small>{fmtKm(route.km)}{route.durationMin ? ` · ${Math.round(route.durationMin)} דק׳` : ''}</small>
               </button>
-              <button
-                className="mini-delete"
-                onClick={() => {
-                  props.setSavedRoutes(prev => prev.filter(r => r.id !== route.id));
-                  props.showToast(`המסלול "${route.name}" נמחק מהרשימה המקומית`);
-                }}
-                data-testid={`button-delete-route-${route.id}`}
-                aria-label={`מחיקת ${route.name}`}
-              >
-                ×
-              </button>
+              <div style={{ display: 'flex', gap: '2px' }}>
+                <button
+                  className="mini-delete"
+                  onClick={() => {
+                    props.setRouteName(route.name);
+                    props.loadSavedRoute(route);
+                    props.setSavedRoutes(prev => prev.filter(r => r.id !== route.id));
+                    props.showToast(`עריכת מסלול: ${route.name}`);
+                  }}
+                  data-testid={`button-edit-route-${route.id}`}
+                  aria-label={`עריכת ${route.name}`}
+                  title="עריכה"
+                >
+                  ✎
+                </button>
+                <button
+                  className="mini-delete"
+                  onClick={() => {
+                    props.setSavedRoutes(prev => prev.filter(r => r.id !== route.id));
+                    props.showToast(`המסלול "${route.name}" נמחק מהרשימה המקומית`);
+                  }}
+                  data-testid={`button-delete-route-${route.id}`}
+                  aria-label={`מחיקת ${route.name}`}
+                  title="מחיקה"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           ))}
         </div>

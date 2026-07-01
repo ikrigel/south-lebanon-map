@@ -215,17 +215,39 @@ export const PoiPanel: React.FC<PoiPanelProps> = ({
                   <strong>{poi.name}</strong>
                   <small>{poi.description || `${poi.lat.toFixed(4)}, ${poi.lon.toFixed(4)}`}</small>
                 </button>
-                <button
-                  className="mini-delete"
-                  onClick={() => {
-                    setCustomPois(customPois.filter(p => p.id !== poi.id));
-                    showToast(`נקודת העניין "${poi.name}" נמחקה`);
-                  }}
-                  data-testid={`button-delete-poi-${poi.id}`}
-                  aria-label={`מחיקת ${poi.name}`}
-                >
-                  ×
-                </button>
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  <button
+                    className="mini-delete"
+                    onClick={() => {
+                      setPoiName(poi.name);
+                      setPoiDescription(poi.description || '');
+                      setPoiMarkerSize(poi.size || 'medium');
+                      setPoiMarkerShape(poi.shape || 'pin');
+                      setPoiMarkerColor(poi.color || 'blue');
+                      setPoiDraft({ lat: poi.lat, lon: poi.lon });
+                      setAddPoiMode(true);
+                      setCustomPois(customPois.filter(p => p.id !== poi.id));
+                      showToast(`עריכת נקודה: ${poi.name}`);
+                    }}
+                    data-testid={`button-edit-poi-${poi.id}`}
+                    aria-label={`עריכת ${poi.name}`}
+                    title="עריכה"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="mini-delete"
+                    onClick={() => {
+                      setCustomPois(customPois.filter(p => p.id !== poi.id));
+                      showToast(`נקודת העניין "${poi.name}" נמחקה`);
+                    }}
+                    data-testid={`button-delete-poi-${poi.id}`}
+                    aria-label={`מחיקת ${poi.name}`}
+                    title="מחיקה"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))}
           </div>
