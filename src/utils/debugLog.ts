@@ -179,7 +179,7 @@ export function initDebugLogging() {
 ╔════════════════════════════════════════════════════════════╗
 ║           📋 DEBUG LOGGING SYSTEM INITIALIZED              ║
 ╠════════════════════════════════════════════════════════════╣
-║  🔧 Version: 4.8.8 (TURN RESPONSIVE)                        ║
+║  🔧 Version: 4.8.9 (EDIT POI/ROUTE)                        ║
 ║  Status: ${config.enabled ? '✓ ENABLED' : '✗ DISABLED'}                                      ║
 ║  Level:  ${config.level}                                          ║
 ║                                                            ║

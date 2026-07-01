@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 4.8.8 (TURN RESPONSIVE)<br/>
+            <strong>🔧 Version:</strong> 4.8.9 (EDIT POI/ROUTE)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
