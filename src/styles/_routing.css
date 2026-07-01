@@ -396,3 +396,84 @@
   stroke-linejoin: round;
   animation: ghostRoutePulse 0.7s ease-in-out infinite;
 }
+
+/* === Saved Routes — Mobile Responsive === */
+.saved-routes {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.saved-route {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-2);
+}
+
+.saved-route button:first-child {
+  text-align: right;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.saved-route button:first-child strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.saved-route button:first-child small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.saved-route > div {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.saved-route .mini-delete {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.saved-route .mini-delete:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+/* Mobile: Stack buttons vertically if screen too narrow */
+@media (max-width: 420px) {
+  .saved-route {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-route > div {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
