@@ -27,6 +27,13 @@ export function MiniOverlay(props: MiniOverlayProps) {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { prefs, toggleTile, setFontSize, getEnabledTiles, moveTile, resetToDefault } = useMiniWindowPreferences();
 
+  // Clear tile selection when closing settings
+  useEffect(() => {
+    if (!showSettings) {
+      setLongPressIndex(null);
+    }
+  }, [showSettings]);
+
   // Calculate bearing to target
   const bearingInfo = useBearingInfo(
     props.liveLocation?.lat ?? null,
@@ -295,7 +302,11 @@ export function MiniOverlay(props: MiniOverlayProps) {
                 onDragEnd={() => setDraggedIndex(null)}
                 onTouchStart={() => {
                   longPressTimerRef.current = setTimeout(() => {
-                    setLongPressIndex(idx);
+                    if (longPressIndex === idx) {
+                      setLongPressIndex(null);
+                    } else {
+                      setLongPressIndex(idx);
+                    }
                   }, 500);
                 }}
                 onTouchEnd={() => {
@@ -311,7 +322,6 @@ export function MiniOverlay(props: MiniOverlayProps) {
                       <button
                         onClick={() => {
                           if (idx > 0) moveTile(idx, idx - 1);
-                          setLongPressIndex(null);
                         }}
                         style={{
                           background: 'none',
@@ -332,7 +342,6 @@ export function MiniOverlay(props: MiniOverlayProps) {
                       <button
                         onClick={() => {
                           if (idx < prefs.tiles.length - 1) moveTile(idx, idx + 1);
-                          setLongPressIndex(null);
                         }}
                         style={{
                           background: 'none',
