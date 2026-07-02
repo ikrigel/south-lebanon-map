@@ -54,46 +54,37 @@ export const useMapLiveLocation = (
       .addTo(group);
   }, [liveLocation]);
 
-  // Keep map centered on live location ONLY during active navigation (not when just browsing)
+  // Keep map centered on live location (in both navigation AND browsing modes)
+  // Unless user has manually panned the map (detached = true)
   useEffect(() => {
     const map = mapRef.current;
 
-    // DIAGNOSTIC LOGGING - Check each condition
-    const hasMap = !!map;
-    const hasLiveLocation = !!liveLocation;
-    const isDetached = liveFollowDetachedRef.current;
-    const hasRoute = !!navigationRoute;
-
-    console.log(
-      `[MAP PAN EFFECT] map=${hasMap ? '✓' : '✗'}, liveLocation=${hasLiveLocation ? '✓' : '✗'}, ` +
-      `detached=${isDetached ? '✓' : '✗'}, route=${hasRoute ? '✓' : '✗'}`
-    );
-
-    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) {
-      console.log(`[MAP PAN EFFECT] ⏭ Skipping: condition failed`);
+    if (!map || !liveLocation || liveFollowDetachedRef.current) {
       return;
     }
 
-    // Only pan to GPS location during active navigation with route
+    // Auto-follow GPS in BOTH modes: navigation + browsing
     console.log(
-      `[MAP PAN EFFECT] ✅ Panning to live location: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`
+      `[MAP PAN EFFECT] ✅ Following GPS: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`
     );
     map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
-  }, [liveLocation, navigationRoute]);
+  }, [liveLocation]);
 
-  // CRITICAL FIX: When navigationRoute becomes available, immediately pan to live location if GPS is active
-  // This handles the race condition where navigationRoute is set BEFORE liveLocation updates
+  // Detect user map drag (pan/zoom by user gesture) → set detached flag
+  // This lets user browse freely without GPS auto-following
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !liveLocation || liveFollowDetachedRef.current || !navigationRoute) {
-      return;
-    }
+    if (!map) return;
 
-    console.log(
-      `[MAP PAN NAV-ROUTE-CHANGE] ✅ Navigation route changed, panning to live location: lat=${liveLocation.lat.toFixed(4)}, lon=${liveLocation.lon.toFixed(4)}`
-    );
-    map.panTo([liveLocation.lat, liveLocation.lon], { animate: false });
-  }, [navigationRoute]); // ONLY depend on navigationRoute, not liveLocation
+    const handleDragStart = () => {
+      console.log('[MAP DRAG] User started dragging map');
+      liveFollowDetachedRef.current = true;
+      onLiveFollowDetachedChange(true);
+    };
+
+    map.on('dragstart', handleDragStart);
+    return () => map.off('dragstart', handleDragStart);
+  }, [onLiveFollowDetachedChange]);
 
   // Apply navigation zoom scale when selected
   useEffect(() => {
