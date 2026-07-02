@@ -491,7 +491,11 @@ export default function App() {
   }, [multiRouteDraftPoints]);
 
   const saveMultiRoute = () => {
-    if (multiRouteDraftPoints.length < 2) return;
+    console.log(`[SAVE MULTI-ROUTE] ✅ Button clicked! Points: ${multiRouteDraftPoints.length}, Name: "${multiRouteName}"`);
+    if (multiRouteDraftPoints.length < 2) {
+      console.log(`[SAVE MULTI-ROUTE] ⏭ Skipping: only ${multiRouteDraftPoints.length} points (need 2+)`);
+      return;
+    }
     const name = safeText(multiRouteName, `מסלול ${savedMultiRoutes.length + 1}`) || `מסלול ${savedMultiRoutes.length + 1}`;
     const route: MultiPointRoute = {
       id: `multi-${Date.now()}`,
@@ -503,12 +507,14 @@ export default function App() {
       totalKm: multiRouteTotalKm,
       createdAt: new Date().toISOString(),
     };
+    console.log(`[SAVE MULTI-ROUTE] 💾 Saving route: ${name} (${multiRouteDraftPoints.length} points, ${multiRouteTotalKm.toFixed(1)}km)`);
     setSavedMultiRoutes(prev => [route, ...prev]);
     setActiveMultiRoute(route);
     setMultiRouteDraftPoints([]);
     setMultiRouteName('');
     setMultiRouteDescription('');
     setMultiRouteBuildMode(false);
+    console.log(`[SAVE MULTI-ROUTE] ✅ Route saved! Total saved: ${savedMultiRoutes.length + 1}`);
     showToast(`המסלול "${route.name}" נשמר`);
   };
 
