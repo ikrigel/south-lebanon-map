@@ -1201,6 +1201,7 @@ export default function App() {
     voiceGuidance, setVoiceGuidance, setVoiceMode, voiceLanguage, setVoiceLanguage, voiceStatus,
     loadSavedRoute, startRouteNavigation, saveCurrentRoute, importRoutes,
     ...multiRouteState,
+    saveMultiRoute, loadMultiRoute, exportMultiRoute,
     ...poiState,
     savePoi, importPois,
   };
