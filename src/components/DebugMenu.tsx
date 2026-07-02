@@ -61,7 +61,7 @@ export function DebugMenu() {
 
         <div className="debug-modal-body">
           <div className="debug-status-info">
-            <strong>🔧 Version:</strong> 5.0.1 (AUTO-REROUTE + DOCS)<br/>
+            <strong>🔧 Version:</strong> 5.0.5 (MULTI-ROUTE SAVE FIX)<br/>
             <strong>Status:</strong> {isEnabled ? '✓ ENABLED' : '✗ DISABLED'}<br/>
             <strong>Level:</strong> {level}
           </div>
